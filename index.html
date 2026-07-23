@@ -1,0 +1,1597 @@
+<!DOCTYPE html>
+<html lang="th">
+
+<head>
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <title>Time4Med Dashboard</title>
+
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+
+    <!-- =========================
+         เมนูด้านข้าง
+    ========================== -->
+
+    <aside class="sidebar">
+
+        
+        <button
+            id="sidebarToggle"
+            class="sidebar-toggle"
+            type="button"
+            aria-label="พับหรือกางเมนูด้านข้าง"
+            aria-expanded="true"
+        >
+            ☰
+        </button>
+
+<div class="sidebar-brand">
+
+            <img
+                src="logo.png"
+                alt="Time4Med"
+                class="sidebar-logo"
+            >
+
+            <div class="sidebar-brand-text">
+
+                <strong>
+                    Time4Med
+                </strong>
+
+                <span>
+                    Medication Care
+                </span>
+
+            </div>
+
+        </div>
+
+
+        <nav class="sidebar-navigation" aria-label="เมนูหลัก">
+
+            <a
+                class="sidebar-link active"
+                href="#dashboard"
+            >
+                <span class="sidebar-link-icon">⌂</span>
+
+                <span class="sidebar-link-text">
+                    <strong>แดชบอร์ด</strong>
+                    <small>Dashboard</small>
+                </span>
+            </a>
+
+
+            <a
+                class="sidebar-link"
+                href="#devices"
+            >
+                <span class="sidebar-link-icon">⚙</span>
+
+                <span class="sidebar-link-text">
+                    <strong>อุปกรณ์</strong>
+                    <small>Devices</small>
+                </span>
+            </a>
+
+
+            <a
+                class="sidebar-link"
+                href="#medication"
+            >
+                <span class="sidebar-link-icon">💊</span>
+
+                <span class="sidebar-link-text">
+                    <strong>รายการยา</strong>
+                    <small>Medication</small>
+                </span>
+            </a>
+
+
+            <a
+                class="sidebar-link"
+                href="#analytics"
+            >
+                <span class="sidebar-link-icon">▥</span>
+
+                <span class="sidebar-link-text">
+                    <strong>สถิติ</strong>
+                    <small>Analytics</small>
+                </span>
+            </a>
+
+
+
+            <a
+                class="sidebar-link"
+                href="#activity"
+            >
+                <span class="sidebar-link-icon">◷</span>
+
+                <span class="sidebar-link-text">
+                    <strong>กิจกรรม</strong>
+                    <small>Timeline</small>
+                </span>
+            </a>
+
+
+
+            <a
+                class="sidebar-link"
+                href="#camera"
+            >
+                <span class="sidebar-link-icon">▣</span>
+
+                <span class="sidebar-link-text">
+                    <strong>กล้อง</strong>
+                    <small>Camera</small>
+                </span>
+            </a>
+
+
+            <a
+                class="sidebar-link"
+                href="#history"
+            >
+                <span class="sidebar-link-icon">◷</span>
+
+                <span class="sidebar-link-text">
+                    <strong>ประวัติ</strong>
+                    <small>History</small>
+                </span>
+            </a>
+
+        </nav>
+
+
+        <div class="sidebar-user">
+
+            <div class="sidebar-avatar">
+                A
+            </div>
+
+            <div class="sidebar-user-text">
+
+                <strong>
+                    Admin
+                </strong>
+
+                <span>
+                    ผู้ดูแลระบบ
+                </span>
+
+            </div>
+
+            <span
+                class="sidebar-user-status"
+                title="ออนไลน์"
+            ></span>
+
+        </div>
+
+    </aside>
+
+
+    <div class="app-content">
+
+
+    <!-- =========================
+         ส่วนหัวเว็บไซต์
+    ========================== -->
+
+    <header class="main-header">
+
+        <div class="header-decoration"></div>
+
+        <div class="logo-area">
+
+            <img
+                src="logo.png"
+                alt="Time4Med Logo"
+                class="logo"
+            >
+
+        </div>
+
+        <div class="header-divider"></div>
+
+        <div class="clock-area">
+
+            <div class="header-status-row">
+
+                <div class="wifi-status">
+
+                    <span class="status-dot"></span>
+
+                    <span>Wi-Fi Connected</span>
+
+                </div>
+
+                <div class="user-profile">
+
+                    <div class="user-avatar">
+                        A
+                    </div>
+
+                    <div class="user-details">
+
+                        <strong>Admin</strong>
+
+                        <span>ผู้ดูแลระบบ</span>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+            <div class="time-row">
+
+                <span class="clock-icon">
+                    ◷
+                </span>
+
+                <p id="currentTime">
+                    00:00:00
+                </p>
+
+            </div>
+
+            <div class="date-row">
+
+                <span class="date-icon">
+                    ▣
+                </span>
+
+                <p id="currentDate">
+                    กำลังโหลดวันที่...
+                </p>
+
+            </div>
+
+        </div>
+
+    
+                <div class="notification-center">
+
+                    <button
+                        id="notificationButton"
+                        class="notification-button"
+                        type="button"
+                        aria-label="เปิดศูนย์การแจ้งเตือน"
+                        aria-expanded="false"
+                    >
+                        <span class="notification-bell">
+                            🔔
+                        </span>
+
+                        <span
+                            id="notificationCount"
+                            class="notification-count"
+                        >
+                            4
+                        </span>
+                    </button>
+
+
+                    <div
+                        id="notificationPanel"
+                        class="notification-panel"
+                        aria-hidden="true"
+                    >
+
+                        <div class="notification-panel-header">
+
+                            <div>
+
+                                <h3>
+                                    การแจ้งเตือน
+                                </h3>
+
+                                <p>
+                                    Notification Center
+                                </p>
+
+                            </div>
+
+                            <button
+                                id="markAllReadButton"
+                                class="mark-all-read-button"
+                                type="button"
+                            >
+                                อ่านทั้งหมด
+                            </button>
+
+                        </div>
+
+
+                        <div
+                            id="notificationList"
+                            class="notification-list"
+                        >
+
+                            <article class="notification-item unread">
+
+                                <div class="notification-item-icon reminder">
+                                    💊
+                                </div>
+
+                                <div class="notification-item-content">
+
+                                    <strong>
+                                        ถึงเวลารับประทานยา
+                                    </strong>
+
+                                    <p>
+                                        ยาหลังอาหารเช้า เวลา 08:30 น.
+                                    </p>
+
+                                    <time>
+                                        2 นาทีที่แล้ว
+                                    </time>
+
+                                </div>
+
+                                <span class="notification-unread-dot"></span>
+
+                            </article>
+
+
+                            <article class="notification-item unread">
+
+                                <div class="notification-item-icon success">
+                                    🔓
+                                </div>
+
+                                <div class="notification-item-content">
+
+                                    <strong>
+                                        ปลดล็อกตู้ยาแล้ว
+                                    </strong>
+
+                                    <p>
+                                        ระบบเปิดกลอนสำเร็จ
+                                    </p>
+
+                                    <time>
+                                        3 นาทีที่แล้ว
+                                    </time>
+
+                                </div>
+
+                                <span class="notification-unread-dot"></span>
+
+                            </article>
+
+
+                            <article class="notification-item unread">
+
+                                <div class="notification-item-icon camera">
+                                    📷
+                                </div>
+
+                                <div class="notification-item-content">
+
+                                    <strong>
+                                        บันทึกภาพสำเร็จ
+                                    </strong>
+
+                                    <p>
+                                        กล้องบันทึกภาพหลักฐานแล้ว
+                                    </p>
+
+                                    <time>
+                                        4 นาทีที่แล้ว
+                                    </time>
+
+                                </div>
+
+                                <span class="notification-unread-dot"></span>
+
+                            </article>
+
+
+                            <article class="notification-item unread">
+
+                                <div class="notification-item-icon device">
+                                    📡
+                                </div>
+
+                                <div class="notification-item-content">
+
+                                    <strong>
+                                        ESP32-S3 ออนไลน์
+                                    </strong>
+
+                                    <p>
+                                        อุปกรณ์เชื่อมต่อระบบเรียบร้อย
+                                    </p>
+
+                                    <time>
+                                        10 นาทีที่แล้ว
+                                    </time>
+
+                                </div>
+
+                                <span class="notification-unread-dot"></span>
+
+                            </article>
+
+                        </div>
+
+
+                        <div class="notification-panel-footer">
+
+                            <button
+                                class="view-all-notification-button"
+                                type="button"
+                            >
+                                ดูประวัติทั้งหมด
+                            </button>
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+</header>
+
+
+    <!-- =========================
+         เนื้อหาหลัก
+    ========================== -->
+
+    <main id="dashboard" class="dashboard-container">
+
+        <!-- สถิติด้านบน -->
+
+        <section class="summary-grid">
+
+            <article class="summary-card">
+
+                <div class="summary-icon blue-icon">
+                    💊
+                </div>
+
+                <div>
+
+                    <p class="summary-label">
+                        รายการยาทั้งหมด
+                    </p>
+
+                    <h2 id="totalMedicineCount">
+                        0
+                    </h2>
+
+                </div>
+
+            </article>
+
+
+            <article class="summary-card">
+
+                <div class="summary-icon green-icon">
+                    ✓
+                </div>
+
+                <div>
+
+                    <p class="summary-label">
+                        รับประทานแล้ว
+                    </p>
+
+                    <h2 id="takenMedicineCount">
+                        0
+                    </h2>
+
+                </div>
+
+            </article>
+
+
+            <article class="summary-card">
+
+                <div class="summary-icon orange-icon">
+                    ◷
+                </div>
+
+                <div>
+
+                    <p class="summary-label">
+                        รอรับประทาน
+                    </p>
+
+                    <h2 id="waitingMedicineCount">
+                        0
+                    </h2>
+
+                </div>
+
+            </article>
+
+
+            <article class="summary-card">
+
+                <div class="summary-icon purple-icon">
+                    🔔
+                </div>
+
+                <div>
+
+                    <p class="summary-label">
+                        แจ้งเตือนล่าสุด
+                    </p>
+
+                    <h2 id="latestAlert">
+                        -
+                    </h2>
+
+                </div>
+
+            </article>
+
+        </section>
+
+
+        <!-- แถวสถานะและควบคุม -->
+
+        <section id="devices" class="dashboard-row section-anchor">
+
+            <!-- สถานะระบบ -->
+
+            <article class="panel-card system-panel">
+
+                <div class="panel-heading">
+
+                    <div class="heading-left">
+
+                        <span class="heading-icon">
+                            🛡
+                        </span>
+
+                        <h2>
+                            สถานะระบบ
+                        </h2>
+
+                    </div>
+
+                    <span class="online-badge">
+                        ● ออนไลน์
+                    </span>
+
+                </div>
+
+
+                <div class="system-status-grid">
+
+                    <div class="device-status lock-status">
+
+                        <div class="device-icon">
+                            🔒
+                        </div>
+
+                        <p class="device-label">
+                            สถานะกลอน
+                        </p>
+
+                        <strong id="doorStatus">
+                            ล็อกอยู่
+                        </strong>
+
+                    </div>
+
+
+                    <div class="device-status camera-status">
+
+                        <div class="device-icon">
+                            📷
+                        </div>
+
+                        <p class="device-label">
+                            กล้อง
+                        </p>
+
+                        <strong id="cameraStatus">
+                            พร้อมใช้งาน
+                        </strong>
+
+                    </div>
+
+
+                    <div class="device-status sound-status">
+
+                        <div class="device-icon">
+                            🔊
+                        </div>
+
+                        <p class="device-label">
+                            ระบบเสียง
+                        </p>
+
+                        <strong id="soundStatus">
+                            พร้อมใช้งาน
+                        </strong>
+
+                    </div>
+
+                </div>
+
+            </article>
+
+
+            <!-- ควบคุมอุปกรณ์ -->
+
+            <article class="panel-card control-panel">
+
+                <div class="panel-heading">
+
+                    <div class="heading-left">
+
+                        <span class="heading-icon">
+                            ⚙
+                        </span>
+
+                        <h2>
+                            ควบคุมอุปกรณ์
+                        </h2>
+
+                    </div>
+
+                </div>
+
+
+                <div class="control-grid">
+
+                    <button
+                        id="unlockBtn"
+                        class="control-button unlock-button"
+                        type="button"
+                    >
+
+                        <span class="button-icon">
+                            🔓
+                        </span>
+
+                        <span>
+                            เปิดกลอน
+                        </span>
+
+                    </button>
+
+
+                    <button
+                        id="lockBtn"
+                        class="control-button lock-button"
+                        type="button"
+                    >
+
+                        <span class="button-icon">
+                            🔒
+                        </span>
+
+                        <span>
+                            ล็อกกลอน
+                        </span>
+
+                    </button>
+
+
+                    <button
+                        id="captureBtn"
+                        class="control-button camera-button"
+                        type="button"
+                    >
+
+                        <span class="button-icon">
+                            📷
+                        </span>
+
+                        <span>
+                            ถ่ายภาพ
+                        </span>
+
+                    </button>
+
+
+                    <button
+                        id="soundBtn"
+                        class="control-button sound-button"
+                        type="button"
+                    >
+
+                        <span class="button-icon">
+                            🔊
+                        </span>
+
+                        <span>
+                            เล่นเสียง
+                        </span>
+
+                    </button>
+
+                </div>
+
+
+                <p
+                    id="controlMessage"
+                    class="information-message"
+                >
+                    ⓘ ระบบพร้อมรับคำสั่ง
+                </p>
+
+            </article>
+
+        </section>
+
+
+        <!-- แถวเพิ่มยาและรายการยา -->
+
+        <section id="medication" class="dashboard-row section-anchor">
+
+            <!-- เพิ่มรายการยา -->
+
+            <article class="panel-card medicine-form-panel">
+
+                <div class="panel-heading">
+
+                    <div class="heading-left">
+
+                        <span class="heading-icon add-icon">
+                            +
+                        </span>
+
+                        <h2>
+                            เพิ่มรายการยา
+                        </h2>
+
+                    </div>
+
+                </div>
+
+
+                <div class="medicine-form">
+
+                    <div class="form-group">
+
+                        <label for="medicineName">
+                            ชื่อยา
+                        </label>
+
+                        <input
+                            id="medicineName"
+                            type="text"
+                            placeholder="เช่น Paracetamol"
+                            autocomplete="off"
+                        >
+
+                    </div>
+
+
+                    <div class="form-group">
+
+                        <label for="medicineTime">
+                            เวลารับประทานยา
+                        </label>
+
+                        <input
+                            id="medicineTime"
+                            type="time"
+                        >
+
+                    </div>
+
+
+                    <div class="form-group">
+
+                        <label for="medicineAmount">
+                            จำนวนยา (เม็ด)
+                        </label>
+
+                        <input
+                            id="medicineAmount"
+                            type="number"
+                            min="1"
+                            value="1"
+                        >
+
+                    </div>
+
+
+                    <button
+                        id="addMedicineBtn"
+                        class="add-medicine-button"
+                        type="button"
+                    >
+                        ＋ เพิ่มรายการยา
+                    </button>
+
+                </div>
+
+
+                <p
+                    id="formMessage"
+                    class="information-message form-message"
+                >
+                    ⓘ กรอกข้อมูลให้ครบถ้วนแล้วกดเพิ่มรายการยา
+                </p>
+
+            </article>
+
+
+            <!-- รายการยา -->
+
+            <article class="panel-card medicine-list-panel">
+
+                <div class="panel-heading">
+
+                    <div class="heading-left">
+
+                        <span class="heading-icon">
+                            💊
+                        </span>
+
+                        <h2>
+                            รายการยา
+                        </h2>
+
+                    </div>
+
+                    <span
+                        id="medicineCount"
+                        class="medicine-count"
+                    >
+                        0 รายการ
+                    </span>
+
+                </div>
+
+
+                <div
+                    id="medicineList"
+                    class="medicine-list"
+                >
+                    <!-- JavaScript สร้างรายการตรงนี้ -->
+                </div>
+
+            </article>
+
+        </section>
+
+
+        <!-- =========================
+             ตัวอย่างภาพจากกล้อง
+        ========================== -->
+
+        
+        <!-- =========================
+             สถิติการรับประทานยา
+        ========================== -->
+
+        <section
+            id="analytics"
+            class="analytics-section section-anchor"
+        >
+
+            <article class="panel-card analytics-panel">
+
+                <div class="panel-heading analytics-heading">
+
+                    <div class="heading-left">
+
+                        <span class="heading-icon">
+                            📊
+                        </span>
+
+                        <div>
+
+                            <h2>
+                                สถิติการรับประทานยา
+                            </h2>
+
+                            <p class="panel-subtitle">
+                                Medication Adherence
+                            </p>
+
+                        </div>
+
+                    </div>
+
+                    <span class="analytics-period-badge">
+                        อัปเดตล่าสุดวันนี้
+                    </span>
+
+                </div>
+
+
+                <div class="analytics-grid">
+
+                    <article class="analytics-card">
+
+                        <div class="analytics-card-header">
+
+                            <div>
+
+                                <span class="analytics-label">
+                                    วันนี้
+                                </span>
+
+                                <strong class="analytics-value">
+                                    100%
+                                </strong>
+
+                            </div>
+
+                            <span class="analytics-card-icon">
+                                ✓
+                            </span>
+
+                        </div>
+
+                        <div class="analytics-progress">
+
+                            <div
+                                class="analytics-progress-bar"
+                                style="width: 100%;"
+                            ></div>
+
+                        </div>
+
+                        <div class="analytics-card-footer">
+
+                            <span>
+                                รับประทานแล้ว 3 จาก 3 ครั้ง
+                            </span>
+
+                            <strong class="analytics-status success">
+                                ครบถ้วน
+                            </strong>
+
+                        </div>
+
+                    </article>
+
+
+                    <article class="analytics-card">
+
+                        <div class="analytics-card-header">
+
+                            <div>
+
+                                <span class="analytics-label">
+                                    สัปดาห์นี้
+                                </span>
+
+                                <strong class="analytics-value">
+                                    86%
+                                </strong>
+
+                            </div>
+
+                            <span class="analytics-card-icon">
+                                7D
+                            </span>
+
+                        </div>
+
+                        <div class="analytics-progress">
+
+                            <div
+                                class="analytics-progress-bar"
+                                style="width: 86%;"
+                            ></div>
+
+                        </div>
+
+                        <div class="analytics-card-footer">
+
+                            <span>
+                                รับประทานแล้ว 18 จาก 21 ครั้ง
+                            </span>
+
+                            <strong class="analytics-status warning">
+                                พลาด 3 ครั้ง
+                            </strong>
+
+                        </div>
+
+                    </article>
+
+
+                    <article class="analytics-card">
+
+                        <div class="analytics-card-header">
+
+                            <div>
+
+                                <span class="analytics-label">
+                                    เดือนนี้
+                                </span>
+
+                                <strong class="analytics-value">
+                                    92%
+                                </strong>
+
+                            </div>
+
+                            <span class="analytics-card-icon">
+                                30D
+                            </span>
+
+                        </div>
+
+                        <div class="analytics-progress">
+
+                            <div
+                                class="analytics-progress-bar"
+                                style="width: 92%;"
+                            ></div>
+
+                        </div>
+
+                        <div class="analytics-card-footer">
+
+                            <span>
+                                รับประทานแล้ว 83 จาก 90 ครั้ง
+                            </span>
+
+                            <strong class="analytics-status good">
+                                อยู่ในเกณฑ์ดี
+                            </strong>
+
+                        </div>
+
+                    </article>
+
+                </div>
+
+
+                <div class="analytics-summary">
+
+                    <div class="analytics-summary-item">
+
+                        <span>
+                            เป้าหมาย
+                        </span>
+
+                        <strong>
+                            ≥ 90%
+                        </strong>
+
+                    </div>
+
+                    <div class="analytics-summary-divider"></div>
+
+                    <div class="analytics-summary-item">
+
+                        <span>
+                            ค่าเฉลี่ยล่าสุด
+                        </span>
+
+                        <strong>
+                            92.6%
+                        </strong>
+
+                    </div>
+
+                    <div class="analytics-summary-divider"></div>
+
+                    <div class="analytics-summary-item">
+
+                        <span>
+                            สถานะภาพรวม
+                        </span>
+
+                        <strong class="overall-good">
+                            ดีมาก
+                        </strong>
+
+                    </div>
+
+                </div>
+
+            </article>
+
+        </section>
+
+
+        <!-- =========================
+             ลำดับเหตุการณ์วันนี้
+        ========================== -->
+
+        <section
+            id="activity"
+            class="activity-section section-anchor"
+        >
+
+            <article class="panel-card activity-panel">
+
+                <div class="panel-heading activity-heading">
+
+                    <div class="heading-left">
+
+                        <span class="heading-icon">
+                            🕘
+                        </span>
+
+                        <div>
+
+                            <h2>
+                                ลำดับเหตุการณ์วันนี้
+                            </h2>
+
+                            <p class="panel-subtitle">
+                                Medication Activity Timeline
+                            </p>
+
+                        </div>
+
+                    </div>
+
+                    <button
+                        id="timelineFilterButton"
+                        class="timeline-filter-button"
+                        type="button"
+                    >
+                        วันนี้
+                    </button>
+
+                </div>
+
+
+                <div class="activity-layout">
+
+                    <div class="activity-timeline">
+
+                        <article class="activity-item completed">
+
+                            <div class="activity-time">
+
+                                <strong>
+                                    08:30
+                                </strong>
+
+                                <span>
+                                    น.
+                                </span>
+
+                            </div>
+
+                            <div class="activity-marker">
+
+                                <span class="activity-dot">
+                                    🔔
+                                </span>
+
+                                <span class="activity-line"></span>
+
+                            </div>
+
+                            <div class="activity-content">
+
+                                <div class="activity-content-heading">
+
+                                    <strong>
+                                        แจ้งเตือนรับประทานยา
+                                    </strong>
+
+                                    <span class="activity-badge completed">
+                                        สำเร็จ
+                                    </span>
+
+                                </div>
+
+                                <p>
+                                    ระบบเล่นเสียงแจ้งเตือนยาหลังอาหารเช้า
+                                </p>
+
+                                <small>
+                                    DFPlayer Mini ทำงานตามเวลาที่กำหนด
+                                </small>
+
+                            </div>
+
+                        </article>
+
+
+                        <article class="activity-item completed">
+
+                            <div class="activity-time">
+
+                                <strong>
+                                    08:31
+                                </strong>
+
+                                <span>
+                                    น.
+                                </span>
+
+                            </div>
+
+                            <div class="activity-marker">
+
+                                <span class="activity-dot">
+                                    🔓
+                                </span>
+
+                                <span class="activity-line"></span>
+
+                            </div>
+
+                            <div class="activity-content">
+
+                                <div class="activity-content-heading">
+
+                                    <strong>
+                                        ปลดล็อกตู้ยา
+                                    </strong>
+
+                                    <span class="activity-badge completed">
+                                        สำเร็จ
+                                    </span>
+
+                                </div>
+
+                                <p>
+                                    รีเลย์สั่งเปิดกลอนตู้ยาเพื่อให้หยิบยา
+                                </p>
+
+                                <small>
+                                    กลอนเปิดเป็นเวลา 30 วินาที
+                                </small>
+
+                            </div>
+
+                        </article>
+
+
+                        <article class="activity-item completed">
+
+                            <div class="activity-time">
+
+                                <strong>
+                                    08:32
+                                </strong>
+
+                                <span>
+                                    น.
+                                </span>
+
+                            </div>
+
+                            <div class="activity-marker">
+
+                                <span class="activity-dot">
+                                    📷
+                                </span>
+
+                                <span class="activity-line"></span>
+
+                            </div>
+
+                            <div class="activity-content">
+
+                                <div class="activity-content-heading">
+
+                                    <strong>
+                                        บันทึกภาพหลักฐาน
+                                    </strong>
+
+                                    <span class="activity-badge completed">
+                                        บันทึกแล้ว
+                                    </span>
+
+                                </div>
+
+                                <p>
+                                    ESP32-CAM ถ่ายภาพขณะผู้ใช้งานหยิบยา
+                                </p>
+
+                                <small>
+                                    ไฟล์ภาพถูกบันทึกใน microSD
+                                </small>
+
+                            </div>
+
+                        </article>
+
+
+                        <article class="activity-item completed">
+
+                            <div class="activity-time">
+
+                                <strong>
+                                    08:33
+                                </strong>
+
+                                <span>
+                                    น.
+                                </span>
+
+                            </div>
+
+                            <div class="activity-marker">
+
+                                <span class="activity-dot">
+                                    ✓
+                                </span>
+
+                            </div>
+
+                            <div class="activity-content">
+
+                                <div class="activity-content-heading">
+
+                                    <strong>
+                                        ยืนยันรับประทานยาแล้ว
+                                    </strong>
+
+                                    <span class="activity-badge verified">
+                                        ยืนยันแล้ว
+                                    </span>
+
+                                </div>
+
+                                <p>
+                                    บันทึกการรับประทานยาเสร็จสมบูรณ์
+                                </p>
+
+                                <small>
+                                    ระบบล็อกตู้ยาอีกครั้งเพื่อป้องกันการรับประทานซ้ำ
+                                </small>
+
+                            </div>
+
+                        </article>
+
+                    </div>
+
+
+                    <aside class="activity-summary-card">
+
+                        <span class="activity-summary-label">
+                            รอบยาล่าสุด
+                        </span>
+
+                        <strong class="activity-summary-time">
+                            08:30 น.
+                        </strong>
+
+                        <div class="activity-summary-status">
+                            <span class="summary-status-dot"></span>
+                            ดำเนินการครบทุกขั้นตอน
+                        </div>
+
+                        <div class="activity-summary-progress">
+
+                            <div class="summary-progress-row">
+
+                                <span>
+                                    ความสำเร็จ
+                                </span>
+
+                                <strong>
+                                    4/4
+                                </strong>
+
+                            </div>
+
+                            <div class="summary-progress-track">
+
+                                <div class="summary-progress-bar"></div>
+
+                            </div>
+
+                        </div>
+
+                        <div class="activity-summary-next">
+
+                            <span>
+                                รอบถัดไป
+                            </span>
+
+                            <strong>
+                                12:30 น.
+                            </strong>
+
+                            <small>
+                                ยาหลังอาหารกลางวัน
+                            </small>
+
+                        </div>
+
+                    </aside>
+
+                </div>
+
+            </article>
+
+        </section>
+
+<section id="camera" class="camera-preview-section section-anchor">
+
+            <article class="panel-card camera-preview-panel">
+
+                <div class="panel-heading">
+
+                    <div class="heading-left">
+
+                        <span class="heading-icon">
+                            📷
+                        </span>
+
+                        <h2>
+                            ภาพจากกล้อง
+                        </h2>
+
+                    </div>
+
+                    <span class="camera-live-badge">
+                        ● พร้อมเชื่อมต่อ
+                    </span>
+
+                </div>
+
+                <div class="camera-preview-box">
+
+                    <div class="camera-placeholder">
+
+                        <div class="camera-placeholder-icon">
+                            📹
+                        </div>
+
+                        <h3>
+                            ESP32-CAM Preview
+                        </h3>
+
+                        <p>
+                            ภาพจากกล้องจะแสดงบริเวณนี้
+                        </p>
+
+                        <span class="camera-placeholder-note">
+                            ยังไม่ได้เชื่อมต่อสตรีมภาพ
+                        </span>
+
+                    </div>
+
+                </div>
+
+                <div class="camera-preview-footer">
+
+                    <span>
+                        สถานะกล้อง: พร้อมใช้งาน
+                    </span>
+
+                    <span>
+                        ความละเอียด: รอการเชื่อมต่อ
+                    </span>
+
+                </div>
+
+            </article>
+
+        </section>
+
+    </main>
+
+
+    <!-- =========================
+         ส่วนท้าย
+    ========================== -->
+
+    <footer id="history" class="main-footer section-anchor">
+
+        <div class="footer-left">
+
+            <span class="footer-icon">
+                ♥
+            </span>
+
+            <span>
+                Time4Med – ระบบแจ้งเตือนและจัดการการรับประทานยา
+            </span>
+
+        </div>
+
+        <div>
+            © 2026 Time4Med
+        </div>
+
+    </footer>
+
+
+    <script src="script.js"></script>
+
+    </div>
+
+
+    <script>
+        const sidebarToggle = document.getElementById("sidebarToggle");
+        const savedSidebarState = localStorage.getItem("time4medSidebarCollapsed");
+
+        if (savedSidebarState === "true") {
+            document.body.classList.add("sidebar-collapsed");
+            sidebarToggle.setAttribute("aria-expanded", "false");
+        }
+
+        sidebarToggle.addEventListener("click", function () {
+            const isCollapsed = document.body.classList.toggle("sidebar-collapsed");
+
+            sidebarToggle.setAttribute(
+                "aria-expanded",
+                String(!isCollapsed)
+            );
+
+            localStorage.setItem(
+                "time4medSidebarCollapsed",
+                String(isCollapsed)
+            );
+        });
+    </script>
+
+
+    <script>
+        const notificationButton = document.getElementById("notificationButton");
+        const notificationPanel = document.getElementById("notificationPanel");
+        const notificationCount = document.getElementById("notificationCount");
+        const markAllReadButton = document.getElementById("markAllReadButton");
+        const notificationItems = document.querySelectorAll(".notification-item");
+
+        function closeNotificationPanel() {
+            notificationPanel.classList.remove("show");
+            notificationPanel.setAttribute("aria-hidden", "true");
+            notificationButton.setAttribute("aria-expanded", "false");
+        }
+
+        notificationButton.addEventListener("click", function (event) {
+            event.stopPropagation();
+
+            const isOpen = notificationPanel.classList.toggle("show");
+
+            notificationPanel.setAttribute(
+                "aria-hidden",
+                String(!isOpen)
+            );
+
+            notificationButton.setAttribute(
+                "aria-expanded",
+                String(isOpen)
+            );
+        });
+
+        notificationPanel.addEventListener("click", function (event) {
+            event.stopPropagation();
+        });
+
+        document.addEventListener("click", function () {
+            closeNotificationPanel();
+        });
+
+        document.addEventListener("keydown", function (event) {
+            if (event.key === "Escape") {
+                closeNotificationPanel();
+            }
+        });
+
+        markAllReadButton.addEventListener("click", function () {
+            notificationItems.forEach(function (item) {
+                item.classList.remove("unread");
+            });
+
+            notificationCount.textContent = "0";
+            notificationCount.classList.add("hidden");
+        });
+    </script>
+
+</body>
+
+</html>
