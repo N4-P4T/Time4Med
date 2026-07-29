@@ -76,6 +76,77 @@ const waitingMedicineCount =
 const latestAlert =
     document.getElementById("latestAlert");
 
+// กล้อง ESP32-CAM
+const CAMERA_BASE_URL = "http://172.20.10.2";
+const CAMERA_STREAM_URL = CAMERA_BASE_URL + ":81/stream";
+const CAMERA_CAPTURE_URL = CAMERA_BASE_URL + "/capture";
+
+const cameraStream =
+    document.getElementById("cameraStream");
+
+const cameraPlaceholder =
+    document.getElementById("cameraPlaceholder");
+
+const cameraLiveBadge =
+    document.getElementById("cameraLiveBadge");
+
+const cameraConnectionText =
+    document.getElementById("cameraConnectionText");
+
+
+function setCameraConnection(isConnected) {
+
+    cameraStatus.textContent =
+        isConnected ? "ออนไลน์" : "ไม่พบการเชื่อมต่อ";
+
+    cameraLiveBadge.textContent =
+        isConnected ? "● LIVE" : "● OFFLINE";
+
+    cameraLiveBadge.classList.toggle(
+        "is-online",
+        isConnected
+    );
+
+    cameraLiveBadge.classList.toggle(
+        "is-offline",
+        !isConnected
+    );
+
+    cameraConnectionText.textContent =
+        isConnected
+            ? "สถานะกล้อง: เชื่อมต่อแล้ว"
+            : "สถานะกล้อง: เชื่อมต่อไม่ได้";
+
+    cameraStream.classList.toggle(
+        "is-hidden",
+        !isConnected
+    );
+
+    cameraPlaceholder.classList.toggle(
+        "is-hidden",
+        isConnected
+    );
+}
+
+
+cameraStream.addEventListener(
+    "load",
+    function () {
+        setCameraConnection(true);
+    }
+);
+
+
+cameraStream.addEventListener(
+    "error",
+    function () {
+        setCameraConnection(false);
+    }
+);
+
+
+cameraStream.src = CAMERA_STREAM_URL;
+
 
 // ==========================================
 // 2. โหลดข้อมูลรายการยา
@@ -673,21 +744,18 @@ captureBtn.addEventListener(
             "กำลังถ่ายภาพ";
 
         controlMessage.textContent =
-            "ⓘ กำลังบันทึกภาพจากกล้อง";
+            "ⓘ กำลังเปิดภาพนิ่งจาก ESP32-CAM";
 
-
-        setTimeout(
-            function () {
-
-                cameraStatus.textContent =
-                    "พร้อมใช้งาน";
-
-                controlMessage.textContent =
-                    "ⓘ ถ่ายภาพและบันทึกเรียบร้อยแล้ว";
-
-            },
-            1300
+        window.open(
+            CAMERA_CAPTURE_URL + "?t=" + Date.now(),
+            "_blank",
+            "noopener"
         );
+
+        setCameraConnection(true);
+
+        controlMessage.textContent =
+            "ⓘ เปิดภาพถ่ายจากกล้องในแท็บใหม่แล้ว";
 
     }
 );

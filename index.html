@@ -1435,30 +1435,37 @@
 
                     </div>
 
-                    <span class="camera-live-badge">
-                        ● พร้อมเชื่อมต่อ
+                    <span id="cameraLiveBadge" class="camera-live-badge">
+                        ● กำลังเชื่อมต่อ
                     </span>
 
                 </div>
 
                 <div class="camera-preview-box">
 
-                    <div class="camera-placeholder">
+                    <img
+                        id="cameraStream"
+                        class="camera-stream"
+                        src="http://172.20.10.2:81/stream"
+                        alt="ภาพสดจาก ESP32-CAM"
+                    >
+
+                    <div id="cameraPlaceholder" class="camera-placeholder">
 
                         <div class="camera-placeholder-icon">
                             📹
                         </div>
 
                         <h3>
-                            ESP32-CAM Preview
+                            กำลังเชื่อมต่อ ESP32-CAM
                         </h3>
 
                         <p>
-                            ภาพจากกล้องจะแสดงบริเวณนี้
+                            ตรวจสอบว่าอุปกรณ์เชื่อมต่อ Hotspot เดียวกับกล้อง
                         </p>
 
                         <span class="camera-placeholder-note">
-                            ยังไม่ได้เชื่อมต่อสตรีมภาพ
+                            Camera IP: 172.20.10.2
                         </span>
 
                     </div>
@@ -1467,12 +1474,12 @@
 
                 <div class="camera-preview-footer">
 
-                    <span>
-                        สถานะกล้อง: พร้อมใช้งาน
+                    <span id="cameraConnectionText">
+                        สถานะกล้อง: กำลังเชื่อมต่อ
                     </span>
 
-                    <span>
-                        ความละเอียด: รอการเชื่อมต่อ
+                    <span id="cameraAddressText">
+                        Stream: 172.20.10.2:81
                     </span>
 
                 </div>
