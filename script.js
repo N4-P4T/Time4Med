@@ -77,7 +77,7 @@ const latestAlert =
     document.getElementById("latestAlert");
 
 // กล้อง ESP32-CAM
-const CAMERA_BASE_URL = "http://172.20.10.4";
+const CAMERA_BASE_URL = "http://172.20.10.6";
 const CAMERA_STREAM_URL = CAMERA_BASE_URL + ":81/stream";
 const CAMERA_CAPTURE_URL = CAMERA_BASE_URL + "/capture";
 
