@@ -31,13 +31,6 @@ const unlockBtn =
 const lockBtn =
     document.getElementById("lockBtn");
 
-const captureBtn =
-    document.getElementById("captureBtn");
-
-const soundBtn =
-    document.getElementById("soundBtn");
-
-
 // ช่องเพิ่มรายการยา
 const medicineName =
     document.getElementById("medicineName");
@@ -79,7 +72,6 @@ const latestAlert =
 // กล้อง ESP32-CAM
 const CAMERA_BASE_URL = "http://172.20.10.6";
 const CAMERA_STREAM_URL = CAMERA_BASE_URL + ":81/stream";
-const CAMERA_CAPTURE_URL = CAMERA_BASE_URL + "/capture";
 
 const cameraStream =
     document.getElementById("cameraStream");
@@ -730,61 +722,6 @@ lockBtn.addEventListener(
 
         controlMessage.style.color =
             "#0755c9";
-
-    }
-);
-
-
-// ถ่ายภาพ
-captureBtn.addEventListener(
-    "click",
-    function () {
-
-        cameraStatus.textContent =
-            "กำลังถ่ายภาพ";
-
-        controlMessage.textContent =
-            "ⓘ กำลังเปิดภาพนิ่งจาก ESP32-CAM";
-
-        window.open(
-            CAMERA_CAPTURE_URL + "?t=" + Date.now(),
-            "_blank",
-            "noopener"
-        );
-
-        setCameraConnection(true);
-
-        controlMessage.textContent =
-            "ⓘ เปิดภาพถ่ายจากกล้องในแท็บใหม่แล้ว";
-
-    }
-);
-
-
-// เล่นเสียง
-soundBtn.addEventListener(
-    "click",
-    function () {
-
-        soundStatus.textContent =
-            "กำลังเล่นเสียง";
-
-        controlMessage.textContent =
-            "ⓘ กำลังเล่นเสียงแจ้งเตือน";
-
-
-        setTimeout(
-            function () {
-
-                soundStatus.textContent =
-                    "พร้อมใช้งาน";
-
-                controlMessage.textContent =
-                    "ⓘ เล่นเสียงแจ้งเตือนเรียบร้อยแล้ว";
-
-            },
-            1700
-        );
 
     }
 );
