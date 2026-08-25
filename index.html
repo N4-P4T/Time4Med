@@ -118,7 +118,7 @@
                 <span class="sidebar-link-icon">◷</span>
 
                 <span class="sidebar-link-text">
-                    <strong>กิจกรรม</strong>
+                    <strong>พฤติกรรมการรับประทานยา</strong>
                     <small>Timeline</small>
                 </span>
             </a>
@@ -140,13 +140,13 @@
 
             <a
                 class="sidebar-link"
-                href="#history"
+                href="#gallery"
             >
-                <span class="sidebar-link-icon">◷</span>
+                <span class="sidebar-link-icon">🖼️</span>
 
                 <span class="sidebar-link-text">
-                    <strong>ประวัติ</strong>
-                    <small>History</small>
+                    <strong>คลังรูปภาพ</strong>
+                    <small>Image Archive</small>
                 </span>
             </a>
 
@@ -1455,6 +1455,57 @@
 
         </section>
 
+        <!-- =========================
+             คลังรูปภาพหลักฐาน
+        ========================== -->
+
+        <section id="gallery" class="gallery-section section-anchor">
+
+            <article class="panel-card gallery-panel">
+
+                <div class="panel-heading gallery-heading">
+
+                    <div class="heading-left">
+
+                        <span class="heading-icon">🖼️</span>
+
+                        <div>
+                            <h2>คลังรูปภาพ</h2>
+                            <p class="panel-subtitle">
+                                ภาพหลักฐานการหยิบยาและกดปุ่มยืนยันจาก SD Card
+                            </p>
+                        </div>
+
+                    </div>
+
+                    <button id="refreshGalleryBtn" class="gallery-refresh-button" type="button">
+                        ↻ โหลดภาพใหม่
+                    </button>
+
+                </div>
+
+                <div class="gallery-toolbar">
+                    <span id="galleryCount">ยังไม่มีภาพในคลัง</span>
+                    <span>ESP32-CAM: 172.20.10.6</span>
+                </div>
+
+                <div id="galleryGrid" class="gallery-grid" aria-live="polite"></div>
+
+                <div id="galleryEmptyState" class="gallery-empty-state">
+                    <span class="gallery-empty-icon">📷</span>
+                    <h3>กำลังรอภาพจาก ESP32-CAM</h3>
+                    <p>
+                        เมื่อผู้รับประทานยาหยิบยาและกดปุ่มยืนยัน ภาพหลักฐานจะแสดงที่นี่
+                    </p>
+                    <small id="galleryConnectionMessage">
+                        กรุณาเชื่อมต่อเครือข่ายเดียวกับ ESP32-CAM
+                    </small>
+                </div>
+
+            </article>
+
+        </section>
+
     </main>
 
 
@@ -1462,7 +1513,7 @@
          ส่วนท้าย
     ========================== -->
 
-    <footer id="history" class="main-footer section-anchor">
+    <footer class="main-footer">
 
         <div class="footer-left">
 
