@@ -544,7 +544,7 @@ body {
     display: grid;
 
     grid-template-columns:
-        repeat(4, minmax(0, 1fr));
+        repeat(2, minmax(0, 1fr));
 
     gap: 15px;
 }
@@ -612,24 +612,6 @@ body {
             145deg,
             #f1252c,
             #c80e14
-        );
-}
-
-.camera-button {
-    background:
-        linear-gradient(
-            145deg,
-            #347fe6,
-            #0752c4
-        );
-}
-
-.sound-button {
-    background:
-        linear-gradient(
-            145deg,
-            #8550e5,
-            #5c27bd
         );
 }
 
