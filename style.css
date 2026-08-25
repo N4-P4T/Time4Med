@@ -850,7 +850,6 @@ body {
     gap: 9px;
 }
 
-.taken-button,
 .delete-button {
     padding: 9px 12px;
 
@@ -864,10 +863,6 @@ body {
     font-weight: bold;
 
     cursor: pointer;
-}
-
-.taken-button {
-    background-color: var(--green);
 }
 
 .delete-button {
@@ -1060,7 +1055,6 @@ body {
         width: 100%;
     }
 
-    .taken-button,
     .delete-button {
         flex: 1;
     }
