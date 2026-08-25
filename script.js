@@ -368,12 +368,6 @@ function renderMedicines() {
             }
 
 
-            const takenButtonText =
-                medicine.taken
-                    ? "↩ ยกเลิก"
-                    : "✓ ทานแล้ว";
-
-
             medicineItem.innerHTML = `
                 <div class="medicine-information">
 
@@ -398,20 +392,9 @@ function renderMedicines() {
 
 
                 <div class="medicine-actions">
-
-                    <button
-                        class="taken-button"
-                        type="button"
-                        data-action="taken"
-                        data-index="${index}"
-                    >
-                        ${takenButtonText}
-                    </button>
-
                     <button
                         class="delete-button"
                         type="button"
-                        data-action="delete"
                         data-index="${index}"
                     >
                         🗑 ลบ
@@ -429,13 +412,13 @@ function renderMedicines() {
     );
 
 
-    const medicineButtons =
+    const deleteButtons =
         document.querySelectorAll(
-            "[data-action]"
+            ".delete-button"
         );
 
 
-    medicineButtons.forEach(
+    deleteButtons.forEach(
         function (button) {
 
             button.addEventListener(
@@ -448,22 +431,7 @@ function renderMedicines() {
                         );
 
 
-                    const action =
-                        button.dataset.action;
-
-
-                    if (action === "delete") {
-
-                        deleteMedicine(index);
-
-                    }
-
-
-                    if (action === "taken") {
-
-                        toggleMedicineTaken(index);
-
-                    }
+                    deleteMedicine(index);
 
                 }
             );
@@ -627,40 +595,7 @@ function deleteMedicine(index) {
 
 
 // ==========================================
-// 10. เปลี่ยนสถานะรับประทานยา
-// ==========================================
-
-function toggleMedicineTaken(index) {
-
-    medicines[index].taken =
-        !medicines[index].taken;
-
-
-    saveMedicines();
-
-    renderMedicines();
-
-
-    if (medicines[index].taken === true) {
-
-        showFormMessage(
-            "บันทึกการรับประทานยาเรียบร้อยแล้ว",
-            "success"
-        );
-
-    } else {
-
-        showFormMessage(
-            "ยกเลิกสถานะรับประทานยาแล้ว",
-            "success"
-        );
-
-    }
-}
-
-
-// ==========================================
-// 11. Event เพิ่มยา
+// 10. Event เพิ่มยา
 // ==========================================
 
 addMedicineBtn.addEventListener(
@@ -688,7 +623,7 @@ medicineAmount.addEventListener(
 
 
 // ==========================================
-// 12. ปุ่มควบคุมอุปกรณ์
+// 11. ปุ่มควบคุมอุปกรณ์
 // ==========================================
 
 // เปิดกลอน
@@ -728,12 +663,12 @@ lockBtn.addEventListener(
 
 
 // ==========================================
-// 13. แสดงข้อมูลทันที
+// 12. แสดงข้อมูลทันที
 // ==========================================
 
 renderMedicines();
 // ==========================================
-// 14. Sidebar page navigation
+// 13. Sidebar page navigation
 // ==========================================
 (function setupSidebarPageNavigation() {
     const sidebarLinks = document.querySelectorAll('.sidebar-link[href^="#"]');
