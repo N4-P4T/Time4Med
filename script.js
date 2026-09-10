@@ -142,6 +142,370 @@ cameraStream.src = CAMERA_STREAM_URL;
 
 
 // ==========================================
+// MQTT - เชื่อมหน้าเว็บกับ ESP32-S3 ผ่าน HiveMQ Cloud
+// รหัสผ่านจะรับจากผู้ดูแลและเก็บไว้เฉพาะในหน่วยความจำของแท็บนี้
+// ==========================================
+
+const MQTT_BROKER_URL =
+    "wss://730b8f62b55c4753803b4302a8cf6bf4.s1.eu.hivemq.cloud:8884/mqtt";
+
+const MQTT_USERNAME = "time4med-web";
+
+const MQTT_TOPIC_STATUS =
+    "time4med/v1/cabinet/cabinet-01/status";
+
+const MQTT_TOPIC_EVENT =
+    "time4med/v1/cabinet/cabinet-01/event";
+
+const MQTT_TOPIC_LOCK_COMMAND =
+    "time4med/v1/cabinet/cabinet-01/command/lock";
+
+const mqttConnectButton =
+    document.getElementById("mqttConnectButton");
+
+const mqttConnectionLabel =
+    document.getElementById("mqttConnectionLabel");
+
+const systemOnlineBadge =
+    document.getElementById("systemOnlineBadge");
+
+const mqttCredentialDialog =
+    document.getElementById("mqttCredentialDialog");
+
+const mqttCredentialForm =
+    document.getElementById("mqttCredentialForm");
+
+const mqttPasswordInput =
+    document.getElementById("mqttPasswordInput");
+
+const mqttDialogMessage =
+    document.getElementById("mqttDialogMessage");
+
+const mqttCancelButton =
+    document.getElementById("mqttCancelButton");
+
+let time4MedMqttClient = null;
+
+
+function setMqttConnectionState(state, label) {
+
+    mqttConnectionLabel.textContent = label;
+    mqttConnectButton.dataset.state = state;
+
+    const statusDot =
+        mqttConnectButton.querySelector(".status-dot");
+
+    const stateColors = {
+        connected: "#16a34a",
+        connecting: "#f59e0b",
+        disconnected: "#dc2626"
+    };
+
+    statusDot.style.backgroundColor =
+        stateColors[state] || stateColors.disconnected;
+
+    mqttConnectButton.setAttribute(
+        "aria-label",
+        label + " คลิกเพื่อตั้งค่าการเชื่อมต่อ"
+    );
+
+    if (state === "connecting") {
+        systemOnlineBadge.textContent = "● รอข้อมูล MQTT";
+        systemOnlineBadge.style.color = "#a16207";
+    } else if (state === "disconnected") {
+        systemOnlineBadge.textContent = "● ไม่ทราบสถานะอุปกรณ์";
+        systemOnlineBadge.style.color = "#64748b";
+    }
+}
+
+
+function openMqttCredentialDialog(message) {
+
+    if (time4MedMqttClient && time4MedMqttClient.connected) {
+        controlMessage.textContent =
+            "ⓘ หน้าเว็บเชื่อมต่อ MQTT อยู่แล้ว";
+        controlMessage.style.color = "#138039";
+        return;
+    }
+
+    mqttDialogMessage.textContent = message || "";
+    mqttPasswordInput.value = "";
+
+    if (!mqttCredentialDialog.open) {
+        mqttCredentialDialog.showModal();
+    }
+
+    mqttPasswordInput.focus();
+}
+
+
+function updateDeviceStatusFromMqtt(status) {
+
+    const isOnline = status.online === true;
+
+    systemOnlineBadge.textContent =
+        isOnline ? "● อุปกรณ์ออนไลน์" : "● อุปกรณ์ออฟไลน์";
+
+    systemOnlineBadge.style.color =
+        isOnline ? "#138039" : "#b42318";
+
+    if (status.lock_status === "LOCKED") {
+        doorStatus.textContent = "ล็อกอยู่";
+    } else if (status.lock_status === "UNLOCKED") {
+        doorStatus.textContent = "ปลดล็อกแล้ว";
+    }
+}
+
+
+function handleMqttMessage(topic, payloadBuffer) {
+
+    let data;
+
+    try {
+        data = JSON.parse(payloadBuffer.toString());
+    } catch (error) {
+        console.warn("MQTT message is not JSON:", topic);
+        return;
+    }
+
+    if (topic === MQTT_TOPIC_STATUS) {
+        updateDeviceStatusFromMqtt(data);
+        return;
+    }
+
+    if (topic === MQTT_TOPIC_EVENT) {
+        const eventName = data.event || "EVENT";
+        const detail = data.detail ? " — " + data.detail : "";
+
+        controlMessage.textContent =
+            "ⓘ ESP32: " + eventName + detail;
+        controlMessage.style.color = "#0755c9";
+    }
+}
+
+
+function connectTime4MedMqtt(password) {
+
+    if (typeof mqtt === "undefined") {
+        setMqttConnectionState(
+            "disconnected",
+            "MQTT: โหลดไลบรารีไม่สำเร็จ"
+        );
+        controlMessage.textContent =
+            "ⓘ โหลด MQTT.js ไม่สำเร็จ กรุณาตรวจสอบอินเทอร์เน็ตแล้วรีเฟรชหน้าเว็บ";
+        controlMessage.style.color = "#b42318";
+        return;
+    }
+
+    if (time4MedMqttClient) {
+        time4MedMqttClient.end(true);
+    }
+
+    setMqttConnectionState("connecting", "MQTT: กำลังเชื่อมต่อ...");
+
+    const clientId =
+        "time4med-web-" +
+        Math.random().toString(16).slice(2, 10);
+
+    const client = mqtt.connect(
+        MQTT_BROKER_URL,
+        {
+            username: MQTT_USERNAME,
+            password: password,
+            clientId: clientId,
+            clean: true,
+            protocolVersion: 4,
+            keepalive: 30,
+            connectTimeout: 10000,
+            reconnectPeriod: 3000
+        }
+    );
+
+    time4MedMqttClient = client;
+
+    client.on("connect", function () {
+
+        if (time4MedMqttClient !== client) {
+            return;
+        }
+
+        setMqttConnectionState(
+            "connected",
+            "MQTT: เชื่อมต่อแล้ว"
+        );
+
+        controlMessage.textContent =
+            "ⓘ หน้าเว็บเชื่อมต่อ HiveMQ Cloud แล้ว";
+        controlMessage.style.color = "#138039";
+
+        client.subscribe(
+            [MQTT_TOPIC_STATUS, MQTT_TOPIC_EVENT],
+            { qos: 1 },
+            function (error) {
+
+                if (error) {
+                    controlMessage.textContent =
+                        "ⓘ เชื่อมต่อได้ แต่สมัครรับสถานะจาก ESP32 ไม่สำเร็จ";
+                    controlMessage.style.color = "#b42318";
+                }
+            }
+        );
+    });
+
+    client.on("message", function (topic, payloadBuffer) {
+
+        if (time4MedMqttClient !== client) {
+            return;
+        }
+
+        handleMqttMessage(topic, payloadBuffer);
+    });
+
+    client.on("reconnect", function () {
+
+        if (time4MedMqttClient !== client) {
+            return;
+        }
+
+        setMqttConnectionState(
+            "connecting",
+            "MQTT: กำลังเชื่อมต่อใหม่..."
+        );
+    });
+
+    client.on("offline", function () {
+
+        if (time4MedMqttClient !== client) {
+            return;
+        }
+
+        setMqttConnectionState(
+            "disconnected",
+            "MQTT: ออฟไลน์"
+        );
+    });
+
+    client.on("close", function () {
+
+        if (
+            time4MedMqttClient === client &&
+            !client.connected
+        ) {
+            setMqttConnectionState(
+                "disconnected",
+                "MQTT: การเชื่อมต่อขาด"
+            );
+        }
+    });
+
+    client.on("error", function (error) {
+
+        console.error("MQTT connection error:", error);
+
+        if (time4MedMqttClient !== client) {
+            return;
+        }
+
+        setMqttConnectionState(
+            "disconnected",
+            "MQTT: เชื่อมต่อไม่สำเร็จ"
+        );
+
+        controlMessage.textContent =
+            "ⓘ เชื่อมต่อ MQTT ไม่สำเร็จ กรุณาตรวจสอบรหัสผ่านหรือเครือข่าย";
+        controlMessage.style.color = "#b42318";
+    });
+}
+
+
+function publishLockCommand(command) {
+
+    const client = time4MedMqttClient;
+
+    if (!client || !client.connected) {
+        controlMessage.textContent =
+            "ⓘ กรุณาเชื่อมต่อ MQTT ก่อนส่งคำสั่ง";
+        controlMessage.style.color = "#b42318";
+        openMqttCredentialDialog("กรุณาใส่รหัสผ่านก่อนส่งคำสั่ง");
+        return;
+    }
+
+    if (
+        command === "UNLOCK" &&
+        !window.confirm("ยืนยันการปลดล็อกตู้ยา?")
+    ) {
+        return;
+    }
+
+    controlMessage.textContent =
+        "ⓘ กำลังส่งคำสั่ง " + command + " ไปยัง ESP32...";
+    controlMessage.style.color = "#0755c9";
+
+    client.publish(
+        MQTT_TOPIC_LOCK_COMMAND,
+        command,
+        { qos: 1, retain: false },
+        function (error) {
+
+            if (error) {
+                controlMessage.textContent =
+                    "ⓘ ส่งคำสั่งไม่สำเร็จ กรุณาลองใหม่";
+                controlMessage.style.color = "#b42318";
+                return;
+            }
+
+            controlMessage.textContent =
+                "ⓘ ส่งคำสั่งแล้ว กำลังรอผลยืนยันจาก ESP32";
+            controlMessage.style.color = "#0755c9";
+        }
+    );
+}
+
+
+mqttConnectButton.addEventListener("click", function () {
+    openMqttCredentialDialog();
+});
+
+
+mqttConnectButton.addEventListener("keydown", function (event) {
+
+    if (event.key === "Enter" || event.key === " ") {
+        event.preventDefault();
+        openMqttCredentialDialog();
+    }
+});
+
+
+mqttCancelButton.addEventListener("click", function () {
+    mqttPasswordInput.value = "";
+    mqttCredentialDialog.close();
+});
+
+
+mqttCredentialForm.addEventListener("submit", function (event) {
+
+    event.preventDefault();
+
+    const password = mqttPasswordInput.value;
+
+    if (!password) {
+        mqttDialogMessage.textContent = "กรุณาใส่รหัสผ่าน";
+        return;
+    }
+
+    mqttCredentialDialog.close();
+    mqttPasswordInput.value = "";
+    connectTime4MedMqtt(password);
+});
+
+
+setMqttConnectionState(
+    "disconnected",
+    "MQTT: ยังไม่เชื่อมต่อ"
+);
+
+
+// ==========================================
 // 2. โหลดข้อมูลรายการยา
 // ==========================================
 
@@ -627,38 +991,20 @@ medicineAmount.addEventListener(
 // 11. ปุ่มควบคุมอุปกรณ์
 // ==========================================
 
-// เปิดกลอน
+// ปลดล็อกตู้ผ่าน MQTT
 unlockBtn.addEventListener(
     "click",
     function () {
-
-        doorStatus.textContent =
-            "ปลดล็อกแล้ว";
-
-        controlMessage.textContent =
-            "ⓘ ส่งคำสั่งเปิดกลอนเรียบร้อยแล้ว";
-
-        controlMessage.style.color =
-            "#138039";
-
+        publishLockCommand("UNLOCK");
     }
 );
 
 
-// ล็อกกลอน
+// ล็อกตู้ผ่าน MQTT
 lockBtn.addEventListener(
     "click",
     function () {
-
-        doorStatus.textContent =
-            "ล็อกอยู่";
-
-        controlMessage.textContent =
-            "ⓘ ส่งคำสั่งล็อกกลอนเรียบร้อยแล้ว";
-
-        controlMessage.style.color =
-            "#0755c9";
-
+        publishLockCommand("LOCK");
     }
 );
 
