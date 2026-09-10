@@ -208,11 +208,17 @@
 
             <div class="header-status-row">
 
-                <div class="wifi-status">
+                <div
+                    id="mqttConnectButton"
+                    class="wifi-status"
+                    role="button"
+                    tabindex="0"
+                    title="คลิกเพื่อเชื่อมต่อ MQTT"
+                >
 
                     <span class="status-dot"></span>
 
-                    <span>Wi-Fi Connected</span>
+                    <span id="mqttConnectionLabel">MQTT: ยังไม่เชื่อมต่อ</span>
 
                 </div>
 
@@ -565,8 +571,8 @@
 
                     </div>
 
-                    <span class="online-badge">
-                        ● ออนไลน์
+                    <span id="systemOnlineBadge" class="online-badge">
+                        ● รอข้อมูล MQTT
                     </span>
 
                 </div>
@@ -1534,6 +1540,46 @@
     </footer>
 
 
+    <dialog
+        id="mqttCredentialDialog"
+        aria-labelledby="mqttDialogTitle"
+        style="max-width: 420px; width: calc(100% - 32px); border: 0; border-radius: 18px; padding: 24px; box-shadow: 0 24px 70px rgba(0, 40, 100, 0.28);"
+    >
+        <form id="mqttCredentialForm">
+            <h2 id="mqttDialogTitle" style="margin-top: 0; color: #073b82;">
+                เชื่อมต่อ Time4Med MQTT
+            </h2>
+
+            <p style="color: #526581; line-height: 1.6;">
+                กรอกรหัสผ่านของบัญชี time4med-web รหัสจะอยู่ในหน่วยความจำของแท็บนี้เท่านั้น
+            </p>
+
+            <label for="mqttPasswordInput" style="display: block; margin-bottom: 8px; font-weight: 700;">
+                รหัสผ่าน MQTT
+            </label>
+
+            <input
+                id="mqttPasswordInput"
+                type="password"
+                autocomplete="current-password"
+                required
+                style="box-sizing: border-box; width: 100%; padding: 12px; border: 1px solid #b9c9df; border-radius: 10px;"
+            >
+
+            <p id="mqttDialogMessage" role="alert" style="min-height: 24px; color: #c71920;"></p>
+
+            <div style="display: flex; justify-content: flex-end; gap: 10px;">
+                <button id="mqttCancelButton" type="button" style="padding: 10px 16px;">
+                    ยกเลิก
+                </button>
+                <button type="submit" style="padding: 10px 16px; color: white; background: #0755c9; border: 0; border-radius: 8px;">
+                    เชื่อมต่อ
+                </button>
+            </div>
+        </form>
+    </dialog>
+
+    <script src="https://cdn.jsdelivr.net/npm/mqtt@5.14.1/dist/mqtt.min.js"></script>
     <script src="script.js"></script>
 
     </div>
