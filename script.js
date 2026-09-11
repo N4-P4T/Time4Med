@@ -72,7 +72,10 @@ const latestAlert =
 // กล้อง ESP32-CAM
 const CAMERA_BASE_URL = "http://172.20.10.6";
 const CAMERA_STREAM_URL = CAMERA_BASE_URL + ":81/stream";
-const CAMERA_GALLERY_URL = CAMERA_BASE_URL + "/api/images";
+
+// คลังรูปหลักย้ายไป Google Drive ผ่าน Google Apps Script
+const DRIVE_GALLERY_API_URL =
+    "https://script.google.com/macros/s/AKfycbwmciXUQzSoBnbPL-O3QAm7biNMaLZlX495zasXVqxrwB8bDEHjG5b40vjGLhENYv8H1Q/exec";
 
 const cameraStream =
     document.getElementById("cameraStream");
@@ -1016,91 +1019,352 @@ lockBtn.addEventListener(
 renderMedicines();
 
 // ==========================================
-// 13. คลังรูปภาพจาก SD Card
+// 13. คลังรูปภาพจาก Google Drive
 // ==========================================
 
-const refreshGalleryBtn = document.getElementById("refreshGalleryBtn");
-const galleryGrid = document.getElementById("galleryGrid");
-const galleryEmptyState = document.getElementById("galleryEmptyState");
-const galleryConnectionMessage = document.getElementById("galleryConnectionMessage");
-const galleryCount = document.getElementById("galleryCount");
+const refreshGalleryBtn =
+    document.getElementById("refreshGalleryBtn");
+
+const galleryGrid =
+    document.getElementById("galleryGrid");
+
+const galleryEmptyState =
+    document.getElementById("galleryEmptyState");
+
+const galleryConnectionMessage =
+    document.getElementById("galleryConnectionMessage");
+
+const galleryCount =
+    document.getElementById("galleryCount");
+
 
 function renderGallery(images) {
+
     galleryGrid.innerHTML = "";
 
     if (!Array.isArray(images) || images.length === 0) {
+
         galleryEmptyState.hidden = false;
-        galleryCount.textContent = "ยังไม่มีภาพในคลัง";
+
+        galleryCount.textContent =
+            "ยังไม่มีภาพในคลัง";
+
         return;
     }
 
     galleryEmptyState.hidden = true;
-    galleryCount.textContent = images.length + " ภาพ";
 
-    images.forEach(function (imageData) {
-        const card = document.createElement("article");
-        card.className = "gallery-card";
+    galleryCount.textContent =
+        images.length + " ภาพ";
 
-        const link = document.createElement("a");
-        link.className = "gallery-image-link";
-        link.href = imageData.url;
-        link.target = "_blank";
-        link.rel = "noopener";
 
-        const image = document.createElement("img");
-        image.src = imageData.url;
-        image.alt = "ภาพหลักฐานการรับประทานยา";
-        image.loading = "lazy";
-        link.appendChild(image);
+    images.forEach(
+        function (imageData) {
 
-        const details = document.createElement("div");
-        details.className = "gallery-card-details";
+            const card =
+                document.createElement("article");
 
-        const title = document.createElement("strong");
-        title.textContent = imageData.meal || "ภาพยืนยันการรับประทานยา";
+            card.className =
+                "gallery-card";
 
-        const timestamp = document.createElement("span");
-        timestamp.textContent = imageData.timestamp || imageData.filename || "ไม่ระบุเวลา";
 
-        const status = document.createElement("small");
-        status.textContent = imageData.confirmed === false
-            ? "⚠ ยังไม่ได้กดยืนยัน"
-            : "✓ กดปุ่มยืนยันแล้ว";
-        status.className = imageData.confirmed === false
-            ? "gallery-status warning"
-            : "gallery-status confirmed";
+            // ------------------------------------------
+            // ลิงก์เปิดไฟล์บน Google Drive
+            // ------------------------------------------
 
-        details.append(title, timestamp, status);
-        card.append(link, details);
-        galleryGrid.appendChild(card);
-    });
+            const link =
+                document.createElement("a");
+
+            link.className =
+                "gallery-image-link";
+
+            link.href =
+                imageData.fileUrl ||
+                imageData.url;
+
+            link.target =
+                "_blank";
+
+            link.rel =
+                "noopener noreferrer";
+
+
+            // ------------------------------------------
+            // รูป Preview จาก Google Drive
+            // ------------------------------------------
+
+            const image =
+                document.createElement("img");
+
+            image.src =
+                imageData.url;
+
+            image.alt =
+                "ภาพหลักฐานการรับประทานยา";
+
+            image.loading =
+                "lazy";
+
+            image.referrerPolicy =
+                "no-referrer";
+
+            image.addEventListener(
+                "error",
+                function () {
+
+                    image.alt =
+                        "ไม่สามารถโหลดภาพ Preview ได้";
+
+                    card.classList.add(
+                        "gallery-image-error"
+                    );
+                }
+            );
+
+            link.appendChild(image);
+
+
+            // ------------------------------------------
+            // รายละเอียด
+            // ------------------------------------------
+
+            const details =
+                document.createElement("div");
+
+            details.className =
+                "gallery-card-details";
+
+
+            const title =
+                document.createElement("strong");
+
+            title.textContent =
+                imageData.meal ||
+                "ภาพยืนยันการรับประทานยา";
+
+
+            const timestamp =
+                document.createElement("span");
+
+            timestamp.textContent =
+                imageData.timestamp ||
+                imageData.filename ||
+                "ไม่ระบุเวลา";
+
+
+            const status =
+                document.createElement("small");
+
+            status.textContent =
+                imageData.confirmed === false
+                    ? "⚠ ยังไม่ได้กดยืนยัน"
+                    : "✓ บันทึกหลักฐานแล้ว";
+
+            status.className =
+                imageData.confirmed === false
+                    ? "gallery-status warning"
+                    : "gallery-status confirmed";
+
+
+            details.append(
+                title,
+                timestamp,
+                status
+            );
+
+            card.append(
+                link,
+                details
+            );
+
+            galleryGrid.appendChild(card);
+        }
+    );
 }
 
+
+// ==========================================
+// JSONP
+//
+// ใช้ JSONP แทน fetch() เพราะหน้า GitHub Pages
+// และ Google Apps Script อยู่คนละ Origin
+// ==========================================
+
+function requestDriveGallery() {
+
+    return new Promise(
+        function (resolve, reject) {
+
+            const callbackName =
+                "time4MedDriveGallery_" +
+                Date.now() +
+                "_" +
+                Math.random()
+                    .toString(16)
+                    .slice(2);
+
+            const script =
+                document.createElement("script");
+
+
+            const cleanup =
+                function () {
+
+                    clearTimeout(timeoutId);
+
+                    if (script.parentNode) {
+                        script.parentNode.removeChild(
+                            script
+                        );
+                    }
+
+                    try {
+                        delete window[callbackName];
+                    } catch (error) {
+                        window[callbackName] =
+                            undefined;
+                    }
+                };
+
+
+            const timeoutId =
+                setTimeout(
+                    function () {
+
+                        cleanup();
+
+                        reject(
+                            new Error(
+                                "Google Drive API timeout"
+                            )
+                        );
+
+                    },
+                    15000
+                );
+
+
+            window[callbackName] =
+                function (data) {
+
+                    cleanup();
+
+                    resolve(data);
+                };
+
+
+            script.onerror =
+                function () {
+
+                    cleanup();
+
+                    reject(
+                        new Error(
+                            "โหลด Google Drive API ไม่สำเร็จ"
+                        )
+                    );
+                };
+
+
+            const query =
+                new URLSearchParams({
+                    action: "list",
+                    limit: "60",
+                    callback: callbackName,
+                    _: String(Date.now())
+                });
+
+
+            script.src =
+                DRIVE_GALLERY_API_URL +
+                "?" +
+                query.toString();
+
+
+            document.head.appendChild(
+                script
+            );
+        }
+    );
+}
+
+
+// ==========================================
+// โหลดคลังรูปจาก Google Drive
+// ==========================================
+
 async function loadGallery() {
-    refreshGalleryBtn.disabled = true;
-    refreshGalleryBtn.textContent = "กำลังโหลด...";
-    galleryConnectionMessage.textContent = "กำลังเชื่อมต่อ SD Card ของ ESP32-CAM";
+
+    refreshGalleryBtn.disabled =
+        true;
+
+    refreshGalleryBtn.textContent =
+        "กำลังโหลด...";
+
+    galleryConnectionMessage.textContent =
+        "กำลังเชื่อมต่อคลังรูป Google Drive";
+
 
     try {
-        const response = await fetch(CAMERA_GALLERY_URL, { cache: "no-store" });
-        if (!response.ok) {
-            throw new Error("HTTP " + response.status);
+
+        const data =
+            await requestDriveGallery();
+
+
+        if (!data || data.ok !== true) {
+
+            throw new Error(
+                data && data.error
+                    ? data.error
+                    : "Drive API returned an error"
+            );
         }
 
-        const data = await response.json();
-        renderGallery(Array.isArray(data) ? data : data.images);
-        galleryConnectionMessage.textContent = "เชื่อมต่อ SD Card สำเร็จ";
-    } catch (error) {
-        renderGallery([]);
+
+        const images =
+            Array.isArray(data.images)
+                ? data.images
+                : [];
+
+
+        renderGallery(images);
+
+
         galleryConnectionMessage.textContent =
-            "ยังไม่สามารถอ่านภาพจาก SD Card — ตรวจสอบการเชื่อมต่อ ESP32-CAM";
+            "เชื่อมต่อ Google Drive สำเร็จ";
+
+
+    } catch (error) {
+
+        console.error(
+            "Time4Med gallery error:",
+            error
+        );
+
+
+        renderGallery([]);
+
+
+        galleryConnectionMessage.textContent =
+            "ยังไม่สามารถอ่านภาพจาก Google Drive — ตรวจสอบ Apps Script และการเชื่อมต่ออินเทอร์เน็ต";
+
+
     } finally {
-        refreshGalleryBtn.disabled = false;
-        refreshGalleryBtn.textContent = "↻ โหลดภาพใหม่";
+
+        refreshGalleryBtn.disabled =
+            false;
+
+        refreshGalleryBtn.textContent =
+            "↻ โหลดภาพใหม่";
     }
 }
 
-refreshGalleryBtn.addEventListener("click", loadGallery);
+
+refreshGalleryBtn.addEventListener(
+    "click",
+    loadGallery
+);
+
 
 // ==========================================
 // 14. Sidebar page navigation
