@@ -1367,6 +1367,604 @@ refreshGalleryBtn.addEventListener(
 
 
 // ==========================================
+// 14. Timeline จาก Google Sheets ActivityLog
+// ==========================================
+
+const activityTimeline =
+    document.querySelector(
+        "#activity .activity-timeline"
+    );
+
+const activitySummaryCard =
+    document.querySelector(
+        "#activity .activity-summary-card"
+    );
+
+const timelineFilterButton =
+    document.getElementById(
+        "timelineFilterButton"
+    );
+
+
+function requestTimeline() {
+
+    return new Promise(
+        function (resolve, reject) {
+
+            const callbackName =
+                "time4MedTimeline_" +
+                Date.now() +
+                "_" +
+                Math.random()
+                    .toString(16)
+                    .slice(2);
+
+            const script =
+                document.createElement(
+                    "script"
+                );
+
+            const cleanup =
+                function () {
+
+                    clearTimeout(
+                        timeoutId
+                    );
+
+                    if (
+                        script.parentNode
+                    ) {
+                        script.parentNode
+                            .removeChild(
+                                script
+                            );
+                    }
+
+                    try {
+                        delete window[
+                            callbackName
+                        ];
+                    } catch (error) {
+                        window[
+                            callbackName
+                        ] = undefined;
+                    }
+                };
+
+            const timeoutId =
+                setTimeout(
+                    function () {
+
+                        cleanup();
+
+                        reject(
+                            new Error(
+                                "Timeline API timeout"
+                            )
+                        );
+                    },
+                    15000
+                );
+
+            window[callbackName] =
+                function (data) {
+
+                    cleanup();
+
+                    resolve(data);
+                };
+
+            script.onerror =
+                function () {
+
+                    cleanup();
+
+                    reject(
+                        new Error(
+                            "โหลด Timeline API ไม่สำเร็จ"
+                        )
+                    );
+                };
+
+            const query =
+                new URLSearchParams({
+                    action:
+                        "timeline",
+                    date:
+                        "today",
+                    limit:
+                        "50",
+                    callback:
+                        callbackName,
+                    _:
+                        String(
+                            Date.now()
+                        )
+                });
+
+            script.src =
+                DRIVE_GALLERY_API_URL +
+                "?" +
+                query.toString();
+
+            document.head
+                .appendChild(
+                    script
+                );
+        }
+    );
+}
+
+
+function getTimelinePresentation(
+    eventData
+) {
+
+    const type =
+        String(
+            eventData.event_type || ""
+        ).toUpperCase();
+
+    const result =
+        String(
+            eventData.result || ""
+        ).toUpperCase();
+
+    const presentation = {
+        icon: "📝",
+        title:
+            type ||
+            "เหตุการณ์ระบบ",
+        badge:
+            result === "SUCCESS"
+                ? "สำเร็จ"
+                : result === "PARTIAL"
+                    ? "บางส่วน"
+                    : "ตรวจสอบ",
+        cssClass:
+            result === "SUCCESS"
+                ? "completed"
+                : "warning"
+    };
+
+    if (
+        type ===
+        "MEDICINE_REMINDER"
+    ) {
+        presentation.icon =
+            "🔔";
+
+        presentation.title =
+            "แจ้งเตือนรับประทานยา";
+
+    } else if (
+        type ===
+        "IMAGE_SAVED"
+    ) {
+        presentation.icon =
+            "📷";
+
+        presentation.title =
+            "บันทึกภาพหลักฐาน";
+
+        presentation.badge =
+            result === "SUCCESS"
+                ? "บันทึกแล้ว"
+                : "ไม่สำเร็จ";
+
+    } else if (
+        type ===
+        "MEDICINE_CONFIRMED"
+    ) {
+        presentation.icon =
+            "✓";
+
+        presentation.title =
+            "ยืนยันรับประทานยาแล้ว";
+
+        presentation.badge =
+            result === "SUCCESS"
+                ? "ยืนยันแล้ว"
+                : "ตรวจสอบ";
+
+    } else if (
+        type ===
+        "REMOTE_UNLOCK"
+    ) {
+        presentation.icon =
+            "🔓";
+
+        presentation.title =
+            "ปลดล็อกตู้จากระยะไกล";
+
+    } else if (
+        type ===
+        "REMOTE_LOCK"
+    ) {
+        presentation.icon =
+            "🔒";
+
+        presentation.title =
+            "ล็อกตู้จากระยะไกล";
+
+    } else if (
+        type ===
+        "TIMELINE_TEST"
+    ) {
+        presentation.icon =
+            "🧪";
+
+        presentation.title =
+            "ทดสอบ Timeline";
+    }
+
+    return presentation;
+}
+
+
+function renderTimeline(events) {
+
+    if (!activityTimeline) {
+        return;
+    }
+
+    activityTimeline.innerHTML =
+        "";
+
+    if (
+        !Array.isArray(events) ||
+        events.length === 0
+    ) {
+        const empty =
+            document.createElement(
+                "div"
+            );
+
+        empty.className =
+            "empty-state";
+
+        empty.innerHTML = `
+            <div class="empty-icon">🕘</div>
+            <h3>ยังไม่มีเหตุการณ์วันนี้</h3>
+            <p>
+                เมื่อระบบแจ้งเตือนหรือมีการยืนยันรับประทานยา
+                Timeline จะแสดงที่นี่
+            </p>
+        `;
+
+        activityTimeline
+            .appendChild(
+                empty
+            );
+
+        updateTimelineSummary(
+            []
+        );
+
+        return;
+    }
+
+    events.forEach(
+        function (
+            eventData,
+            index
+        ) {
+
+            const presentation =
+                getTimelinePresentation(
+                    eventData
+                );
+
+            const occurredAt =
+                String(
+                    eventData.occurred_at ||
+                    ""
+                );
+
+            const timeText =
+                occurredAt.length >= 16
+                    ? occurredAt.substring(
+                        11,
+                        16
+                    )
+                    : "--:--";
+
+            const item =
+                document.createElement(
+                    "article"
+                );
+
+            item.className =
+                "activity-item " +
+                presentation.cssClass;
+
+            item.innerHTML = `
+                <div class="activity-time">
+                    <strong>${timeText}</strong>
+                    <span>น.</span>
+                </div>
+
+                <div class="activity-marker">
+                    <span class="activity-dot">
+                        ${presentation.icon}
+                    </span>
+                    ${
+                        index <
+                        events.length - 1
+                            ? '<span class="activity-line"></span>'
+                            : ''
+                    }
+                </div>
+
+                <div class="activity-content">
+                    <div class="activity-content-heading">
+                        <strong>
+                            ${presentation.title}
+                        </strong>
+
+                        <span class="activity-badge ${presentation.cssClass}">
+                            ${presentation.badge}
+                        </span>
+                    </div>
+
+                    <p>
+                        ${
+                            eventData.details ||
+                            "ไม่มีรายละเอียดเพิ่มเติม"
+                        }
+                    </p>
+
+                    <small>
+                        ${
+                            eventData.device_id ||
+                            "Time4Med"
+                        }
+                        ${
+                            eventData.user_id
+                                ? " • " +
+                                  eventData.user_id
+                                : ""
+                        }
+                    </small>
+                </div>
+            `;
+
+            activityTimeline
+                .appendChild(
+                    item
+                );
+        }
+    );
+
+    updateTimelineSummary(
+        events
+    );
+}
+
+
+function updateTimelineSummary(
+    events
+) {
+
+    if (
+        !activitySummaryCard
+    ) {
+        return;
+    }
+
+    const label =
+        activitySummaryCard
+            .querySelector(
+                ".activity-summary-label"
+            );
+
+    const time =
+        activitySummaryCard
+            .querySelector(
+                ".activity-summary-time"
+            );
+
+    const status =
+        activitySummaryCard
+            .querySelector(
+                ".activity-summary-status"
+            );
+
+    const progressRow =
+        activitySummaryCard
+            .querySelector(
+                ".summary-progress-row"
+            );
+
+    const progressBar =
+        activitySummaryCard
+            .querySelector(
+                ".summary-progress-bar"
+            );
+
+    const nextSection =
+        activitySummaryCard
+            .querySelector(
+                ".activity-summary-next"
+            );
+
+    if (label) {
+        label.textContent =
+            "เหตุการณ์ล่าสุด";
+    }
+
+    if (
+        !Array.isArray(events) ||
+        events.length === 0
+    ) {
+
+        if (time) {
+            time.textContent =
+                "--:-- น.";
+        }
+
+        if (status) {
+            status.textContent =
+                "ยังไม่มีข้อมูลวันนี้";
+        }
+
+        if (progressRow) {
+            progressRow.innerHTML =
+                "<span>เหตุการณ์วันนี้</span><strong>0 รายการ</strong>";
+        }
+
+        if (progressBar) {
+            progressBar.style.width =
+                "0%";
+        }
+
+        if (nextSection) {
+            nextSection.hidden =
+                true;
+        }
+
+        return;
+    }
+
+    const latest =
+        events[0];
+
+    const latestTime =
+        String(
+            latest.occurred_at || ""
+        );
+
+    if (time) {
+        time.textContent =
+            (
+                latestTime.length >= 16
+                    ? latestTime.substring(
+                        11,
+                        16
+                    )
+                    : "--:--"
+            ) +
+            " น.";
+    }
+
+    if (status) {
+        status.textContent =
+            getTimelinePresentation(
+                latest
+            ).title;
+    }
+
+    if (progressRow) {
+        progressRow.innerHTML =
+            "<span>เหตุการณ์วันนี้</span><strong>" +
+            events.length +
+            " รายการ</strong>";
+    }
+
+    if (progressBar) {
+        progressBar.style.width =
+            "100%";
+    }
+
+    if (nextSection) {
+        nextSection.hidden =
+            true;
+    }
+}
+
+
+async function loadTimeline() {
+
+    if (!activityTimeline) {
+        return;
+    }
+
+    if (
+        timelineFilterButton
+    ) {
+        timelineFilterButton.disabled =
+            true;
+
+        timelineFilterButton.textContent =
+            "กำลังโหลด...";
+    }
+
+    try {
+        const data =
+            await requestTimeline();
+
+        if (
+            !data ||
+            data.ok !== true
+        ) {
+            throw new Error(
+                data &&
+                data.error
+                    ? data.error
+                    : "Timeline API error"
+            );
+        }
+
+        const events =
+            Array.isArray(
+                data.events
+            )
+                ? data.events
+                : [];
+
+        renderTimeline(
+            events
+        );
+
+        if (
+            timelineFilterButton
+        ) {
+            timelineFilterButton.textContent =
+                "วันนี้ • " +
+                events.length +
+                " รายการ";
+        }
+
+    } catch (error) {
+        console.error(
+            "Time4Med timeline error:",
+            error
+        );
+
+        renderTimeline(
+            []
+        );
+
+        if (
+            timelineFilterButton
+        ) {
+            timelineFilterButton.textContent =
+                "Timeline เชื่อมต่อไม่ได้";
+        }
+
+    } finally {
+        if (
+            timelineFilterButton
+        ) {
+            timelineFilterButton.disabled =
+                false;
+        }
+    }
+}
+
+
+if (
+    timelineFilterButton
+) {
+    timelineFilterButton
+        .addEventListener(
+            "click",
+            loadTimeline
+        );
+}
+
+
+// ==========================================
 // 14. Sidebar page navigation
 // ==========================================
 (function setupSidebarPageNavigation() {
@@ -1441,6 +2039,10 @@ refreshGalleryBtn.addEventListener(
             loadGallery();
         }
 
+        if (viewName === 'activity') {
+            loadTimeline();
+        }
+
         if (updateUrl) {
             history.replaceState(null, '', '#' + viewName);
         }
@@ -1458,4 +2060,8 @@ refreshGalleryBtn.addEventListener(
 
     const initialView = window.location.hash.slice(1) || 'dashboard';
     openView(initialView, false);
+
+    if (initialView === 'dashboard') {
+        loadTimeline();
+    }
 })();
