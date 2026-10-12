@@ -146,13 +146,11 @@ cameraStream.src = CAMERA_STREAM_URL;
 
 // ==========================================
 // MQTT - เชื่อมหน้าเว็บกับ ESP32-S3 ผ่าน HiveMQ Cloud
-// รหัสผ่านจะรับจากผู้ดูแลและเก็บไว้เฉพาะในหน่วยความจำของแท็บนี้
+// ใช้บัญชีที่กำหนดใน mqtt-config.js เพื่อเชื่อมต่ออัตโนมัติ
 // ==========================================
 
-const MQTT_BROKER_URL =
-    "wss://730b8f62b55c4753803b4302a8cf6bf4.s1.eu.hivemq.cloud:8884/mqtt";
-
-const MQTT_USERNAME = "time4med-web";
+const MQTT_BROKER_URL = window.TIME4MED_MQTT_CONFIG?.brokerUrl || "";
+const MQTT_USERNAME = window.TIME4MED_MQTT_CONFIG?.username || "";
 
 const MQTT_TOPIC_STATUS =
     "time4med/v1/cabinet/cabinet-01/status";
@@ -209,7 +207,7 @@ function setMqttConnectionState(state, label) {
 
     mqttConnectButton.setAttribute(
         "aria-label",
-        label + " คลิกเพื่อตั้งค่าการเชื่อมต่อ"
+        label + " คลิกเพื่อเชื่อมต่อใหม่"
     );
 
     if (state === "connecting") {
@@ -222,25 +220,21 @@ function setMqttConnectionState(state, label) {
 }
 
 
-function openMqttCredentialDialog(message) {
-
-    if (time4MedMqttClient && time4MedMqttClient.connected) {
-        controlMessage.textContent =
-            "ⓘ หน้าเว็บเชื่อมต่อ MQTT อยู่แล้ว";
-        controlMessage.style.color = "#138039";
-        return;
-    }
-
-    mqttDialogMessage.textContent = message || "";
-    mqttPasswordInput.value = "";
-
-    if (!mqttCredentialDialog.open) {
-        mqttCredentialDialog.showModal();
-    }
-
-    mqttPasswordInput.focus();
+function openMqttCredentialDialog() {
+    startAutomaticMqtt();
 }
 
+function startAutomaticMqtt() {
+    if (time4MedMqttClient && (time4MedMqttClient.connected || time4MedMqttClient.reconnecting)) return;
+    const config = window.TIME4MED_MQTT_CONFIG;
+    if (!config || !MQTT_BROKER_URL.startsWith("wss://") || !MQTT_USERNAME ||
+        typeof config.password !== "string" || !config.password || config.password === "PUT_MQTT_PASSWORD_HERE") {
+        setMqttConnectionState("disconnected", "MQTT: กรุณาตั้งค่า mqtt-config.js");
+        controlMessage.textContent = "กรอกบัญชี MQTT ในไฟล์ mqtt-config.js แล้วอัปโหลดไฟล์และรีเฟรชหน้าเว็บ";
+        return;
+    }
+    connectTime4MedMqtt(config.password);
+}
 
 function updateDeviceStatusFromMqtt(status) {
 
@@ -270,6 +264,8 @@ function handleMqttMessage(topic, payloadBuffer) {
         console.warn("MQTT message is not JSON:", topic);
         return;
     }
+
+    if (window.time4medScheduleMessage) window.time4medScheduleMessage(topic, data);
 
     if (topic === MQTT_TOPIC_STATUS) {
         updateDeviceStatusFromMqtt(data);
@@ -342,7 +338,7 @@ function connectTime4MedMqtt(password) {
         controlMessage.style.color = "#138039";
 
         client.subscribe(
-            [MQTT_TOPIC_STATUS, MQTT_TOPIC_EVENT],
+            [MQTT_TOPIC_STATUS, MQTT_TOPIC_EVENT, "time4med/v1/cabinet/cabinet-01/schedule/reported"],
             { qos: 1 },
             function (error) {
 
@@ -479,34 +475,8 @@ mqttConnectButton.addEventListener("keydown", function (event) {
 });
 
 
-mqttCancelButton.addEventListener("click", function () {
-    mqttPasswordInput.value = "";
-    mqttCredentialDialog.close();
-});
-
-
-mqttCredentialForm.addEventListener("submit", function (event) {
-
-    event.preventDefault();
-
-    const password = mqttPasswordInput.value;
-
-    if (!password) {
-        mqttDialogMessage.textContent = "กรุณาใส่รหัสผ่าน";
-        return;
-    }
-
-    mqttCredentialDialog.close();
-    mqttPasswordInput.value = "";
-    connectTime4MedMqtt(password);
-});
-
-
-setMqttConnectionState(
-    "disconnected",
-    "MQTT: ยังไม่เชื่อมต่อ"
-);
-
+setMqttConnectionState("connecting", "MQTT: กำลังเตรียมเชื่อมต่ออัตโนมัติ...");
+window.addEventListener("DOMContentLoaded", startAutomaticMqtt, {once: true});
 
 // ==========================================
 // 2. โหลดข้อมูลรายการยา
@@ -569,6 +539,7 @@ setInterval(updateClock, 1000);
 // ==========================================
 
 function saveMedicines() {
+    window.dispatchEvent(new Event("time4med-medicines-changed"));
 
     const medicineText =
         JSON.stringify(medicines);
@@ -746,12 +717,12 @@ function renderMedicines() {
                     <div class="medicine-details">
 
                         <h3>
-                            ${medicine.name}
+                            ${escapeMedicineText(medicine.name)}
                         </h3>
 
                         <p>
-                            เวลา ${medicine.time} น.
-                            • จำนวน ${medicine.amount} เม็ด
+                            เวลา ${escapeMedicineText(medicine.time)} น.
+                            • จำนวน ${escapeMedicineText(medicine.amount)} เม็ด
                         </p>
 
                     </div>
@@ -2065,3 +2036,7 @@ if (
         loadTimeline();
     }
 })();
+
+function escapeMedicineText(value) {
+    return String(value).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
