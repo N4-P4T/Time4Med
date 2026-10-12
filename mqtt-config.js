@@ -3,5 +3,5 @@
 window.TIME4MED_MQTT_CONFIG = Object.freeze({
     brokerUrl: "wss://730b8f62b55c4753803b4302a8cf6bf4.s1.eu.hivemq.cloud:8884/mqtt",
     username: "time4med-web",
-    password: "!t4m1234567890"
+    password: "!t4m999999999"
 });
