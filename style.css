@@ -2956,3 +2956,107 @@ body.sidebar-collapsed .sidebar-toggle:hover {
         transform: translateY(0);
     }
 }
+
+/* =======================================================
+   Time4Med Inventory v0.15 (website-only)
+   ======================================================= */
+.inventory-section {margin-bottom:25px;}
+.inventory-heading {flex-wrap:wrap;}
+.inventory-local-badge {font-size:12px;font-weight:700;color:#155a96;background:#e9f4ff;border:1px solid #c9e4fd;padding:8px 12px;border-radius:999px;}
+.inventory-help {color:#5b6d83;line-height:1.65;background:#f6f9fc;border-left:4px solid #316eb5;padding:12px 15px;border-radius:8px;margin-bottom:18px;font-size:13px;}
+.inventory-summary {display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px;margin-bottom:22px;}
+.inventory-kpi {background:#f3f8ff;border:1px solid #dae9fa;border-radius:12px;padding:16px;display:flex;flex-direction:column;gap:6px;}
+.inventory-kpi span {color:#60738d;font-size:13px;}
+.inventory-kpi strong {color:#073b82;font-size:28px;}
+.inventory-toolbar {display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:12px;}
+.inventory-filters {display:flex;align-items:center;gap:9px;color:#526581;font-size:14px;}
+.inventory-filters select, .medicine-form select {font-family:inherit;color:var(--text-dark);background:#fff;border:1px solid #bdcbe0;border-radius:10px;height:52px;padding:0 12px;min-width:130px;}
+.inventory-export-actions {display:flex;flex-wrap:wrap;gap:8px;}
+.inventory-export-actions button,.inventory-import-label,.inventory-action {border:1px solid #bdd4ed;border-radius:9px;padding:9px 12px;color:#0755c9;background:#f1f7ff;font-family:inherit;font-size:13px;font-weight:700;cursor:pointer;text-align:center;display:inline-block;}
+.inventory-export-actions button,.inventory-import-label {font-size:12px;font-weight:700;}
+.inventory-export-actions button:hover,.inventory-import-label:hover,.inventory-action:hover {background:#e3efff;}
+.inventory-action.deduct {background:#e8f7ef;color:#08703a;border-color:#c6ead5;}
+.inventory-action:disabled {opacity:.5;cursor:not-allowed;}
+.inventory-message {min-height:40px;line-height:1.5;padding:10px 12px;color:#154f83;background:#f3f8ff;border-radius:9px;margin-bottom:15px;font-size:13px;}
+.inventory-message.error {color:#9a2b23;background:#fff1ef;}
+.inventory-items {display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;}
+.inventory-item {min-width:0;border:1px solid #dbe5f1;background:#fff;border-radius:14px;padding:18px;}
+.inventory-item.low {border-color:#e8b75c;background:#fffdf5;}
+.inventory-item.unknown {border-style:dashed;}
+.inventory-item-header {display:flex;justify-content:space-between;align-items:flex-start;gap:10px;}
+.inventory-item h3 {margin:0 0 4px;color:#183d6d;font-size:18px;overflow-wrap:anywhere;}
+.inventory-meta {font-size:12px;color:#65748b;line-height:1.5;}
+.inventory-stock {font-size:25px;color:#073b82;margin:14px 0 5px;font-weight:800;}
+.inventory-status {font-size:11px;font-weight:700;padding:5px 7px;border-radius:8px;color:#11633e;background:#e5f8ed;white-space:nowrap;}
+.inventory-status.low {color:#92440b;background:#ffead0;}
+.inventory-status.unknown {color:#586781;background:#eaf0f8;}
+.inventory-track {height:8px;background:#e9eef5;border-radius:99px;overflow:hidden;margin:11px 0 16px;}
+.inventory-fill {height:100%;background:#248ad3;border-radius:99px;}
+.inventory-item.low .inventory-fill {background:#e79a24;}
+.inventory-item-actions {display:flex;gap:7px;flex-wrap:wrap;}
+.inventory-subheading {color:#18426b;margin:26px 0 12px;font-size:17px;}
+.inventory-history {display:flex;flex-direction:column;gap:8px;max-height:290px;overflow-y:auto;}
+.inventory-history-item {display:flex;align-items:center;justify-content:space-between;gap:14px;font-size:12px;background:#f7faff;border:1px solid #e4edf7;padding:11px 12px;border-radius:10px;}
+.inventory-history-item strong {display:block;color:#193c66;font-size:13px;margin-bottom:3px;}
+.inventory-history-item small {display:block;color:#78879c;font-size:11px;}
+.inventory-empty {padding:28px;border:1px dashed #c5d5e8;border-radius:12px;text-align:center;color:#64748b;line-height:1.65;background:#fcfdff;}
+.inventory-dialog {width:min(440px,calc(100% - 28px));border:0;border-radius:18px;padding:25px;box-shadow:0 25px 75px #071b3950;margin:auto;}
+.inventory-dialog::backdrop {background:#061a35a8;}
+.inventory-dialog h2 {color:#093b79;margin:0 0 8px;font-size:22px;}
+.inventory-dialog p {color:#66758b;font-size:13px;margin-bottom:17px;line-height:1.55;}
+.inventory-dialog label {display:block;font-weight:700;color:#334763;font-size:13px;margin:14px 0 7px;}
+.inventory-dialog input {display:block;width:100%;height:44px;border:1px solid #b6c9de;border-radius:10px;padding:9px 12px;font:inherit;}
+.inventory-dialog-actions {display:flex;justify-content:flex-end;gap:9px;margin-top:20px;}
+.inventory-dialog-actions button {cursor:pointer;border:1px solid #cbd9eb;background:#eef3f9;border-radius:9px;padding:10px 15px;font-weight:700;}
+.inventory-dialog-actions .inventory-save {background:#0755c9;color:#fff;border-color:#0755c9;}
+.medicine-stock-line {margin-top:5px;color:#1b6a48!important;font-weight:700;}
+@media(max-width:1050px){.inventory-items {grid-template-columns:1fr;}}
+@media(max-width:820px){.sidebar-navigation {grid-template-columns:repeat(8,1fr);}}
+@media(max-width:700px){.inventory-summary {grid-template-columns:1fr;}.inventory-item {padding:14px;}.inventory-toolbar {align-items:stretch;}.inventory-export-actions {width:100%;}}
+@media(max-width:440px){.sidebar-link-text strong {font-size:7px;}.sidebar-link-icon {font-size:16px;}}
+
+@media(max-width:820px){
+  .sidebar-navigation{display:flex;overflow-x:auto;overflow-y:hidden;gap:5px;scrollbar-width:thin;overscroll-behavior-x:contain;}
+  .sidebar-link{flex:0 0 66px;min-width:66px;}
+  .sidebar-link-text strong{font-size:9px;}
+}
+
+
+/* ===== Time4Med v0.16: meal-based cabinet ===== */
+.medicine-form {grid-template-columns:repeat(2,minmax(0,1fr));align-items:end}
+.medicine-form .form-group select,.medicine-form .form-group textarea,.medicine-form .form-group input {width:100%;border:1px solid #bdcbe0;border-radius:10px;background:#fff;color:#172033;font:inherit}
+.medicine-form .form-group select,.medicine-form .form-group input{min-height:50px;padding:9px 12px}
+.medicine-form .form-group textarea{padding:12px;resize:vertical}
+.cabinet-location-note {padding:11px 14px;border:1px solid #b7d4f7;border-radius:11px;background:#f0f7ff;justify-content:center}
+.cabinet-location-title {font-size:12px;color:#536b87}.cabinet-location-note strong{color:#064887}.cabinet-location-note small{font-size:11px;color:#627c9a}
+.medicine-extra {grid-column:1/-1;border:1px solid #d9e4f1;border-radius:10px;padding:12px 15px;background:#fbfdff}
+.medicine-extra summary{cursor:pointer;font-weight:700;color:#195186}
+.medicine-extra .form-group{padding-top:15px}.medicine-extra small{font-size:12px;color:#6c7c94}
+.medicine-form-hint{grid-column:1/-1;color:#60738a;font-size:12px;line-height:1.7}
+.medicine-form-actions{grid-column:1/-1;display:flex;gap:10px;flex-wrap:wrap}
+.medicine-form-actions .add-medicine-button{grid-column:auto;flex:1;margin:0}
+.medicine-cancel-edit{padding:12px 18px;border:1px solid #c8d5e4;border-radius:10px;background:#eef3f9;color:#25466c;font-weight:700;cursor:pointer}
+.meal-medicine-item .medicine-details p{line-height:1.7;margin:4px 0}.meal-medicine-item .medicine-information{min-width:0;align-items:start}.meal-medicine-item .medicine-details{min-width:0;overflow-wrap:anywhere}
+.medicine-edit-button{background:#e9f2ff;color:#0755c9;border:1px solid #c5dcfc;border-radius:8px;padding:9px 12px;cursor:pointer;font-weight:700}
+.inventory-summary{margin-bottom:18px}
+.cabinet-shelf-map{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;margin:16px 0 22px}
+.cabinet-map-shelf{background:#f6faff;border:1px solid #d9e6f5;border-left:5px solid #4288d7;border-radius:14px;padding:16px;min-width:0}
+.cabinet-map-shelf.prn{border-left-color:#e6a041;background:#fffaf2}
+.cabinet-map-shelf h3{font-size:16px;color:#1c4775;margin:0 0 9px}.cabinet-map-shelf p{font-size:12px;color:#677f98;line-height:1.5;margin:0 0 8px}
+.cabinet-map-boxes{display:flex;flex-wrap:wrap;gap:7px}
+.cabinet-map-box{font-size:12px;font-weight:700;color:#15518d;background:#e7f1ff;border:1px solid #c4dafa;border-radius:9px;padding:7px 10px}
+.cabinet-map-box.empty{background:#fff;border:1px dashed #d3deea;color:#91a1b3}
+.inventory-items{grid-template-columns:repeat(2,minmax(0,1fr))}
+.inventory-item{overflow-wrap:anywhere}
+.inventory-item-header .inventory-meta{line-height:1.55}
+.inventory-action{cursor:pointer}
+.inventory-item-statusselect{display:flex;gap:8px;align-items:center;margin-top:12px;flex-wrap:wrap}
+.inventory-item-statusselect label{font-weight:700;font-size:12px;color:#3a5977}
+.inventory-item-statusselect select{max-width:100%;border:1px solid #c7d9ec;padding:9px 10px;border-radius:9px;background:white;color:#1d446f;font:inherit}
+.inventory-status.pending{background:#f0f3f7;color:#65748a}
+.inventory-status.ok{background:#e2f7e9;color:#19713d}
+.inventory-status.low{background:#fff0d5;color:#995d00}
+.inventory-status.out{background:#ffe6e6;color:#b42318}
+.inventory-migration-note{font-size:12px;color:#8f5e16;background:#fff8e7;border:1px solid #ffe2a6;border-radius:9px;padding:9px;margin:9px 0}
+@media(max-width:1050px){.cabinet-shelf-map,.inventory-items{grid-template-columns:1fr}}
+@media(max-width:700px){.medicine-form{grid-template-columns:1fr}.medicine-form-hint,.medicine-extra,.medicine-form-actions{grid-column:auto}.medicine-form-actions{flex-direction:column}.meal-medicine-item{gap:12px}}

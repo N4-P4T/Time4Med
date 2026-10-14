@@ -38,8 +38,13 @@ const medicineName =
 const medicineTime =
     document.getElementById("medicineTime");
 
-const medicineAmount =
-    document.getElementById("medicineAmount");
+const medicinePatient = document.getElementById("medicinePatient");
+const medicineMeal = document.getElementById("medicineMeal");
+const medicineBox = document.getElementById("medicineBox");
+const medicineInstruction = document.getElementById("medicineInstruction");
+const medicineShelfPreview = document.getElementById("medicineShelfPreview");
+const medicineTimeGroup = document.getElementById("medicineTimeGroup");
+const cancelMedicineEditBtn = document.getElementById("cancelMedicineEditBtn");
 
 const addMedicineBtn =
     document.getElementById("addMedicineBtn");
@@ -273,6 +278,8 @@ function handleMqttMessage(topic, payloadBuffer) {
     }
 
     if (topic === MQTT_TOPIC_EVENT) {
+        // Inventory module may handle a uniquely identified confirmation.
+        window.dispatchEvent(new CustomEvent("time4med-mqtt-event", { detail: data }));
         const eventName = data.event || "EVENT";
         const detail = data.detail ? " — " + data.detail : "";
 
@@ -486,9 +493,47 @@ const savedMedicines =
     localStorage.getItem("time4medMedicines");
 
 
-let medicines = savedMedicines
-    ? JSON.parse(savedMedicines)
-    : [];
+let medicines = [];
+try {
+    const parsed = savedMedicines ? JSON.parse(savedMedicines) : [];
+    medicines = Array.isArray(parsed) ? parsed : [];
+} catch (error) {
+    console.warn('Medicine data in browser could not be read', error);
+}
+
+
+// ข้อมูลตู้ยา v0.16 — ดึงชั้นจากมื้อโดยตรง และไม่เดาหมายเลขกล่องของข้อมูลเก่า
+const TIME4MED_MEAL_DEFS = Object.freeze({
+    '1': {shelf:'morning', shelfLabel:'ชั้น 1 — เช้า', label:'ก่อนอาหารเช้า'},
+    '2': {shelf:'morning', shelfLabel:'ชั้น 1 — เช้า', label:'หลังอาหารเช้า'},
+    '3': {shelf:'noon', shelfLabel:'ชั้น 2 — กลางวัน', label:'ก่อนอาหารกลางวัน'},
+    '4': {shelf:'noon', shelfLabel:'ชั้น 2 — กลางวัน', label:'หลังอาหารกลางวัน'},
+    '5': {shelf:'evening', shelfLabel:'ชั้น 3 — เย็น', label:'ก่อนอาหารเย็น'},
+    '6': {shelf:'evening', shelfLabel:'ชั้น 3 — เย็น', label:'หลังอาหารเย็น'},
+    '7': {shelf:'bedtime', shelfLabel:'ชั้น 4 — ก่อนนอน', label:'ก่อนนอน'},
+    'prn': {shelf:'prn', shelfLabel:'พื้นที่ PRN (แยกจาก 4 ชั้น)', label:'ใช้เมื่อมีอาการ (PRN)'}
+});
+const TIME4MED_STATUS_LABELS = Object.freeze({unchecked:'ยังไม่ตรวจสอบ',ok:'ยาเพียงพอ',low:'ยาใกล้หมด',out:'ยาหมด'});
+function time4medUid() { return typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : `med-${Date.now()}-${Math.random().toString(36).slice(2)}`; }
+function mealDef(row) { return TIME4MED_MEAL_DEFS[row.kind === 'prn' ? 'prn' : String(row.mealType)] || TIME4MED_MEAL_DEFS['2']; }
+function normalizeMedicineRecords() {
+    let changed = false; const ids = new Set();
+    medicines = medicines.filter(row=>row && typeof row === 'object');
+    for (const row of medicines) {
+        if (!row.id || typeof row.id !== 'string' || ids.has(row.id)) {row.id=time4medUid();changed=true;}
+        ids.add(row.id);
+        // เก็บข้อมูล v0.15 เดิม (stock/amount/slot) ไว้ แต่เลิกนับเม็ดอัตโนมัติ
+        if (row.kind !== 'prn' && row.kind !== 'scheduled') {row.kind='scheduled';changed=true;}
+        if (row.kind === 'scheduled' && !(String(row.mealType) in TIME4MED_MEAL_DEFS) || row.kind==='scheduled' && String(row.mealType)==='prn') {row.mealType=2;changed=true;}
+        if (row.kind === 'prn' && row.time) {row.time='';changed=true;}
+        if (typeof row.patient !== 'string') {row.patient='';changed=true;}
+        if (typeof row.boxNumber !== 'string') {row.boxNumber='';changed=true;}
+        if (typeof row.instruction !== 'string') {row.instruction='';changed=true;}
+        if (!(row.stockStatus in TIME4MED_STATUS_LABELS)) {row.stockStatus='unchecked';changed=true;}
+    }
+    if (changed) {try {localStorage.setItem('time4medMedicines',JSON.stringify(medicines));} catch (e) {console.warn('Could not save migrated data',e);}}
+}
+normalizeMedicineRecords();
 
 
 // ==========================================
@@ -539,15 +584,10 @@ setInterval(updateClock, 1000);
 // ==========================================
 
 function saveMedicines() {
+    const medicineText = JSON.stringify(medicines);
+    localStorage.setItem("time4medMedicines", medicineText);
+    // Notify after saving, so Inventory and Schedule see the committed state.
     window.dispatchEvent(new Event("time4med-medicines-changed"));
-
-    const medicineText =
-        JSON.stringify(medicines);
-
-    localStorage.setItem(
-        "time4medMedicines",
-        medicineText
-    );
 }
 
 
@@ -592,374 +632,124 @@ function showFormMessage(message, type) {
 // ==========================================
 
 function updateSummary() {
-
-    const total =
-        medicines.length;
-
-
-    const taken =
-        medicines.filter(
-            function (medicine) {
-
-                return medicine.taken === true;
-
-            }
-        ).length;
-
-
-    const waiting =
-        total - taken;
-
-
-    totalMedicineCount.textContent =
-        total;
-
-    takenMedicineCount.textContent =
-        taken;
-
-    waitingMedicineCount.textContent =
-        waiting;
-
-
-    if (medicines.length === 0) {
-
-        latestAlert.textContent =
-            "-";
-
-    } else {
-
-        const sortedMedicines =
-            [...medicines].sort(
-                function (firstMedicine, secondMedicine) {
-
-                    return firstMedicine.time.localeCompare(
-                        secondMedicine.time
-                    );
-
-                }
-            );
-
-
-        latestAlert.textContent =
-            sortedMedicines[0].time;
-
-    }
+    totalMedicineCount.textContent = String(medicines.length);
+    takenMedicineCount.textContent = String(medicines.filter(m=>m.kind!=='prn').length);
+    waitingMedicineCount.textContent = String(medicines.filter(m=>m.kind==='prn').length);
+    const times = medicines.filter(m=>m.kind!=='prn' && /^(?:[01]\d|2[0-3]):[0-5]\d$/.test(m.time)).map(m=>m.time).sort();
+    latestAlert.textContent = times[0] || '-';
 }
 
-
-// ==========================================
-// 7. แสดงรายการยา
-// ==========================================
+let editingMedicineId = null;
+function showMedicineLocation() {
+    const def = TIME4MED_MEAL_DEFS[medicineMeal.value] || TIME4MED_MEAL_DEFS['2'];
+    const prn = medicineMeal.value === 'prn';
+    medicineShelfPreview.textContent = def.shelfLabel;
+    medicineTimeGroup.hidden = prn;
+    medicineTime.required = !prn;
+    medicineInstruction.required = prn;
+    if (prn) { medicineTime.value = ''; medicineInstruction.closest('details').open = true; }
+}
+medicineMeal.addEventListener('change', showMedicineLocation);
+showMedicineLocation();
 
 function renderMedicines() {
-
-    medicineList.innerHTML = "";
-
-
-    medicineCount.textContent =
-        medicines.length + " รายการ";
-
-
+    medicineList.replaceChildren();
+    medicineCount.textContent = `${medicines.length} รายการ`;
     updateSummary();
-
-
-    if (medicines.length === 0) {
-
-        medicineList.innerHTML = `
-            <div class="empty-state">
-
-                <div class="empty-icon">
-                    💊
-                </div>
-
-                <h3>
-                    ยังไม่มีรายการยา
-                </h3>
-
-                <p>
-                    กรุณาเพิ่มรายการยาจากแบบฟอร์มด้านซ้าย
-                </p>
-
-            </div>
-        `;
-
-        return;
+    if (!medicines.length) {
+        const empty = document.createElement('div');empty.className='empty-state';
+        empty.innerHTML='<div class="empty-icon">💊</div><h3>ยังไม่มีรายการยา</h3><p>เพิ่มยาตามฉลากโรงพยาบาลจากฟอร์มด้านซ้าย</p>';
+        medicineList.appendChild(empty);return;
     }
-
-
-    medicines.forEach(
-        function (medicine, index) {
-
-            const medicineItem =
-                document.createElement("div");
-
-
-            medicineItem.className =
-                "medicine-item";
-
-
-            if (medicine.taken === true) {
-
-                medicineItem.classList.add(
-                    "completed"
-                );
-
-            }
-
-
-            medicineItem.innerHTML = `
-                <div class="medicine-information">
-
-                    <div class="medicine-item-icon">
-                        💊
-                    </div>
-
-                    <div class="medicine-details">
-
-                        <h3>
-                            ${escapeMedicineText(medicine.name)}
-                        </h3>
-
-                        <p>
-                            เวลา ${escapeMedicineText(medicine.time)} น.
-                            • จำนวน ${escapeMedicineText(medicine.amount)} เม็ด
-                        </p>
-
-                    </div>
-
-                </div>
-
-
-                <div class="medicine-actions">
-                    <button
-                        class="delete-button"
-                        type="button"
-                        data-index="${index}"
-                    >
-                        🗑 ลบ
-                    </button>
-
-                </div>
-            `;
-
-
-            medicineList.appendChild(
-                medicineItem
-            );
-
-        }
-    );
-
-
-    const deleteButtons =
-        document.querySelectorAll(
-            ".delete-button"
-        );
-
-
-    deleteButtons.forEach(
-        function (button) {
-
-            button.addEventListener(
-                "click",
-                function () {
-
-                    const index =
-                        Number(
-                            button.dataset.index
-                        );
-
-
-                    deleteMedicine(index);
-
-                }
-            );
-
-        }
-    );
+    for (const row of [...medicines].sort((a,b)=>((a.kind==='prn'?9:Number(a.mealType))-(b.kind==='prn'?9:Number(b.mealType)))||String(a.time||'').localeCompare(String(b.time||'')))) {
+        const def = mealDef(row);
+        const card = document.createElement('article');
+        card.className='medicine-item meal-medicine-item';
+        const box = row.boxNumber ? `กล่อง ${escapeMedicineText(row.boxNumber)}` : 'ยังไม่ระบุหมายเลขกล่อง (ข้อมูลเดิม)';
+        card.innerHTML = `<div class="medicine-information"><div class="medicine-item-icon">💊</div>
+          <div class="medicine-details"><h3>${escapeMedicineText(row.name||'ไม่ระบุชื่อยา')}</h3>
+            <p>${escapeMedicineText(row.patient||'ยังไม่ระบุผู้ป่วย')} · ${escapeMedicineText(def.shelfLabel)} · ${box}</p>
+            <p><strong>${escapeMedicineText(def.label)}</strong> ${row.kind==='prn'?'· ไม่มีเวลาแจ้งเตือนประจำ':`· ${escapeMedicineText(row.time||'ยังไม่ตั้งเวลา')} น.`}</p>
+            ${row.instruction?`<p>ตามฉลาก: ${escapeMedicineText(row.instruction)}</p>`:''}
+            <p class="medicine-stock-line">สถานะยา: ${escapeMedicineText(TIME4MED_STATUS_LABELS[row.stockStatus]||'ยังไม่ตรวจสอบ')}</p>
+          </div></div><div class="medicine-actions">
+          <button class="medicine-edit-button" type="button" data-action="edit" data-id="${escapeMedicineText(row.id)}">✎ แก้ไข</button>
+          <button class="delete-button" type="button" data-action="delete" data-id="${escapeMedicineText(row.id)}">🗑 ลบ</button></div>`;
+        medicineList.appendChild(card);
+    }
 }
 
-
-// ==========================================
-// 8. เพิ่มรายการยา
-// ==========================================
-
+function clearMedicineForm() {
+    editingMedicineId = null;
+    addMedicineBtn.textContent = '＋ เพิ่มรายการยา';
+    cancelMedicineEditBtn.hidden = true;
+    medicinePatient.value=''; medicineName.value='';medicineMeal.value='2'; medicineBox.value=''; medicineInstruction.value='';
+    medicineTime.value='';showMedicineLocation();
+}
+function editMedicine(row) {
+    editingMedicineId = row.id;
+    medicinePatient.value = row.patient || '';
+    medicineName.value = row.name || '';
+    medicineMeal.value = row.kind==='prn'?'prn':String(row.mealType||2);
+    medicineBox.value = row.boxNumber || '';
+    medicineInstruction.value = row.instruction || '';
+    medicineTime.value = row.kind==='prn'?'':row.time || '';
+    showMedicineLocation();
+    medicineTime.value = row.kind==='prn'?'':row.time||'';
+    addMedicineBtn.textContent='✓ บันทึกการแก้ไข';
+    cancelMedicineEditBtn.hidden = false;
+    document.querySelector('#medication .medicine-form-panel').scrollIntoView({behavior:'smooth',block:'start'});
+    showFormMessage('กำลังแก้ไขรายการยา กรุณาตรวจข้อมูลบนฉลากและตำแหน่งจริงก่อนบันทึก','success');
+}
 function addMedicine() {
-
-    const name =
-        medicineName.value.trim();
-
-    const time =
-        medicineTime.value;
-
-    const amount =
-        Number(
-            medicineAmount.value
-        );
-
-
-    if (name === "") {
-
-        showFormMessage(
-            "กรุณากรอกชื่อยา",
-            "error"
-        );
-
-        medicineName.focus();
-
-        return;
+    const name=medicineName.value.trim(),patient=medicinePatient.value.trim();
+    const boxNumber=medicineBox.value.trim().toUpperCase();
+    const mealValue=medicineMeal.value,prn=mealValue==='prn';
+    const def=TIME4MED_MEAL_DEFS[mealValue],time=prn?'':medicineTime.value;
+    const instruction=medicineInstruction.value.trim();
+    if (!patient || !name || !boxNumber || !def || boxNumber.length>12 ||
+        (!prn && !/^(?:[01]\d|2[0-3]):[0-5]\d$/.test(time))) {
+        showFormMessage('กรุณากรอกผู้ป่วย ชื่อยา หมายเลขกล่อง และเวลาสำหรับยาตามมื้อให้ครบ','error');return;
     }
-
-
-    if (time === "") {
-
-        showFormMessage(
-            "กรุณาเลือกเวลารับประทานยา",
-            "error"
-        );
-
-        medicineTime.focus();
-
-        return;
+    if (prn && !instruction) {showFormMessage('ยา PRN ต้องมีวิธีใช้ตามฉลากหรือคำสั่งแพทย์ ก่อนบันทึก','error');medicineInstruction.focus();return;}
+    if (!/^[0-9A-Za-zก-๙_-]{1,12}$/.test(boxNumber)) {
+        showFormMessage('หมายเลขกล่องใช้ตัวอักษร ตัวเลข ขีดกลาง หรือขีดล่างเท่านั้น','error');return;
     }
-
-
-    if (
-        Number.isNaN(amount) ||
-        amount < 1
-    ) {
-
-        showFormMessage(
-            "จำนวนยาต้องไม่น้อยกว่า 1 เม็ด",
-            "error"
-        );
-
-        medicineAmount.focus();
-
-        return;
+    const conflict=medicines.find(m=>m.id!==editingMedicineId &&
+        mealDef(m).shelf===def.shelf && String(m.boxNumber).toUpperCase()===boxNumber &&
+        (m.patient!==patient || String(m.mealType)!==String(prn?'prn':mealValue)));
+    if (conflict) {showFormMessage('หมายเลขกล่องนี้ในชั้นเดียวกันใช้กับผู้ป่วยหรือมื้ออื่นแล้ว กรุณาเลือกกล่องอื่นเพื่อป้องกันหยิบผิด','error');return;}
+    const entry = editingMedicineId ? medicines.find(m=>m.id===editingMedicineId) : null;
+    if (editingMedicineId && !entry) {showFormMessage('ไม่พบรายการที่ต้องการแก้ไข','error');return;}
+    const target=entry || {id:time4medUid(),stockStatus:'unchecked'};
+    // ถ้าเปลี่ยนผู้ป่วย/กล่อง/ชนิดยาหรือมื้อ ต้องตรวจสถานะใหม่ ไม่คงผลตรวจเดิมไว้
+    if (entry && (entry.name!==name || entry.patient!==patient || entry.boxNumber!==boxNumber ||
+        entry.kind!==(prn?'prn':'scheduled') || String(entry.mealType)!==String(prn?'prn':mealValue))) {
+        target.stockStatus='unchecked';
     }
-
-
-    const newMedicine = {
-
-        name: name,
-
-        time: time,
-
-        amount: amount,
-
-        taken: false
-
-    };
-
-
-    medicines.push(newMedicine);
-
-
-    medicines.sort(
-        function (firstMedicine, secondMedicine) {
-
-            return firstMedicine.time.localeCompare(
-                secondMedicine.time
-            );
-
-        }
-    );
-
-
-    saveMedicines();
-
-    renderMedicines();
-
-
-    showFormMessage(
-        "เพิ่มยา " +
-        name +
-        " เวลา " +
-        time +
-        " เรียบร้อยแล้ว",
-        "success"
-    );
-
-
-    medicineName.value = "";
-
-    medicineTime.value = "";
-
-    medicineAmount.value = 1;
-
-
-    medicineName.focus();
+    Object.assign(target,{name,patient,boxNumber,kind:prn?'prn':'scheduled',mealType:prn?'prn':Number(mealValue),time,instruction});
+    if (!entry) medicines.push(target);
+    try {saveMedicines();} catch(e) {showFormMessage('บันทึกไม่สำเร็จ พื้นที่เบราว์เซอร์อาจเต็ม','error');return;}
+    renderMedicines();clearMedicineForm();
+    showFormMessage(`บันทึก ${name} · ${def.shelfLabel} · กล่อง ${boxNumber} แล้ว (ข้อมูลอยู่ในเบราว์เซอร์นี้)`,'success');
 }
-
-
-// ==========================================
-// 9. ลบรายการยา
-// ==========================================
-
-function deleteMedicine(index) {
-
-    const medicine =
-        medicines[index];
-
-
-    const confirmDelete =
-        confirm(
-            "ต้องการลบยา " +
-            medicine.name +
-            " ใช่หรือไม่?"
-        );
-
-
-    if (confirmDelete === false) {
-
-        return;
-
-    }
-
-
-    medicines.splice(index, 1);
-
-
-    saveMedicines();
-
-    renderMedicines();
-
-
-    showFormMessage(
-        "ลบรายการยาเรียบร้อยแล้ว",
-        "success"
-    );
+function deleteMedicine(id) {
+    const row=medicines.find(m=>m.id===id);if (!row) return;
+    if (!window.confirm(`ลบรายการ ${row.name} ของ ${row.patient||'ผู้ป่วยที่ไม่ระบุ'} ออกจากเว็บไซต์? การส่งตารางไปเครื่องต้องกดส่งใหม่ด้วย`)) return;
+    medicines=medicines.filter(m=>m.id!==id);
+    if (editingMedicineId===id) clearMedicineForm();
+    saveMedicines();renderMedicines();showFormMessage('ลบรายการยาแล้ว กรุณาตรวจฉบับร่างตารางบนเว็บไซต์','success');
 }
-
-
-// ==========================================
-// 10. Event เพิ่มยา
-// ==========================================
-
-addMedicineBtn.addEventListener(
-    "click",
-    function () {
-
-        addMedicine();
-
-    }
-);
-
-
-medicineAmount.addEventListener(
-    "keydown",
-    function (event) {
-
-        if (event.key === "Enter") {
-
-            addMedicine();
-
-        }
-
-    }
-);
-
+addMedicineBtn.addEventListener('click',addMedicine);
+cancelMedicineEditBtn.addEventListener('click',()=>{clearMedicineForm();showFormMessage('ยกเลิกการแก้ไขแล้ว','success');});
+medicineList.addEventListener('click', e=>{
+    const button=e.target.closest('button[data-action]');if (!button)return;
+    const row=medicines.find(m=>m.id===button.dataset.id);
+    if (button.dataset.action==='edit' && row) editMedicine(row);
+    if (button.dataset.action==='delete') deleteMedicine(button.dataset.id);
+});
+medicineName.addEventListener('keydown',e=>{if(e.key==='Enter')addMedicine();});
+renderMedicines();
 
 // ==========================================
 // 11. ปุ่มควบคุมอุปกรณ์
@@ -986,8 +776,6 @@ lockBtn.addEventListener(
 // ==========================================
 // 12. แสดงข้อมูลทันที
 // ==========================================
-
-renderMedicines();
 
 // ==========================================
 // 13. คลังรูปภาพจาก Google Drive
@@ -1945,6 +1733,7 @@ if (
     const sections = {
         devices: document.getElementById('devices'),
         medication: document.getElementById('medication'),
+        inventory: document.getElementById('inventory'),
         analytics: document.getElementById('analytics'),
         activity: document.getElementById('activity'),
         camera: document.getElementById('camera'),

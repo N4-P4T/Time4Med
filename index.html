@@ -97,6 +97,15 @@
             </a>
 
 
+            <a class="sidebar-link" href="#inventory">
+                <span class="sidebar-link-icon">📦</span>
+                <span class="sidebar-link-text">
+                    <strong>คลังยา</strong>
+                    <small>Inventory</small>
+                </span>
+            </a>
+
+
             <a
                 class="sidebar-link"
                 href="#analytics"
@@ -493,7 +502,7 @@
                 <div>
 
                     <p class="summary-label">
-                        รับประทานแล้ว
+                        รายการตามเวลา
                     </p>
 
                     <h2 id="takenMedicineCount">
@@ -514,7 +523,7 @@
                 <div>
 
                     <p class="summary-label">
-                        รอรับประทาน
+                        ยา PRN
                     </p>
 
                     <h2 id="waitingMedicineCount">
@@ -535,7 +544,7 @@
                 <div>
 
                     <p class="summary-label">
-                        แจ้งเตือนล่าสุด
+                        เวลาแจ้งเตือนแรก
                     </p>
 
                     <h2 id="latestAlert">
@@ -732,62 +741,54 @@
                 </div>
 
 
-                <div class="medicine-form">
-
+                <div class="medicine-form" id="medicineRegistrationForm">
                     <div class="form-group">
-
-                        <label for="medicineName">
-                            ชื่อยา
-                        </label>
-
-                        <input
-                            id="medicineName"
-                            type="text"
-                            placeholder="เช่น Paracetamol"
-                            autocomplete="off"
-                        >
-
+                        <label for="medicinePatient">ผู้ป่วย (ชื่อเล่นหรือรหัส)</label>
+                        <input id="medicinePatient" type="text" maxlength="60" autocomplete="off" placeholder="เช่น สมาชิก A">
                     </div>
-
-
                     <div class="form-group">
-
-                        <label for="medicineTime">
-                            เวลารับประทานยา
-                        </label>
-
-                        <input
-                            id="medicineTime"
-                            type="time"
-                        >
-
+                        <label for="medicineName">ชื่อยาตามฉลากโรงพยาบาล</label>
+                        <input id="medicineName" type="text" maxlength="150" autocomplete="off" placeholder="เช่น ยาตัวอย่าง A">
                     </div>
-
-
                     <div class="form-group">
-
-                        <label for="medicineAmount">
-                            จำนวนยา (เม็ด)
-                        </label>
-
-                        <input
-                            id="medicineAmount"
-                            type="number"
-                            min="1"
-                            value="1"
-                        >
-
+                        <label for="medicineMeal">มื้อยา / ประเภทการใช้</label>
+                        <select id="medicineMeal">
+                            <option value="1">เช้า · ก่อนอาหาร</option>
+                            <option value="2" selected>เช้า · หลังอาหาร</option>
+                            <option value="3">กลางวัน · ก่อนอาหาร</option>
+                            <option value="4">กลางวัน · หลังอาหาร</option>
+                            <option value="5">เย็น · ก่อนอาหาร</option>
+                            <option value="6">เย็น · หลังอาหาร</option>
+                            <option value="7">ก่อนนอน</option>
+                            <option value="prn">ยาเมื่อมีอาการ (PRN) · ไม่ตั้งเวลาเตือน</option>
+                        </select>
                     </div>
-
-
-                    <button
-                        id="addMedicineBtn"
-                        class="add-medicine-button"
-                        type="button"
-                    >
-                        ＋ เพิ่มรายการยา
-                    </button>
-
+                    <div class="form-group" id="medicineTimeGroup">
+                        <label for="medicineTime">เวลาแจ้งเตือน (ตามที่ผู้ดูแลตั้ง)</label>
+                        <input id="medicineTime" type="time" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="medicineBox">หมายเลขกล่องบนตู้</label>
+                        <input id="medicineBox" type="text" maxlength="12" autocomplete="off" placeholder="เช่น 01 หรือ A1">
+                    </div>
+                    <div class="form-group cabinet-location-note" aria-live="polite">
+                        <span class="cabinet-location-title">ตำแหน่งจากมื้อยาที่เลือก</span>
+                        <strong id="medicineShelfPreview">ชั้น 1 — เช้า</strong>
+                        <small>แนะนำติดหมายเลขกล่องจริงให้ตรงกับเว็บไซต์</small>
+                    </div>
+                    <details class="medicine-extra">
+                        <summary>รายละเอียดจากฉลาก (ถ้ามี)</summary>
+                        <div class="form-group">
+                            <label for="medicineInstruction">วิธีใช้และเงื่อนไข (คัดตามฉลาก)</label>
+                            <textarea id="medicineInstruction" maxlength="300" rows="3" placeholder="เช่น ใช้เมื่อมีอาการ ตามคำสั่งแพทย์"></textarea>
+                            <small>ยา PRN ไม่แจ้งเตือนประจำ ต้องตรวจวิธีใช้ตามฉลากก่อนหยิบ</small>
+                        </div>
+                    </details>
+                    <p class="medicine-form-hint">เว็บไซต์นี้สำหรับผู้ดูแลเท่านั้น · เก็บซองและแผงยาเดิมพร้อมฉลาก · ไม่ตรวจนับหรือแบ่งเม็ดยาอัตโนมัติ</p>
+                    <div class="medicine-form-actions">
+                        <button id="addMedicineBtn" class="add-medicine-button" type="button">＋ เพิ่มรายการยา</button>
+                        <button id="cancelMedicineEditBtn" class="medicine-cancel-edit" type="button" hidden>ยกเลิกการแก้ไข</button>
+                    </div>
                 </div>
 
 
@@ -795,7 +796,7 @@
                     id="formMessage"
                     class="information-message form-message"
                 >
-                    ⓘ กรอกข้อมูลให้ครบถ้วนแล้วกดเพิ่มรายการยา
+                    ⓘ กรอกชื่อผู้ป่วย ชื่อยา มื้อยา และหมายเลขกล่องก่อนบันทึก
                 </p>
 
             </article>
@@ -846,6 +847,51 @@
         ========================== -->
 
         
+         <!-- =========================
+              คลังยา : คำนวณยอดคงเหลือฝั่งเว็บไซต์
+         ========================= -->
+         <section id="inventory" class="inventory-section section-anchor">
+           <article class="panel-card inventory-panel">
+             <div class="panel-heading inventory-heading">
+               <div class="heading-left"><span class="heading-icon">🗂️</span>
+                 <div><h2>แผนผังตู้และสถานะยา</h2>
+                   <p class="panel-subtitle">4 ชั้นตามมื้ออาหาร · ยา PRN แยกพื้นที่ · ผู้ดูแลเป็นผู้ตรวจสอบสถานะ</p>
+                 </div>
+               </div>
+               <span class="inventory-local-badge">ข้อมูลในเบราว์เซอร์นี้</span>
+             </div>
+             <p class="inventory-help">สถานะยาเป็นข้อมูลที่ผู้ดูแลบันทึก ไม่ใช่ผลการตรวจนับอัตโนมัติ การกด Confirm หมายถึงยืนยันการหยิบยา ไม่ใช่ยืนยันว่ากลืนแล้ว และตู้ยังไม่ได้ตรวจได้ว่าหยิบถูกกล่อง</p>
+             <div class="inventory-summary">
+               <div class="inventory-kpi"><span>รายการยาทั้งหมด</span><strong id="inventoryKnownCount">0</strong></div>
+               <div class="inventory-kpi"><span>ต้องตรวจสอบสถานะ</span><strong id="inventoryTotalStock">0</strong></div>
+               <div class="inventory-kpi"><span>ยาใกล้หมด / หมด</span><strong id="inventoryLowCount">0</strong></div>
+             </div>
+             <div id="cabinetShelfMap" class="cabinet-shelf-map" aria-label="แผนผังตู้ยา"></div>
+             <div class="inventory-toolbar">
+               <div class="inventory-filters">
+                 <label for="inventorySlotFilter">กรองตามมื้อ / ตำแหน่ง</label>
+                 <select id="inventorySlotFilter">
+                   <option value="all">ทุกชั้น</option>
+                   <option value="morning">ชั้น 1 — เช้า</option>
+                   <option value="noon">ชั้น 2 — กลางวัน</option>
+                   <option value="evening">ชั้น 3 — เย็น</option>
+                   <option value="bedtime">ชั้น 4 — ก่อนนอน</option>
+                   <option value="prn">พื้นที่ PRN</option>
+                 </select>
+               </div>
+               <div class="inventory-export-actions">
+                 <button type="button" id="inventoryCsvBtn">ส่งออก CSV</button>
+                 <button type="button" id="inventoryBackupBtn">สำรอง JSON</button>
+                 <label class="inventory-import-label" for="inventoryRestoreInput">นำเข้า JSON</label>
+                 <input id="inventoryRestoreInput" type="file" accept="application/json,.json" hidden>
+               </div>
+             </div>
+             <div id="inventoryMessage" class="inventory-message" role="status" aria-live="polite">ตรวจสอบรายการยาได้โดยไม่ต่ออุปกรณ์</div>
+             <div id="inventoryItems" class="inventory-items"></div>
+             <h3 class="inventory-subheading">ประวัติการตรวจสถานะ</h3>
+             <div id="inventoryHistory" class="inventory-history"></div>
+           </article>
+         </section>
         <!-- =========================
              สถิติการรับประทานยา
         ========================== -->
@@ -1583,6 +1629,7 @@
     <script src="mqtt-config.js"></script>
     <script src="script.js"></script>
     <script src="schedule-sync.js"></script>
+    <script src="inventory.js"></script>
 
     </div>
 

@@ -17,22 +17,24 @@
     panel.style.cssText = 'padding:18px;margin:0 0 20px;border:1px solid #b9d5f4;border-radius:12px;background:#f3f8ff;line-height:1.7';
     panel.innerHTML = `
         <h3 style="margin:0 0 8px">เชื่อมเวลามื้อยากับเครื่อง</h3>
-        <p>ส่งเวลาจากรายการยาด้านล่างให้เครื่องเตือนทุกวัน ตามเวลาไทย ยาที่เวลาเดียวกันจะเตือนพร้อมกันหนึ่งมื้อ (สูงสุด 16 มื้อ)</p>
+        <p>ส่งเวลาจากรายการยาด้านล่างให้เครื่องเตือนทุกวัน ตามเวลาไทย ยา PRN จะไม่ถูกส่งเป็นเวลาแจ้งเตือน เครื่องปัจจุบันรับเฉพาะเวลา (สูงสุด 16 เวลา) ไม่ได้รับชื่อผู้ป่วย ชั้น หรือหมายเลขกล่อง</p>
         <p id="mealPreview"></p>
         <button type="button" id="sendMealSchedule" style="padding:10px 16px;cursor:pointer">ส่งเวลามื้อยาเข้าเครื่อง</button>
         <button type="button" id="refreshMealSchedule" style="padding:10px 16px;cursor:pointer">ตรวจสถานะเครื่อง</button>
         <p id="mealSyncStatus" role="status" aria-live="polite"></p>
         <p id="mealDeviceSchedule"></p>
-        <small>การเพิ่ม/ลบยาเป็นฉบับร่างในเบราว์เซอร์ ต้องกดส่งและรอเครื่องตอบรับ การส่งใช้ได้เมื่อเครื่องออนไลน์ ตารางที่บันทึกแล้วทำงานออฟไลน์ได้</small>`;
+        <small>การเพิ่ม/ลบยาและเลือกหมายเลขกล่องเป็นฉบับร่างในเบราว์เซอร์ ต้องกดส่งและรอเครื่องตอบรับ การส่งใช้ได้เมื่อเครื่องออนไลน์ ตารางที่บันทึกแล้วทำงานออฟไลน์ได้</small>`;
     host.before(panel);
     const $ = id => document.getElementById(id);
     const status = message => { $('mealSyncStatus').textContent = message; };
     const client = () => typeof time4MedMqttClient !== 'undefined' ? time4MedMqttClient : null;
-    const uniqueId = () => crypto.randomUUID();
+    const uniqueId = () => typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : Date.now()+'-'+Math.random().toString(36).slice(2);
     function slotsFromMedicines(rows) {
         if (!Array.isArray(rows)) throw new Error('รายการยาไม่ถูกต้อง');
-        const slots = [...new Set(rows.map(row => {
-            if (!row || !/^(?:[01]\d|2[0-3]):[0-5]\d$/.test(row.time)) throw new Error('มีเวลายาไม่ถูกต้อง กรุณาแก้ไขรายการ');
+        // PRN ไม่มีตารางแจ้งเตือนประจำ และห้ามบังคับให้มีเวลา
+        const scheduled = rows.filter(row => row && row.kind !== 'prn');
+        const slots = [...new Set(scheduled.map(row => {
+            if (!/^(?:[01]\d|2[0-3]):[0-5]\d$/.test(row.time)) throw new Error('มียาตามมื้อที่เวลายังไม่ถูกต้อง กรุณาแก้ไขรายการ');
             return row.time;
         }))].sort();
         if (slots.length > 16) throw new Error('รองรับเวลามื้อยาที่แตกต่างกันสูงสุด 16 เวลา');
@@ -90,6 +92,8 @@
         if (pending) { status('ตารางก่อนหน้ายังรอคำตอบ กดตรวจสถานะเครื่องก่อน'); return; }
         if (!reported || Date.now() - freshAt > 30000 || !freshAt) { refresh(); return; }
         if (!reported.clock_ready || !reported.storage_ready) { status('เครื่องยังไม่พร้อมรับใช้งานตาราง ตรวจนาฬิกาและหน่วยความจำก่อน'); return; }
+        const unassigned = medicines.filter(row => row && row.kind !== 'prn' && (!row.boxNumber || !row.patient));
+        if (unassigned.length) { status('มีรายการตามเวลาที่ยังไม่กำหนดผู้ป่วย/หมายเลขกล่อง '+unassigned.length+' รายการ กรุณาแก้ข้อมูลก่อนส่งเวลา'); return; }
         let slots;
         try { slots = localSlots(); } catch (e) { status(e.message); return; }
         const message = slots.length ? 'แทนที่ตารางในเครื่องด้วยเวลา ' + slots.join(', ') + ' น. ทุกวัน?' : 'ยกเลิกเวลามื้อยาทั้งหมดในเครื่อง?';
