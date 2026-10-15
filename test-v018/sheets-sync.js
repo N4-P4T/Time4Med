@@ -14,15 +14,15 @@ const equal=(a,b)=>JSON.stringify(clean(a))===JSON.stringify(clean(b));
 const state=(msg,level='info')=>{const s=el('tmCloudState');if(s){s.textContent=msg;s.dataset.level=level;}};
 const panel=document.createElement('section');panel.className='time4med-cloud-panel';
 panel.innerHTML=`<h3>☁️ Time4Med Cloud — Google Sheets ผ่าน Backend</h3>
- <p>บัญชี ADMIN / CAREGIVER ต้องได้รับอนุญาตจากแท็บ <strong>Users</strong> ข้อมูลยาและประวัติการแก้ไขบันทึกใน <strong>MealMedicines</strong> / <strong>MealMedicineAudit</strong></p>
+ <p>บัญชีแอดมิน / ผู้ดูแล ต้องได้รับอนุญาตจากแท็บ <strong>Users</strong> ข้อมูลยาและประวัติการแก้ไขบันทึกใน <strong>MealMedicines</strong> / <strong>MealMedicineAudit</strong></p>
  <div class="time4med-cloud-actions">
    <button type="button" id="tmCloudLoad" disabled>โหลดรายการยาจาก Sheets</button>
    <button type="button" id="tmCloudCheck" disabled>ตรวจสอบข้อมูลล่าสุด</button>
-   <button type="button" id="tmCloudLegacyImport" hidden>นำเข้ารายการจากเว็บรุ่นเก่า (ADMIN)</button>
+   <button type="button" id="tmCloudLegacyImport" hidden>นำเข้ารายการจากเว็บรุ่นเก่า (แอดมิน)</button>
  </div>
  <p id="tmCloudState" role="status">กรุณาลงชื่อ Google ด้านหน้าเว็บไซต์ก่อน</p>
  <small>ข้อมูลอยู่ในหน่วยความจำของหน้านี้จนกว่าจะได้รับข้อความบันทึกสำเร็จจาก backend · ห้ามปิดแท็บถ้าการบันทึกยังไม่เสร็จ</small>
- <details id="tmTrialSection" class="time4med-study-form" hidden><summary>🧪 บันทึกผลการทดลองบทที่ 4 (ADMIN)</summary>
+ <details id="tmTrialSection" class="time4med-study-form" hidden><summary>🧪 บันทึกผลการทดลองบทที่ 4 (แอดมิน)</summary>
   <p>กรอกสิ่งที่ทดลองและผลที่สังเกตจริงเท่านั้น</p>
   <div class="time4med-study-fields">
     <label>ประเภท<select id="tmTrialCategory"><option value="REMINDER">เสียงแจ้งเตือน</option><option value="CONFIRM">ปุ่มยืนยัน</option><option value="LOCK">กลอน</option><option value="CAMERA">กล้อง</option><option value="MQTT">MQTT</option><option value="WEBSITE">เว็บไซต์ / Google Sheets</option><option value="OTHER">อื่น ๆ</option></select></label>
@@ -143,7 +143,7 @@ async function updateUsers(){
     const {users=[]}=await auth.api('/api/users');
     const title=document.createElement('p');title.textContent=`บัญชีในระบบ ${users.length} รายการ`;accounts.appendChild(title);
     const table=document.createElement('table');
-    for(const u of users){const tr=document.createElement('tr');for(const s of [u.email,u.role,u.patientIds,u.status]){const td=document.createElement('td');td.textContent=s;tr.appendChild(td);}table.appendChild(tr);}accounts.appendChild(table);
+    for(const u of users){const tr=document.createElement('tr');for(const s of [u.email,auth.roleLabel(u.role),u.patientIds,u.status]){const td=document.createElement('td');td.textContent=s;tr.appendChild(td);}table.appendChild(tr);}accounts.appendChild(table);
   }catch(e){el('t4mAdminMessage').textContent='โหลดบัญชีไม่ได้: '+e.message;}
 }
 async function addUser(){
