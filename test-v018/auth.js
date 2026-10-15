@@ -7,7 +7,12 @@
   const cfg=window.TIME4MED_AUTH_CONFIG||{};
   const ui=(id)=>document.getElementById(id);
   let token=''; let user=null;
-  const auth={get user(){return user;},get tokenPresent(){return !!token;},api,signOut};
+  const roleLabel=role=>role==='ADMIN'?'แอดมิน':(role==='CAREGIVER'||role==='USER')?'ผู้ดูแล':String(role||'ผู้ใช้งาน');
+  function renderProfile(){
+    document.querySelectorAll('.t4m-profile-role').forEach(el=>{el.textContent=user?roleLabel(user.role):'ผู้ใช้งาน';});
+    document.querySelectorAll('.t4m-profile-name').forEach(el=>{el.textContent=user?user.name:'บัญชี Time4Med';});
+  }
+  const auth={get user(){return user;},get tokenPresent(){return !!token;},api,signOut,roleLabel};
   window.Time4MedAuth=auth;
   function status(message,bad=false){const el=ui('t4mAuthMessage');if(el){el.textContent=message;el.dataset.bad=bad?'true':'false';}}
   function configured(){return cfg.apiBase&&/^https:\/\/[\w.-]+(?:\/[^\s]*)?$/.test(cfg.apiBase)&&!cfg.apiBase.includes('REPLACE-')&&cfg.clientId?.endsWith('.apps.googleusercontent.com');}
@@ -23,7 +28,7 @@
     return data;
   }
   function signOut(message='ออกจากระบบแล้ว'){
-    token='';user=null;
+    token='';user=null;renderProfile();
     if(window.google?.accounts?.id?.disableAutoSelect)google.accounts.id.disableAutoSelect();
     if(typeof medicines!=='undefined'){medicines=[];if(typeof renderMedicines==='function')renderMedicines();}
     document.body.classList.add('t4m-auth-locked');
@@ -38,7 +43,8 @@
     try{
       const me=await api('/api/me');
       user=me.user;
-      ui('t4mSignedInUser').textContent=user.name+' · '+user.role;
+      ui('t4mSignedInUser').textContent=user.name+' · '+roleLabel(user.role);
+      renderProfile();
       ui('t4mUserbar').hidden=false;
       document.body.classList.remove('t4m-auth-locked');
       ui('t4mAdminSection').hidden=user.role!=='ADMIN';
