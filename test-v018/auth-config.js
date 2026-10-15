@@ -4,6 +4,6 @@
  */
 window.TIME4MED_AUTH_CONFIG = Object.freeze({
   clientId: '858391878195-uivvvsdp54basuk410etp9fi3ln5bocc.apps.googleusercontent.com',
-  apiBase: 'https://REPLACE-WITH-YOUR-WORKER.workers.dev'
+  apiBase: 'https://time4med-api.napat-kaewboonpan.workers.dev'
 });
 window.TIME4MED_SECURE_MODE = true;
