@@ -22,7 +22,7 @@
         <p>เข้าสู่ระบบผู้ดูแลด้วยบัญชี Google ที่ได้รับอนุญาต</p>
         <div id="t4mGoogleButton" class="t4m-google-button"></div>
         <p id="t4mAuthMessage" role="status">กำลังเตรียม Google Sign-In…</p>
-        <small>สำหรับ ADMIN และ CAREGIVER เท่านั้น · ผู้สูงอายุไม่ต้องใช้เว็บไซต์</small>
+        <small>สำหรับแอดมินและผู้ดูแลเท่านั้น · ผู้สูงอายุไม่ต้องใช้เว็บไซต์</small>
       </div>
     </section>
     <header class="t4m-userbar" id="t4mUserbar" hidden>
@@ -185,12 +185,12 @@
 
             <div class="sidebar-user-text">
 
-                <strong>
-                    Admin
+                <strong class="t4m-profile-role">
+                    ผู้ใช้งาน
                 </strong>
 
-                <span>
-                    ผู้ดูแลระบบ
+                <span class="t4m-profile-name">
+                    บัญชี Time4Med
                 </span>
 
             </div>
@@ -254,9 +254,9 @@
 
                     <div class="user-details">
 
-                        <strong>Admin</strong>
+                        <strong class="t4m-profile-role">ผู้ใช้งาน</strong>
 
-                        <span>ผู้ดูแลระบบ</span>
+                        <span class="t4m-profile-name">บัญชี Time4Med</span>
 
                     </div>
 
@@ -1645,13 +1645,13 @@
     </dialog>
 
 <section id="t4mAdminSection" class="t4m-admin-section" hidden>
-  <h2>🔐 จัดการบัญชี Time4Med (ADMIN)</h2>
-  <p>เฉพาะ ADMIN เพิ่มบัญชีและกำหนดสิทธิ์ใน Google Sheets / Users ได้ บัญชีใหม่ต้องใช้ Google ลงชื่อเข้าใช้ของตัวเอง</p>
+  <h2>🔐 จัดการบัญชี Time4Med (แอดมิน)</h2>
+  <p>เฉพาะแอดมินเพิ่มบัญชีและกำหนดสิทธิ์ใน Google Sheets / Users ได้ บัญชีใหม่ต้องใช้ Google ลงชื่อเข้าใช้ของตัวเอง</p>
   <div class="t4m-admin-grid">
     <label>Gmail ของบัญชีใหม่<input id="t4mInviteEmail" type="email" autocomplete="off" placeholder="example@gmail.com"></label>
     <label>ชื่อที่แสดง<input id="t4mInviteName" type="text" maxlength="100" placeholder="ชื่อผู้ดูแล"></label>
-    <label>บทบาท<select id="t4mInviteRole"><option value="CAREGIVER">CAREGIVER</option><option value="ADMIN">ADMIN</option></select></label>
-    <label>ผู้ป่วย (ใช้สำหรับ CAREGIVER)<select id="t4mInvitePatient"></select></label>
+    <label>บทบาท<select id="t4mInviteRole"><option value="CAREGIVER">ผู้ดูแล</option><option value="ADMIN">แอดมิน</option></select></label>
+    <label>ผู้ป่วย (ใช้สำหรับผู้ดูแล)<select id="t4mInvitePatient"></select></label>
     <button type="button" id="t4mInviteButton">เพิ่มบัญชี</button>
   </div>
   <p id="t4mAdminMessage" role="status"></p>
