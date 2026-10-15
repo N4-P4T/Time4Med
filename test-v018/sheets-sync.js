@@ -85,6 +85,20 @@ async function sync(){
       if(act.type==='delete')baseline.delete(act.old.id);
       else baseline.set(response.medicine.id,response.medicine);
     }
+    // The mutation response omits the server-generated updatedAt revision.
+    // Re-read committed rows so the next PUT/DELETE sends the correct revision.
+    // Keep any edits made locally while the network request was in flight.
+    const persisted=await remote();
+    const persistedById=new Map(persisted.map(m=>[m.id,m]));
+    for(const act of actions){
+      const id=act.type==='delete'?act.old.id:act.item.id;
+      if(act.type==='delete')baseline.delete(id);
+      else {
+        const saved=persistedById.get(id);
+        if(!saved)throw Error('ไม่พบรายการที่เพิ่งบันทึกใน Google Sheets กรุณาโหลดข้อมูลใหม่');
+        baseline.set(id,saved);
+      }
+    }
     state(`บันทึกข้อมูลและ Audit ใน Google Sheets สำเร็จ ✓ ${actions.length} รายการ`,'success');
   }catch(e){ready=false;state('บันทึกไม่สำเร็จ: '+e.message+' · อย่าเพิ่งปิดหน้านี้ ให้ตรวจ Google Sheets ก่อน','error');}
   finally{busy=false;if(again){again=false;if(ready)writeChain=writeChain.then(sync);}}
