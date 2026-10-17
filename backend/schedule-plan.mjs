@@ -65,9 +65,26 @@ export async function digestPlan(plan){
   const sum=await crypto.subtle.digest("SHA-256",new TextEncoder().encode(serial));
   return Array.from(new Uint8Array(sum),v=>v.toString(16).padStart(2,"0")).join("");
 }
+
+/** FNV-1a-64 over 'USER|HH:MM|MEAL\n' sorted by USER, time, meal.
+ * Transport corruption check only (not MAC/authentication).
+ */
+export function transportFingerprint(slots){
+  const mask=(1n<<64n)-1n;
+  let acc=14695981039346656037n;
+  const encode=new TextEncoder();
+  for(const slot of slots){
+    for(const byte of encode.encode(slot.userId+"|"+slot.time+"|"+slot.meal+"\n")){
+      acc=((acc^BigInt(byte))*1099511628211n)&mask;
+    }
+  }
+  return acc.toString(16).padStart(16,"0");
+}
+
 export async function preparePreview(input){
   const plan=buildFullCabinetSchedule(input);
-  return {...plan,sha256:await digestPlan(plan),state:"PREVIEW_ONLY",
+  const sha256=await digestPlan(plan);
+  return {...plan,sha256,revision16:sha256.slice(0,16),transportFingerprint:transportFingerprint(plan.slots),state:"PREVIEW_ONLY",
     acknowledged:false,applied:false,deviceOnline:null,
     notice:"Preview from server-side Google Sheets, not confirmed by ESP32-S3"};
 }
