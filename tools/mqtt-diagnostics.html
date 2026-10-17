@@ -103,7 +103,9 @@
       function updateDeviceState() {
         let message = "ยังไม่ได้รับสถานะ ESP32-S3 (ตรวจ Wi-Fi, TLS, ชื่อผู้ใช้ และ Topic ในเฟิร์มแวร์)";
         let klass = "warn";
-        if (lastStatus && lastStatus.online === false) {
+        if (!client || !client.connected) {
+          message = "หน้าเว็บยังไม่ได้เชื่อม Broker — ไม่สามารถยืนยันสถานะอุปกรณ์ได้";
+        } else if (lastStatus && lastStatus.online === false) {
           message = "อุปกรณ์รายงาน OFFLINE (Last Will/สถานะล่าสุด)";
           klass = "bad";
         } else if (lastStatus && lastStatus.online === true) {
@@ -143,10 +145,10 @@
           broker("โหลด MQTT.js ไม่สำเร็จ ตรวจอินเทอร์เน็ตหรือ CDN", "bad");
           return;
         }
-        disconnect();
         const username = $("username").value.trim();
         const password = $("password").value;
         if (!username || !password) return;
+        disconnect();
         broker("กำลังเชื่อม HiveMQ...", "warn");
         $("connect").disabled = true;
         $("disconnect").disabled = false;
