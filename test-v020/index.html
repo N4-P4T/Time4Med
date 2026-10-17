@@ -481,7 +481,19 @@
 
         <!-- สถิติด้านบน -->
 
-        <section class="summary-grid">
+        <section id="home-overview" class="home-overview section-anchor">
+    <div class="home-overview-hero">
+        <div>
+            <p class="home-eyebrow">TIME4MED · CAREGIVER OVERVIEW</p>
+            <h1>ภาพรวมการดูแลและตารางยาวันนี้</h1>
+            <p id="homeTodayDate" class="home-today-date">กำลังโหลดวันที่...</p>
+        </div>
+        <a class="home-primary-link" href="#medication">จัดการรายการยา ↗</a>
+    </div>
+    <p id="homeDraftSource" class="home-data-notice">
+        ข้อมูลยาจากบัญชี Google ที่ได้รับอนุญาต (หลังโหลด Google Sheets) • ไม่ยืนยันว่าตารางถูกส่งลงเครื่องแล้ว
+    </p>
+    <section class="summary-grid" aria-label="สรุปรายการยาในเบราว์เซอร์">
 
             <article class="summary-card">
 
@@ -492,7 +504,7 @@
                 <div>
 
                     <p class="summary-label">
-                        รายการยาทั้งหมด
+                        รายการยาในเบราว์เซอร์
                     </p>
 
                     <h2 id="totalMedicineCount">
@@ -513,7 +525,7 @@
                 <div>
 
                     <p class="summary-label">
-                        รายการตามเวลา
+                        รายการยาตามเวลา
                     </p>
 
                     <h2 id="takenMedicineCount">
@@ -555,7 +567,7 @@
                 <div>
 
                     <p class="summary-label">
-                        เวลาแจ้งเตือนแรก
+                        เวลาแจ้งเตือนแรก (ฉบับร่าง)
                     </p>
 
                     <h2 id="latestAlert">
@@ -567,9 +579,52 @@
             </article>
 
         </section>
-
-
-        <!-- แถวสถานะและควบคุม -->
+    <div class="home-overview-panels">
+        <article class="panel-card home-panel">
+            <div class="home-panel-heading">
+                <h2>รอบยาถัดไปตามรายการที่โหลด</h2><span class="home-label">รายการที่โหลดได้</span>
+            </div>
+            <strong id="homeNextTime" class="home-highlight-time">—</strong>
+            <p id="homeNextDetail" class="home-muted">กำลังตรวจตารางยาในเบราว์เซอร์...</p>
+            <div class="home-subheading">
+                <h3>รายการแจ้งเตือนประจำวัน</h3>
+                <span id="homeDraftCount" class="home-muted">—</span>
+            </div>
+            <ul id="homeTodaySchedule" class="home-schedule-list" aria-live="polite">
+                <li>กำลังโหลด...</li>
+            </ul>
+            <p class="home-disclaimer">เวลาที่ระบุไม่ใช่หลักฐานว่าเครื่องได้รับตารางยา หรือผู้สูงอายุรับประทานยาแล้ว</p>
+            <a class="home-inline-link" href="#medication">ตรวจรายการยา →</a>
+        </article>
+        <div class="home-overview-stack">
+            <article class="panel-card home-panel">
+                <div class="home-panel-heading">
+                    <h2>สิ่งที่ผู้ดูแลควรตรวจสอบ</h2><span class="home-label">ข้อมูลบัญชีนี้</span>
+                </div>
+                <ul id="homeAttentionItems" class="home-schedule-list"><li>กำลังตรวจ...</li></ul>
+                <a class="home-inline-link" href="#inventory">ตรวจคลังยา →</a>
+            </article>
+            <article class="panel-card home-panel">
+                <div class="home-panel-heading">
+                    <h2>กิจกรรมที่บันทึกวันนี้</h2><span class="home-label">Google Sheets ActivityLog</span>
+                </div>
+                <strong id="homeConfirmationEvents" class="home-highlight-time">—</strong>
+                <p class="home-muted">เหตุการณ์ยืนยันสำเร็จที่พบในบันทึก</p>
+                <p id="homeActivityLabel" class="home-activity-label">กำลังโหลดเหตุการณ์จริง...</p>
+                <p id="homeActivitySource" class="home-disclaimer">ข้อมูลเหตุการณ์ไม่ใช่หลักฐานว่ากลืนยาแล้ว</p>
+                <a class="home-inline-link" href="#activity">ดู Timeline →</a>
+            </article>
+            <article class="panel-card home-panel home-device-shortcut">
+                <div>
+                    <h2>จัดการอุปกรณ์</h2>
+                    <p>ตรวจสถานะและควบคุมกลอนที่หน้าอุปกรณ์โดยเฉพาะ</p>
+                </div>
+                <a class="home-primary-link" href="#devices">ไปหน้าอุปกรณ์ →</a>
+            </article>
+        </div>
+    </div>
+</section>
+<!-- แถวสถานะและควบคุม -->
 
         <section id="devices" class="dashboard-row section-anchor">
         <div class="t4m-legacy-notice">⚠️ ขณะใช้ v0.18 ส่วนคำสั่งกลอนและสถานะ MQTT โดยตรงถูกพักไว้จนกว่าจะมี Gateway ที่ตรวจสิทธิ์</div>
@@ -612,7 +667,7 @@
                         </p>
 
                         <strong id="doorStatus">
-                            ล็อกอยู่
+                            ยังไม่มีข้อมูลสด
                         </strong>
 
                     </div>
@@ -629,7 +684,7 @@
                         </p>
 
                         <strong id="cameraStatus">
-                            พร้อมใช้งาน
+                            รอ Gateway
                         </strong>
 
                     </div>
@@ -646,7 +701,7 @@
                         </p>
 
                         <strong id="soundStatus">
-                            พร้อมใช้งาน
+                            ยังไม่ทราบ
                         </strong>
 
                     </div>
@@ -871,7 +926,7 @@
                    <p class="panel-subtitle">4 ชั้นตามมื้ออาหาร · ยา PRN แยกพื้นที่ · ผู้ดูแลเป็นผู้ตรวจสอบสถานะ</p>
                  </div>
                </div>
-               <span class="inventory-local-badge">ข้อมูลในเบราว์เซอร์ / Google Sheets (เมื่อเชื่อมต่อ)</span>
+               <span class="inventory-local-badge">ข้อมูลบัญชีนี้ / Google Sheets (เมื่อเชื่อมต่อ)</span>
              </div>
              <p class="inventory-help">สถานะยาเป็นข้อมูลที่ผู้ดูแลบันทึก ไม่ใช่ผลการตรวจนับอัตโนมัติ การกด Confirm หมายถึงยืนยันการหยิบยา ไม่ใช่ยืนยันว่ากลืนแล้ว และตู้ยังไม่ได้ตรวจได้ว่าหยิบถูกกล่อง</p>
              <div class="inventory-summary">
@@ -939,7 +994,7 @@
                     </div>
 
                     <span class="analytics-period-badge">
-                        อัปเดตล่าสุดวันนี้
+                        รอสถิติที่ยืนยันได้
                     </span>
 
                 </div>
@@ -958,7 +1013,7 @@
                                 </span>
 
                                 <strong class="analytics-value">
-                                    100%
+                                    —
                                 </strong>
 
                             </div>
@@ -973,7 +1028,7 @@
 
                             <div
                                 class="analytics-progress-bar"
-                                style="width: 100%;"
+                                style="width: 0%;"
                             ></div>
 
                         </div>
@@ -981,11 +1036,11 @@
                         <div class="analytics-card-footer">
 
                             <span>
-                                รับประทานแล้ว 3 จาก 3 ครั้ง
+                                รอข้อมูลเหตุการณ์ที่ตรวจสอบได้
                             </span>
 
                             <strong class="analytics-status success">
-                                ครบถ้วน
+                                รอข้อมูล
                             </strong>
 
                         </div>
@@ -1004,7 +1059,7 @@
                                 </span>
 
                                 <strong class="analytics-value">
-                                    86%
+                                    —
                                 </strong>
 
                             </div>
@@ -1019,7 +1074,7 @@
 
                             <div
                                 class="analytics-progress-bar"
-                                style="width: 86%;"
+                                style="width: 0%;"
                             ></div>
 
                         </div>
@@ -1027,11 +1082,11 @@
                         <div class="analytics-card-footer">
 
                             <span>
-                                รับประทานแล้ว 18 จาก 21 ครั้ง
+                                รอข้อมูลเหตุการณ์ที่ตรวจสอบได้
                             </span>
 
                             <strong class="analytics-status warning">
-                                พลาด 3 ครั้ง
+                                รอข้อมูล
                             </strong>
 
                         </div>
@@ -1050,7 +1105,7 @@
                                 </span>
 
                                 <strong class="analytics-value">
-                                    92%
+                                    —
                                 </strong>
 
                             </div>
@@ -1065,7 +1120,7 @@
 
                             <div
                                 class="analytics-progress-bar"
-                                style="width: 92%;"
+                                style="width: 0%;"
                             ></div>
 
                         </div>
@@ -1073,11 +1128,11 @@
                         <div class="analytics-card-footer">
 
                             <span>
-                                รับประทานแล้ว 83 จาก 90 ครั้ง
+                                รอข้อมูลเหตุการณ์ที่ตรวจสอบได้
                             </span>
 
                             <strong class="analytics-status good">
-                                อยู่ในเกณฑ์ดี
+                                รอข้อมูล
                             </strong>
 
                         </div>
@@ -1096,7 +1151,7 @@
                         </span>
 
                         <strong>
-                            ≥ 90%
+                            —
                         </strong>
 
                     </div>
@@ -1110,7 +1165,7 @@
                         </span>
 
                         <strong>
-                            92.6%
+                            —
                         </strong>
 
                     </div>
@@ -1124,7 +1179,7 @@
                         </span>
 
                         <strong class="overall-good">
-                            ดีมาก
+                            รอข้อมูล
                         </strong>
 
                     </div>
@@ -1182,225 +1237,21 @@
 
                 <div class="activity-layout">
 
-                    <div class="activity-timeline">
+                    <div class="activity-timeline"><div class="empty-state">รอ ActivityLog จาก Backend ที่ตรวจสิทธิ์</div></div>
 
-                        <article class="activity-item completed">
-
-                            <div class="activity-time">
-
-                                <strong>
-                                    08:30
-                                </strong>
-
-                                <span>
-                                    น.
-                                </span>
-
-                            </div>
-
-                            <div class="activity-marker">
-
-                                <span class="activity-dot">
-                                    🔔
-                                </span>
-
-                                <span class="activity-line"></span>
-
-                            </div>
-
-                            <div class="activity-content">
-
-                                <div class="activity-content-heading">
-
-                                    <strong>
-                                        แจ้งเตือนรับประทานยา
-                                    </strong>
-
-                                    <span class="activity-badge completed">
-                                        สำเร็จ
-                                    </span>
-
-                                </div>
-
-                                <p>
-                                    ระบบเล่นเสียงแจ้งเตือนยาหลังอาหารเช้า
-                                </p>
-
-                                <small>
-                                    DFPlayer Mini ทำงานตามเวลาที่กำหนด
-                                </small>
-
-                            </div>
-
-                        </article>
-
-
-                        <article class="activity-item completed">
-
-                            <div class="activity-time">
-
-                                <strong>
-                                    08:31
-                                </strong>
-
-                                <span>
-                                    น.
-                                </span>
-
-                            </div>
-
-                            <div class="activity-marker">
-
-                                <span class="activity-dot">
-                                    🔓
-                                </span>
-
-                                <span class="activity-line"></span>
-
-                            </div>
-
-                            <div class="activity-content">
-
-                                <div class="activity-content-heading">
-
-                                    <strong>
-                                        ปลดล็อกตู้ยา
-                                    </strong>
-
-                                    <span class="activity-badge completed">
-                                        สำเร็จ
-                                    </span>
-
-                                </div>
-
-                                <p>
-                                    รีเลย์สั่งเปิดกลอนตู้ยาเพื่อให้หยิบยา
-                                </p>
-
-                                <small>
-                                    กลอนเปิดเป็นเวลา 30 วินาที
-                                </small>
-
-                            </div>
-
-                        </article>
-
-
-                        <article class="activity-item completed">
-
-                            <div class="activity-time">
-
-                                <strong>
-                                    08:32
-                                </strong>
-
-                                <span>
-                                    น.
-                                </span>
-
-                            </div>
-
-                            <div class="activity-marker">
-
-                                <span class="activity-dot">
-                                    📷
-                                </span>
-
-                                <span class="activity-line"></span>
-
-                            </div>
-
-                            <div class="activity-content">
-
-                                <div class="activity-content-heading">
-
-                                    <strong>
-                                        บันทึกภาพหลักฐาน
-                                    </strong>
-
-                                    <span class="activity-badge completed">
-                                        บันทึกแล้ว
-                                    </span>
-
-                                </div>
-
-                                <p>
-                                    ESP32-CAM ถ่ายภาพขณะผู้ใช้งานหยิบยา
-                                </p>
-
-                                <small>
-                                    ไฟล์ภาพถูกบันทึกใน microSD
-                                </small>
-
-                            </div>
-
-                        </article>
-
-
-                        <article class="activity-item completed">
-
-                            <div class="activity-time">
-
-                                <strong>
-                                    08:33
-                                </strong>
-
-                                <span>
-                                    น.
-                                </span>
-
-                            </div>
-
-                            <div class="activity-marker">
-
-                                <span class="activity-dot">
-                                    ✓
-                                </span>
-
-                            </div>
-
-                            <div class="activity-content">
-
-                                <div class="activity-content-heading">
-
-                                    <strong>
-                                        ยืนยันรับประทานยาแล้ว
-                                    </strong>
-
-                                    <span class="activity-badge verified">
-                                        ยืนยันแล้ว
-                                    </span>
-
-                                </div>
-
-                                <p>
-                                    บันทึกการรับประทานยาเสร็จสมบูรณ์
-                                </p>
-
-                                <small>
-                                    ระบบล็อกตู้ยาอีกครั้งเพื่อป้องกันการรับประทานซ้ำ
-                                </small>
-
-                            </div>
-
-                        </article>
-
-                    </div>
-
-
-                    <aside class="activity-summary-card">
+<aside class="activity-summary-card">
 
                         <span class="activity-summary-label">
-                            รอบยาล่าสุด
+                            เหตุการณ์ล่าสุด
                         </span>
 
                         <strong class="activity-summary-time">
-                            08:30 น.
+                            —
                         </strong>
 
                         <div class="activity-summary-status">
                             <span class="summary-status-dot"></span>
-                            ดำเนินการครบทุกขั้นตอน
+                            รอข้อมูลที่ยืนยันได้
                         </div>
 
                         <div class="activity-summary-progress">
@@ -1408,11 +1259,11 @@
                             <div class="summary-progress-row">
 
                                 <span>
-                                    ความสำเร็จ
+                                    สถานะ
                                 </span>
 
                                 <strong>
-                                    4/4
+                                    รอข้อมูล
                                 </strong>
 
                             </div>
@@ -1432,11 +1283,11 @@
                             </span>
 
                             <strong>
-                                12:30 น.
+                                —
                             </strong>
 
                             <small>
-                                ยาหลังอาหารกลางวัน
+                                ไม่มีข้อมูล
                             </small>
 
                         </div>
