@@ -1,0 +1,7 @@
+# Keep real Wi-Fi / MQTT credentials outside public Git history.
+**/secrets.h
+**/.env
+**/.env.*
+!**/.env.example
+*.pem
+*.key
