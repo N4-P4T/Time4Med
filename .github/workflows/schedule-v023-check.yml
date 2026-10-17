@@ -1,0 +1,35 @@
+name: Verify Time4Med v0.23 Staged Schedule Gateway
+
+on:
+  pull_request:
+    paths:
+      - 'backend/**'
+      - 'firmware/schedule_v2/**'
+      - 'tests/schedule-gateway.test.mjs'
+      - 'tests/schedule-engine.test.cpp'
+      - '.github/workflows/schedule-v023-check.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  gateway-and-engine:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Validate staged Cloudflare Worker JavaScript
+        run: |
+          node --check backend/worker-v020-preview.mjs
+          node --check backend/schedule-plan.mjs
+          node --check tests/schedule-gateway.test.mjs
+      - name: Test authorized server-side plans
+        run: node tests/schedule-gateway.test.mjs
+      - name: Compile and test C++17 ESP32 schedule engine (host simulation)
+        run: |
+          g++ -std=c++17 -Wall -Wextra -Werror tests/schedule-engine.test.cpp -o /tmp/t4m-schedule-engine
+          /tmp/t4m-schedule-engine
