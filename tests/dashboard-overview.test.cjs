@@ -36,7 +36,7 @@ const rows = [
   {kind: 'scheduled', time:'08:30', mealType:2, patient:'<img src=x onerror=alert(1)>', boxNumber:'', stockStatus:'low'},
   {kind: 'prn', time:'', mealType:'prn', patient:'P001', stockStatus:'ok'}
 ];
-const windowMock = {listeners: {}, addEventListener(type, fn) {this.listeners[type]=fn;}};
+const windowMock = {listeners: {}, addEventListener(type, fn) {this.listeners[type]=fn;}, setInterval() {return 1;}};
 const context = {
   document: {
     getElementById: id => ids.get(id) || null,
