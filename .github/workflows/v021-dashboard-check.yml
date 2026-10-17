@@ -1,0 +1,32 @@
+name: Test Time4Med v0.21 Caregiver Center
+
+on:
+  pull_request:
+    paths:
+      - 'test-v021/**'
+      - 'tests/v021-browser.test.cjs'
+      - '.github/workflows/v021-dashboard-check.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  caregiver-center:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Validate Javascript syntax
+        run: |
+          node --check test-v021/caregiver-center.js
+          node --check tests/v021-browser.test.cjs
+      - name: Install Chromium on GitHub runner
+        run: |
+          npm install --no-save playwright@1.56.1
+          npx playwright install --with-deps chromium
+      - name: Test login, patient cards, navigation, mobile and sign-out
+        run: node tests/v021-browser.test.cjs
