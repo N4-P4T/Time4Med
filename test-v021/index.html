@@ -315,33 +315,24 @@
             <a href="#devices">เปิดหน้าอุปกรณ์ ↗</a>
         </div>
 
-        <section id="t24MqttPanel" class="t24-live" aria-label="ดูสถานะ ESP32-S3 สดผ่าน HiveMQ" hidden>
+        <section id="t25DevicePanel" class="t24-live" aria-label="สถานะตู้ยา ESP32-S3" hidden>
           <div class="t24-live-heading">
             <div>
-              <h2>เชื่อมสถานะสด ESP32-S3</h2>
-              <p>อ่านข้อมูลอย่างเดียวผ่าน HiveMQ • ไม่สั่งกลอนและไม่แก้ตารางยา</p>
+              <h2>สถานะตู้ยา ESP32-S3</h2>
+              <p>ใช้บัญชี Google ที่ได้รับอนุญาต • ไม่ต้องกรอกรหัส HiveMQ หรือกดเชื่อมต่อ</p>
             </div>
-            <strong id="t24MqttState">ยังไม่เชื่อมต่อ</strong>
+            <strong id="t25DeviceState" role="status">รอข้อมูลจากระบบ</strong>
           </div>
-          <div class="t24-form">
-            <label>HiveMQ Username (สิทธิ์ SUBSCRIBE เท่านั้น)
-              <input type="text" id="t24Username" autocomplete="off" placeholder="เช่น time4med-viewer">
-            </label>
-            <label>HiveMQ Password
-              <input type="password" id="t24Password" autocomplete="off" placeholder="กรอกรหัสเฉพาะแท็บนี้">
-            </label>
-            <button type="button" id="t24Start">เชื่อมข้อมูลสด</button>
-            <button type="button" id="t24Stop" disabled>ตัดการเชื่อมต่อ</button>
-          </div>
-          <p id="t24MqttResult" role="status">รอเข้าสู่ระบบ Google</p>
           <div class="t24-facts">
-            <div><small>อุปกรณ์</small><strong id="t24Device">ESP32-S3: รอข้อมูล</strong></div>
-            <div><small>ประตูตู้ยา</small><strong id="t24Door">ยังไม่มีข้อมูลสด</strong></div>
-            <div><small>กลอน</small><strong id="t24Lock">ยังไม่มีข้อมูลสด</strong></div>
-            <div><small>ฉุกเฉิน</small><strong id="t24Emergency">ยังไม่มีข้อมูลสด</strong></div>
-            <div><small>ได้รับล่าสุด (เวลาเครื่องผู้ดูแล)</small><strong id="t24LastSeen">—</strong></div>
+            <div><small>อุปกรณ์</small><strong id="t25Device">ESP32-S3: รอข้อมูล</strong></div>
+            <div><small>ประตูตู้ยา</small><strong id="t25Door">ยังไม่มีข้อมูล</strong></div>
+            <div><small>กลอนตู้ยา</small><strong id="t25Lock">ยังไม่มีข้อมูล</strong></div>
+            <div><small>สถานะฉุกเฉิน</small><strong id="t25Emergency">ยังไม่มีข้อมูล</strong></div>
+            <div><small>เวลารับข้อมูลล่าสุด</small><strong id="t25LastSeen">—</strong></div>
           </div>
-          <p class="t24-caution">ข้อมูลสถานะที่ค้างใน Broker (retained) จะไม่ถูกนับว่าออนไลน์ ต้องได้รับข้อความใหม่หลังเชื่อมต่อ และจะหมดความสดเมื่อเกิน 150 วินาที ต้องกำหนด ACL ที่ HiveMQ เป็น Subscribe-only ด้วย</p>
+          <p id="t25DeviceMessage" class="t24-caution" role="status">
+            รอข้อมูลที่ยืนยันจาก Backend ไม่แสดงว่าเครื่องออนไลน์จนกว่าจะมีข้อมูลใหม่จริง
+          </p>
         </section>
 
         <div class="t21-hidden-legacy" hidden aria-hidden="true">
@@ -1245,10 +1236,9 @@
   <p id="t4mAdminMessage" role="status"></p>
   <div id="t4mAdminAccounts"></div>
 </section>
-    <script src="https://cdn.jsdelivr.net/npm/mqtt@5.14.1/dist/mqtt.min.js"></script>
     <script src="../test-v020/script.js"></script>
     <script src="caregiver-center.js"></script>
-    <script src="mqtt-live-status.js"></script>
+    <script src="device-status-auto.js"></script>
 
     <script src="schedule-contract.js"></script>
     <script src="schedule-review.js"></script>
