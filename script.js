@@ -225,20 +225,33 @@ function setMqttConnectionState(state, label) {
 }
 
 
-function openMqttCredentialDialog() {
-    startAutomaticMqtt();
+// Credentials are entered per browser tab; never stored in repo or browser storage.
+let mqttSessionPassword = "";
+
+function openMqttCredentialDialog(message) {
+    if (!mqttCredentialDialog || typeof mqttCredentialDialog.showModal !== "function") {
+        setMqttConnectionState("disconnected", "MQTT: ไม่รองรับหน้าต่างยืนยันตัวตน");
+        return;
+    }
+    mqttDialogMessage.textContent = message || "";
+    mqttPasswordInput.value = "";
+    if (!mqttCredentialDialog.open) mqttCredentialDialog.showModal();
+    mqttPasswordInput.focus();
 }
 
 function startAutomaticMqtt() {
     if (time4MedMqttClient && (time4MedMqttClient.connected || time4MedMqttClient.reconnecting)) return;
-    const config = window.TIME4MED_MQTT_CONFIG;
-    if (!config || !MQTT_BROKER_URL.startsWith("wss://") || !MQTT_USERNAME ||
-        typeof config.password !== "string" || !config.password || config.password === "PUT_MQTT_PASSWORD_HERE") {
-        setMqttConnectionState("disconnected", "MQTT: กรุณาตั้งค่า mqtt-config.js");
-        controlMessage.textContent = "กรอกบัญชี MQTT ในไฟล์ mqtt-config.js แล้วอัปโหลดไฟล์และรีเฟรชหน้าเว็บ";
+    if (!MQTT_BROKER_URL.startsWith("wss://") || !MQTT_USERNAME) {
+        setMqttConnectionState("disconnected", "MQTT: การตั้งค่า Broker ไม่ถูกต้อง");
+        controlMessage.textContent = "ⓘ กรุณาตรวจที่อยู่ Broker และชื่อบัญชีแบบไม่ลับใน mqtt-config.js";
         return;
     }
-    connectTime4MedMqtt(config.password);
+    if (!mqttSessionPassword) {
+        setMqttConnectionState("disconnected", "MQTT: รอผู้ดูแลเชื่อมต่อ");
+        controlMessage.textContent = "ⓘ กดสถานะ MQTT ด้านบนเพื่อกรอกรหัสในแท็บนี้ (ไม่บันทึกลงเว็บไซต์)";
+        return;
+    }
+    connectTime4MedMqtt(mqttSessionPassword);
 }
 
 function updateDeviceStatusFromMqtt(status) {
@@ -401,6 +414,8 @@ function connectTime4MedMqtt(password) {
                 "disconnected",
                 "MQTT: การเชื่อมต่อขาด"
             );
+            systemOnlineBadge.textContent = "● ไม่ทราบสถานะอุปกรณ์";
+            systemOnlineBadge.style.color = "#64748b";
         }
     });
 
@@ -472,17 +487,29 @@ mqttConnectButton.addEventListener("click", function () {
     openMqttCredentialDialog();
 });
 
-
-mqttConnectButton.addEventListener("keydown", function (event) {
-
-    if (event.key === "Enter" || event.key === " ") {
-        event.preventDefault();
-        openMqttCredentialDialog();
+mqttCredentialForm.addEventListener("submit", function (event) {
+    event.preventDefault();
+    const password = mqttPasswordInput.value;
+    if (!password || !password.trim()) {
+        mqttDialogMessage.textContent = "กรุณากรอกรหัสผ่าน MQTT ของผู้ดูแล";
+        return;
     }
+    mqttSessionPassword = password;
+    mqttPasswordInput.value = "";
+    mqttCredentialDialog.close();
+    connectTime4MedMqtt(mqttSessionPassword);
 });
 
+mqttCancelButton.addEventListener("click", function () {
+    mqttPasswordInput.value = "";
+    mqttCredentialDialog.close();
+});
 
-setMqttConnectionState("connecting", "MQTT: กำลังเตรียมเชื่อมต่ออัตโนมัติ...");
+mqttCredentialDialog.addEventListener("close", function () {
+    mqttPasswordInput.value = "";
+});
+
+setMqttConnectionState("disconnected", "MQTT: รอผู้ดูแลเชื่อมต่อ");
 window.addEventListener("DOMContentLoaded", startAutomaticMqtt, {once: true});
 
 // ==========================================

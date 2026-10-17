@@ -1,0 +1,32 @@
+name: Check MQTT browser credentials
+
+on:
+  pull_request:
+    paths:
+      - 'mqtt-config.js'
+      - 'script.js'
+      - 'index.html'
+      - 'tests/mqtt-session.test.cjs'
+      - '.github/workflows/mqtt-session-check.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  credentials:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Verify JavaScript syntax
+        run: node --check script.js && node --check tests/mqtt-session.test.cjs
+      - name: Install headless Chromium in cloud
+        run: |
+          npm install --no-save playwright@1.56.1
+          npx playwright install --with-deps chromium
+      - name: Test browser credential entry with all external traffic blocked
+        run: node tests/mqtt-session.test.cjs
