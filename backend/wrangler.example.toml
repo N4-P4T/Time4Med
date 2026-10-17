@@ -1,0 +1,15 @@
+# CLOUD STAGING EXAMPLE ONLY. Do not deploy over the production Worker.
+name = "time4med-schedule-preview-staging"
+main = "worker-v020-preview.mjs"
+compatibility_date = "2026-10-01"
+workers_dev = true
+
+# Configure these variables through Cloudflare settings after review:
+# ALLOWED_ORIGIN (exact GitHub Pages origin)
+# GOOGLE_CLIENT_ID (public Google OAuth client ID)
+# SPREADSHEET_ID (Google Sheets identifier)
+#
+# Secret environment variables (never commit values):
+# GCP_CLIENT_EMAIL, GCP_PRIVATE_KEY
+#
+# schedule/commit ALWAYS returns 503, no MQTT transport is connected.
