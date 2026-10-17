@@ -72,6 +72,15 @@ async function main(){
    assert.equal(await page.locator('#t21ScheduledCount').innerText(),'1');
    await page.locator('#t21PatientFilter button').nth(0).click();
    assert.equal(await page.locator('#t21PatientCards article').count(),2);
+   // New read-only schedule reviewer: never exposes a write/sync button.
+   await page.locator('.sidebar-link[href="#medication"]').click();
+   await page.locator('.t22-schedule-review').waitFor({state:'visible'});
+   await page.waitForFunction(()=>document.getElementById('t22ScheduledSlots')?.textContent==='2');
+   assert.equal(await page.locator('#t22ErrorCount').innerText(),'0');
+   assert.equal(await page.locator('#sendMealSchedule').count(),0);
+   assert.equal(await page.locator('#t22Slots li.valid').count(),2);
+   await page.locator('#t22ReviewAgain').click();
+   assert.match(await page.locator('#t22ReviewState').innerText(),/ยังไม่ได้ส่ง/);
    await page.locator('.sidebar-link[href="#devices"]').click();
    await page.locator('#devices').waitFor({state:'visible'});
    assert.equal(await page.locator('#home-overview').isVisible(),false);

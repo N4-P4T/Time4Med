@@ -1,0 +1,32 @@
+name: Verify Time4Med Schedule Compatibility
+
+on:
+  pull_request:
+    paths:
+      - 'test-v021/schedule-contract.js'
+      - 'test-v021/schedule-review.js'
+      - 'test-v021/schedule-review.css'
+      - 'test-v021/index.html'
+      - 'tests/schedule-contract.test.cjs'
+      - '.github/workflows/schedule-contract-check.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Check pure schedule/preview JavaScript syntax
+        run: |
+          node --check test-v021/schedule-contract.js
+          node --check test-v021/schedule-review.js
+          node --check tests/schedule-contract.test.cjs
+      - name: Validate mapping, meal types, authorization, and zero MQTT writes
+        run: node tests/schedule-contract.test.cjs
