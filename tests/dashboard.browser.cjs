@@ -91,6 +91,7 @@ async function run() {
       await page.locator('#home-overview').waitFor({state:'visible'});
       await page.locator('.home-device-shortcut a[href="#devices"]').click();
       await page.waitForURL('**/#devices');
+      await page.locator('#devices').waitFor({state:'visible'});
       assert.equal(await page.locator('#devices').isVisible(),true,
         'Dashboard shortcut must navigate to actual devices panel');
 
