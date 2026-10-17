@@ -5,6 +5,8 @@
 #include <Arduino.h>
 #include "Time4MedScheduleEngine.h"
 #include "ScheduleNvsStorage.h"
+#include "ScheduleMqttAuth.h"
+#include "NvsReplayCounter.h"
 
 struct ReadOnlyStorage : public t4m::Storage {
   bool load(t4m::Snapshot& result) override {result=t4m::Snapshot{};return true;}
