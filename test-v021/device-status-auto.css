@@ -1,0 +1,22 @@
+/* Time4Med v0.25 Google-only device status display */
+.t24-live {margin:14px 0 20px;padding:20px 22px;background:#fff;border:1px solid #d9e8f6;border-radius:17px;box-shadow:0 5px 16px rgba(11,47,92,.05)}
+.t24-live[hidden]{display:none!important}
+.t24-live-heading{display:flex;align-items:center;justify-content:space-between;gap:15px;flex-wrap:wrap}
+.t24-live-heading h2{margin:0;font-size:19px;color:#184c7c}
+.t24-live-heading p{margin:4px 0;color:#69829a;font-size:12px}
+#t24MqttState{border-radius:99px;padding:7px 11px;background:#ecf4ff;color:#1c649a;font-size:11px}
+.t24-form{margin:17px 0 13px;display:flex;align-items:flex-end;gap:10px;flex-wrap:wrap}
+.t24-form label{display:grid;gap:5px;font-size:12px;color:#47617d;flex:1;min-width:160px}
+.t24-form input{width:100%;box-sizing:border-box;font:inherit;font-size:13px;border-radius:8px;border:1px solid #d1e0ee;padding:10px 11px;background:#fcfdff}
+.t24-form input:focus{outline:2px solid #9bcdf6}
+.t24-form button{font:inherit;cursor:pointer;font-weight:700;font-size:12px;border-radius:9px;border:0;padding:11px 13px;background:#165c9b;color:#fff}
+.t24-form button#t24Stop{background:#eef3f9;color:#426684}
+.t24-form button:disabled{opacity:.45;cursor:default}
+#t24MqttResult{font-size:12px;color:#567896;margin:7px 0 14px;line-height:1.6}
+.t24-facts{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:10px}
+.t24-facts>div{border:1px solid #e2edf7;background:#fafcff;border-radius:10px;padding:12px;min-width:0;display:grid;gap:5px}
+.t24-facts small{font-size:11px;color:#7189a1}
+.t24-facts strong{font-size:13px;color:#154c80;overflow-wrap:anywhere}
+.t24-caution{margin:13px 0 0;font-size:11px;color:#8b5a26;background:#fff8ee;border-radius:9px;padding:11px;line-height:1.7}
+@media(max-width:1050px){.t24-facts{grid-template-columns:repeat(3,minmax(0,1fr))}}
+@media(max-width:600px){.t24-live{padding:15px}.t24-facts{grid-template-columns:repeat(2,minmax(0,1fr))}.t24-form label{min-width:100%}}
