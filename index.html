@@ -482,52 +482,7 @@
     <p id="homeDraftSource" class="home-data-notice">
         ข้อมูลตารางยาในเบราว์เซอร์นี้ (ฉบับร่าง — ยังไม่ยืนยันว่าบันทึกลง ESP32-S3 แล้ว)
     </p>
-    <div class="home-overview-panels">
-        <article class="panel-card home-panel">
-            <div class="home-panel-heading">
-                <h2>รอบแจ้งเตือนถัดไป</h2><span class="home-label">จากฉบับร่าง</span>
-            </div>
-            <strong id="homeNextTime" class="home-highlight-time">—</strong>
-            <p id="homeNextDetail" class="home-muted">กำลังตรวจตารางยาในเบราว์เซอร์...</p>
-            <div class="home-subheading">
-                <h3>รายการแจ้งเตือนประจำวัน</h3>
-                <span id="homeDraftCount" class="home-muted">—</span>
-            </div>
-            <ul id="homeTodaySchedule" class="home-schedule-list" aria-live="polite">
-                <li>กำลังโหลด...</li>
-            </ul>
-            <p class="home-disclaimer">เวลาที่ระบุไม่ใช่หลักฐานว่าเครื่องได้รับตารางยา หรือผู้สูงอายุรับประทานยาแล้ว</p>
-            <a class="home-inline-link" href="#medication">ตรวจรายการยา →</a>
-        </article>
-        <div class="home-overview-stack">
-            <article class="panel-card home-panel">
-                <div class="home-panel-heading">
-                    <h2>สิ่งที่ผู้ดูแลควรตรวจสอบ</h2><span class="home-label">ข้อมูลในเบราว์เซอร์</span>
-                </div>
-                <ul id="homeAttentionItems" class="home-schedule-list"><li>กำลังตรวจ...</li></ul>
-                <a class="home-inline-link" href="#inventory">ตรวจคลังยา →</a>
-            </article>
-            <article class="panel-card home-panel">
-                <div class="home-panel-heading">
-                    <h2>กิจกรรมที่บันทึกวันนี้</h2><span class="home-label">Google Sheets ActivityLog</span>
-                </div>
-                <strong id="homeConfirmationEvents" class="home-highlight-time">—</strong>
-                <p class="home-muted">เหตุการณ์ยืนยันสำเร็จที่พบในบันทึก</p>
-                <p id="homeActivityLabel" class="home-activity-label">กำลังโหลดเหตุการณ์จริง...</p>
-                <p id="homeActivitySource" class="home-disclaimer">ข้อมูลเหตุการณ์ไม่ใช่หลักฐานว่ากลืนยาแล้ว</p>
-                <a class="home-inline-link" href="#activity">ดู Timeline →</a>
-            </article>
-            <article class="panel-card home-panel home-device-shortcut">
-                <div>
-                    <h2>จัดการอุปกรณ์</h2>
-                    <p>ตรวจสถานะและควบคุมกลอนที่หน้าอุปกรณ์โดยเฉพาะ</p>
-                </div>
-                <a class="home-primary-link" href="#devices">ไปหน้าอุปกรณ์ →</a>
-            </article>
-        </div>
-    </div>
-</section>
-<section class="summary-grid" aria-label="สรุปรายการยาในเบราว์เซอร์">
+    <section class="summary-grid" aria-label="สรุปรายการยาในเบราว์เซอร์">
 
             <article class="summary-card">
 
@@ -613,9 +568,52 @@
             </article>
 
         </section>
-
-
-        <!-- แถวสถานะและควบคุม -->
+    <div class="home-overview-panels">
+        <article class="panel-card home-panel">
+            <div class="home-panel-heading">
+                <h2>รอบแจ้งเตือนถัดไป</h2><span class="home-label">จากฉบับร่าง</span>
+            </div>
+            <strong id="homeNextTime" class="home-highlight-time">—</strong>
+            <p id="homeNextDetail" class="home-muted">กำลังตรวจตารางยาในเบราว์เซอร์...</p>
+            <div class="home-subheading">
+                <h3>รายการแจ้งเตือนประจำวัน</h3>
+                <span id="homeDraftCount" class="home-muted">—</span>
+            </div>
+            <ul id="homeTodaySchedule" class="home-schedule-list" aria-live="polite">
+                <li>กำลังโหลด...</li>
+            </ul>
+            <p class="home-disclaimer">เวลาที่ระบุไม่ใช่หลักฐานว่าเครื่องได้รับตารางยา หรือผู้สูงอายุรับประทานยาแล้ว</p>
+            <a class="home-inline-link" href="#medication">ตรวจรายการยา →</a>
+        </article>
+        <div class="home-overview-stack">
+            <article class="panel-card home-panel">
+                <div class="home-panel-heading">
+                    <h2>สิ่งที่ผู้ดูแลควรตรวจสอบ</h2><span class="home-label">ข้อมูลในเบราว์เซอร์</span>
+                </div>
+                <ul id="homeAttentionItems" class="home-schedule-list"><li>กำลังตรวจ...</li></ul>
+                <a class="home-inline-link" href="#inventory">ตรวจคลังยา →</a>
+            </article>
+            <article class="panel-card home-panel">
+                <div class="home-panel-heading">
+                    <h2>กิจกรรมที่บันทึกวันนี้</h2><span class="home-label">Google Sheets ActivityLog</span>
+                </div>
+                <strong id="homeConfirmationEvents" class="home-highlight-time">—</strong>
+                <p class="home-muted">เหตุการณ์ยืนยันสำเร็จที่พบในบันทึก</p>
+                <p id="homeActivityLabel" class="home-activity-label">กำลังโหลดเหตุการณ์จริง...</p>
+                <p id="homeActivitySource" class="home-disclaimer">ข้อมูลเหตุการณ์ไม่ใช่หลักฐานว่ากลืนยาแล้ว</p>
+                <a class="home-inline-link" href="#activity">ดู Timeline →</a>
+            </article>
+            <article class="panel-card home-panel home-device-shortcut">
+                <div>
+                    <h2>จัดการอุปกรณ์</h2>
+                    <p>ตรวจสถานะและควบคุมกลอนที่หน้าอุปกรณ์โดยเฉพาะ</p>
+                </div>
+                <a class="home-primary-link" href="#devices">ไปหน้าอุปกรณ์ →</a>
+            </article>
+        </div>
+    </div>
+</section>
+<!-- แถวสถานะและควบคุม -->
 
         <section id="devices" class="dashboard-row section-anchor">
 
@@ -1017,7 +1015,7 @@
 
                             <div
                                 class="analytics-progress-bar"
-                                style="width: —;"
+                                style="width: 0%;"
                             ></div>
 
                         </div>
@@ -1063,7 +1061,7 @@
 
                             <div
                                 class="analytics-progress-bar"
-                                style="width: —;"
+                                style="width: 0%;"
                             ></div>
 
                         </div>
@@ -1109,7 +1107,7 @@
 
                             <div
                                 class="analytics-progress-bar"
-                                style="width: —;"
+                                style="width: 0%;"
                             ></div>
 
                         </div>
