@@ -26,6 +26,10 @@ assert.equal(plan.deviceOnline,null);
 assert.match(plan.sha256,/^[a-f0-9]{64}$/);
 assert.equal(plan.revision16,plan.sha256.slice(0,16));
 assert.equal(plan.transportFingerprint,transportFingerprint(plan.slots));
+assert.equal(transportFingerprint([
+  {userId:"U001",time:"08:30",meal:"AFTER_BREAKFAST"},
+  {userId:"U002",time:"18:30",meal:"AFTER_DINNER"}
+]),"9da28728af57c536","C++ and JS must use same digest wire format");
 assert.match(plan.transportFingerprint,/^[a-f0-9]{16}$/);
 const second=await preparePreview({user:admin,patients:people,medicines:[...meds].reverse()});
 assert.equal(second.sha256,plan.sha256,"Reordered Sheet rows must not change digest");
