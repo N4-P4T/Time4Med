@@ -33,3 +33,15 @@ jobs:
         run: |
           g++ -std=c++17 -Wall -Wextra -Werror tests/schedule-engine.test.cpp -o /tmp/t4m-schedule-engine
           /tmp/t4m-schedule-engine
+      - uses: arduino/setup-arduino-cli@v2
+      - name: Install ESP32 Board Package on GitHub runner
+        run: |
+          arduino-cli core update-index --additional-urls https://espressif.github.io/arduino-esp32/package_esp32_index.json
+          arduino-cli core install esp32:esp32 --additional-urls https://espressif.github.io/arduino-esp32/package_esp32_index.json
+      - name: Prepare standalone read-only ESP32-S3 compilation probe
+        run: |
+          cp firmware/schedule_v2/Time4MedScheduleEngine.h firmware/Time4MedSchedule_Probe/
+          cp firmware/schedule_v2/ScheduleNvsStorage.h firmware/Time4MedSchedule_Probe/
+      - name: Compile for ESP32-S3 (no flashing, no credentials)
+        run: |
+          arduino-cli compile --fqbn esp32:esp32:esp32s3 firmware/Time4MedSchedule_Probe
