@@ -1,0 +1,25 @@
+/* Time4Med schedule compatibility review (no commands). */
+.t22-schedule-review{padding:20px 22px;border:1px solid #d6e5f3;background:#fff;border-radius:16px;box-shadow:0 6px 20px rgba(22,62,103,.06);margin:18px 0 22px;line-height:1.65}
+.t22-head{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.t22-head h3{font-size:19px;color:#114773;margin:4px 0}
+.t22-head small{letter-spacing:.11em;font-size:10px;font-weight:800;color:#6991b7}
+.t22-head span{font-size:11px;background:#eaf4fe;color:#18558d;border-radius:99px;padding:6px 10px}
+.t22-schedule-review>p{font-size:12px;color:#637990;margin:12px 0}
+#t22ReviewState{padding:10px 13px;background:#f0f8ff;border:1px solid #dceaf7;border-radius:10px;color:#245e8b!important;font-weight:700}
+.t22-review-metrics{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin:14px 0}
+.t22-review-metrics>div{padding:12px;background:#fbfdff;border:1px solid #e5edf7;border-radius:10px;display:grid}
+.t22-review-metrics small{font-size:11px;color:#7b8fa2}
+.t22-review-metrics strong{font-size:24px;color:#1a4d80}
+.t22-boxes{padding:11px;background:#f4f8fe;border-radius:10px}
+.t22-review-columns{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;margin:16px 0}
+.t22-review-columns h4{font-size:14px;color:#1e527c;margin:0 0 8px}
+.t22-review-list{margin:0;padding:0;list-style:none;display:grid;gap:7px;max-height:370px;overflow:auto}
+.t22-list-item{padding:8px 11px;border-radius:9px;background:#fafcff;border:1px solid #e5edf7;color:#48647e;font-size:12px;overflow-wrap:anywhere}
+.t22-list-item.valid{background:#eef8f1;border-color:#d9ebdf}
+.t22-list-item.error{background:#fff2f2;border-color:#f0d2d2;color:#9e3434}
+.t22-list-item.warning{background:#fff8ed;border-color:#f1dfb7}
+.t22-warning{background:#fff5e7!important;padding:12px!important;border:1px solid #efdab3;border-radius:10px;color:#84501d!important}
+.t22-actions{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.t22-actions button{padding:10px 14px;background:#155d9d;color:#fff;border:0;border-radius:9px;font:inherit;font-size:12px;font-weight:750;cursor:pointer}
+#t22SnapshotState{color:#73849a;font-size:11px}
+@media(max-width:800px){.t22-review-columns{grid-template-columns:1fr}.t22-review-metrics{grid-template-columns:repeat(2,minmax(0,1fr))}}
