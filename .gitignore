@@ -1,0 +1,6 @@
+# Device-specific secrets and local certificate/key material must not enter GitHub.
+**/telemetry_secrets.h
+**/secrets.h
+**/*.private.pem
+**/*.private.key
+**/*.env.local
