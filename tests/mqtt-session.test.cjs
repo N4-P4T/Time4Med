@@ -35,7 +35,7 @@ async function waitReady() {
       if(url.includes('cdn.jsdelivr.net/npm/mqtt')){
         return route.fulfill({
           status:200,contentType:'application/javascript',
-          body:\`window.__mqttTestConnections=[]; window.__mqttTestPublishCalls=[]; window.mqtt={
+          body:`window.__mqttTestConnections=[]; window.__mqttTestPublishCalls=[]; window.mqtt={
               connect:function(url,options) {
                 window.__mqttTestConnections.push({url,username:options.username,
                   password:options.password,clientId:options.clientId});
@@ -43,7 +43,7 @@ async function waitReady() {
                   on:function(){return this;},subscribe:function(){},
                   end:function(){},publish:function(topic,payload) {
                     window.__mqttTestPublishCalls.push({topic,payload});}};
-              }};\`
+              }};`
         });
       }
       if(url.startsWith(base))return route.continue();
