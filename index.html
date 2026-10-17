@@ -1597,7 +1597,7 @@
             </h2>
 
             <p style="color: #526581; line-height: 1.6;">
-                กรอกรหัสผ่านของบัญชี time4med-web รหัสจะอยู่ในหน่วยความจำของแท็บนี้เท่านั้น
+                กรอกรหัสผ่านบัญชี MQTT เฉพาะในแท็บนี้ ไม่บันทึกในไฟล์เว็บไซต์ หรือ localStorage (ต้องกรอกใหม่เมื่อเปิดเว็บครั้งถัดไป)
             </p>
 
             <label for="mqttPasswordInput" style="display: block; margin-bottom: 8px; font-weight: 700;">
@@ -1607,7 +1607,7 @@
             <input
                 id="mqttPasswordInput"
                 type="password"
-                autocomplete="current-password"
+                autocomplete="off"
                 required
                 style="box-sizing: border-box; width: 100%; padding: 12px; border: 1px solid #b9c9df; border-radius: 10px;"
             >
