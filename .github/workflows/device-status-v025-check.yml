@@ -1,0 +1,46 @@
+name: Verify Google-only ESP32 Device Status v0.25
+
+on:
+  pull_request:
+    paths:
+      - 'backend/device-telemetry.mjs'
+      - 'backend/worker-v025-device-status.mjs'
+      - 'test-v021/**'
+      - 'tests/device-telemetry.test.mjs'
+      - 'tests/worker-device-status-auth.test.mjs'
+      - 'tests/device-status-browser.test.cjs'
+      - '.github/workflows/device-status-v025-check.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  offline-verification:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Validate JavaScript syntax
+        run: |
+          node --check backend/device-telemetry.mjs
+          node --check backend/worker-v025-device-status.mjs
+          node --check test-v021/device-status-auto.js
+          node --check tests/device-telemetry.test.mjs
+          node --check tests/worker-device-status-auth.test.mjs
+          node --check tests/device-status-browser.test.cjs
+      - name: Verify HMAC telemetry, user roles, expiry and replay handling
+        run: node tests/device-telemetry.test.mjs
+      - name: Verify signed Google token and mock Sheets through whole Worker
+        run: node tests/worker-device-status-auth.test.mjs
+      - name: Install Chromium for isolated UI tests
+        run: |
+          npm install --no-save playwright@1.56.1
+          npx playwright install --with-deps chromium
+      - name: Verify automatic Google-only device status Dashboard
+        run: node tests/device-status-browser.test.cjs
+      - name: Regression - prior authorized medicine UI
+        run: node tests/v021-browser.test.cjs
