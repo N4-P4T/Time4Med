@@ -1786,7 +1786,7 @@ if (
         showView(window.location.hash.slice(1) || 'dashboard', false);
     });
     showView(window.location.hash.slice(1) || 'dashboard', false);
-})();;
+})();
 
 function escapeMedicineText(value) {
     return String(value).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
