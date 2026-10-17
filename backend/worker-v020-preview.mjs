@@ -144,7 +144,12 @@ async function handle(request,env,url,user){
     const patients=mapPatients(patientRows);
     const medicines=medicineRows
       .filter(r=>r.some(cell=>text(cell))) // exclude only truly empty rows
-      .map((r,i)=>mapMedicine(r,i+1))
+      .map((r,i)=>{
+        const kind=text(r[3]), meal=text(r[4]);
+        if(kind!=='prn' && kind!=='scheduled')fail(422,'INVALID_KIND: row '+(i+2));
+        if(kind==='scheduled' && (!/^[1-7]$/.test(meal)))fail(422,'INVALID_MEAL: row '+(i+2));
+        return mapMedicine(r,i+1);
+      })
       .filter(m=>m.active); // planner detects missing/duplicate medication IDs
     return {preview:await preparePreview({user,patients,medicines,cabinetId:CABINET_ID})};
   }
