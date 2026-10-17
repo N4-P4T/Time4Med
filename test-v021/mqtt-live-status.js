@@ -59,7 +59,7 @@
     if(!username||!password)return message('กรอกบัญชี HiveMQ ที่ตั้งสิทธิ์ SUBSCRIBE อย่างเดียว');
     if(!clientFactory()?.connect)return message('ยังโหลดไลบรารี MQTT ไม่สำเร็จ');
     // Browser credentials must NOT be a device account. ACL must enforce read-only.
-    if(username==='time4med-esp32s')return message('ห้ามใช้บัญชี time4med-esp32s ของตัวเครื่อง กรุณาสร้างบัญชีอ่านอย่างเดียว');
+    if(['time4med-esp32s','time4med-web'].includes(username.toLowerCase()))return message('ห้ามใช้บัญชี MQTT เดิมที่อาจมีสิทธิ์สั่งงาน กรุณาสร้างบัญชี Viewer ใหม่แบบ Subscribe-only');
     const arr=new Uint8Array(8);
     crypto.getRandomValues(arr);
     const clientId='time4med-view-'+Array.from(arr,v=>v.toString(16).padStart(2,'0')).join('');
