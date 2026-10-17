@@ -1,0 +1,31 @@
+name: Verify Time4Med main entry
+
+on:
+  pull_request:
+    paths:
+      - 'index.html'
+      - 'mqtt-config.js'
+      - 'tests/main-entry.test.cjs'
+      - '.github/workflows/main-entry-check.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify-entry:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install Chromium on GitHub runner
+        run: |
+          npm install --no-save playwright@1.56.1
+          npx playwright install --with-deps chromium
+      - name: Check entry redirect + Google auth gate + no published credentials
+        run: |
+          node tests/main-entry.test.cjs
+          node tests/v020-browser.test.cjs
