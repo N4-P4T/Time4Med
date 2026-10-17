@@ -35,3 +35,16 @@
 GitHub Actions ตรวจ Worker syntax, Google Sheets plan validation, C++17 atomic transaction engine with simulated storage failure, stale revision, reboot and integrity tests.
 
 หมายเหตุ: ACK APPLIED เป็นหลักฐานว่าบันทึกตารางตามรูปแบบสำเร็จ ไม่ใช่หลักฐานว่าผู้สูงอายุกลืนยาแล้ว.
+## MQTT v2 HMAC และระบบป้องกัน Replay (เพิ่มใน Staging)
+
+- backend/schedule-wire.mjs เป็น helper สร้างซองคำสั่งที่ลง HMAC-SHA256 ด้วยกุญแจ 32 ไบต์ขึ้นไปที่เก็บ **เฉพาะ Backend**; ยังไม่มีตัวเชื่อมต่อ HiveMQ และไม่ publish MQTT
+- Topic ที่เตรียมไว้: time4med/v2/cabinet/cabinet-01/schedule/command (ไม่ใช่ Legacy Topic)
+- รูปแบบซองคำสั่ง: V2|sequenceNumber|base64(plaintextCommand)|hexHmac64
+- MAC ครอบ domain T4M-V2, deviceId, topic, sequence และ Base64 ของคำสั่ง; ป้องกันแก้ข้อความหรือย้ายข้ามตู้/Topic
+- firmware/schedule_v2/ScheduleMqttAuth.h ตรวจ HMAC ด้วย mbedTLS และเปรียบเทียบ digest แบบไม่หยุดทันทีเมื่อเจอ byte แตกต่าง
+- firmware/schedule_v2/NvsReplayCounter.h ต้องอ่านและบันทึกตัวนับลำดับเพิ่มขึ้นตลอดใน NVS ก่อนเรียก Engine.handle(); หากไม่มีตัวนับที่ provision ไว้ให้ปฏิเสธคำสั่งทั้งหมด
+- **สำคัญ:** โค้ด HMAC นี้ยังไม่ได้เชื่อมกับ MQTT callback จริงของเฟิร์มแวร์; ห้ามเรียก Engine.handle(message, true, ...) โดยข้ามการตรวจเฟรม + ตัวนับ Replay
+- Future Gateway ต้องมี Durable Object / Queue ที่ออก Sequence Number และจัดงานทีละตู้ ไม่ใช่ให้เบราว์เซอร์สร้าง HMAC เอง
+- HMAC แยกต่างหากจากรหัส HiveMQ; ไม่ใส่ไว้ใน GitHub, localStorage หรือไฟล์ .ino สาธารณะ
+
+ผลทดสอบ HMAC ใน tests/schedule-wire.test.mjs เปรียบเทียบกับ Node.js crypto.createHmac ด้วยกุญแจ **สุ่มเฉพาะทดสอบ**; CI คอมไพล์ ESP32-S3 Probe ที่ include header mbedTLS และ NVS โดยไม่เรียกใช้งานฮาร์ดแวร์หรือ NVS จริง.
