@@ -24,11 +24,13 @@ void setup() {
   const String testMessage=String("T4M-STATUS-V1\n/api/device/telemetry\n")
     +"1792240000\n0123456789abcdef0123456789abcdef\n"+json;
   const String mac=t4m_telemetry::hmacSha256Hex(key,testMessage);
+  const bool matchesExpected = mac == "778596a98d6dcc0db19ce26692bbb2e2dcbe327fedeafd54a1300352958e2995";
   t4m_telemetry::Sender disabled("",kPublicTestKey,"");
   Serial.println("Time4Med telemetry v0.25 COMPILE PROBE only");
   Serial.printf("Test HMAC key accepted: %s\n",decoded?"YES":"NO");
   Serial.printf("Sample payload bytes: %u\n",(unsigned)json.length());
   Serial.printf("HMAC bytes (hex): %u\n",(unsigned)mac.length());
+  Serial.printf("Backend golden vector: %s\n",matchesExpected?"PASS":"FAIL");
   Serial.printf("Can send with placeholder config: %s\n",disabled.configured()?"YES":"NO");
   Serial.println("NO HTTP, NO MQTT and NO cabinet actuation performed.");
 }
