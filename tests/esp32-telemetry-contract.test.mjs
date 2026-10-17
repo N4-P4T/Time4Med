@@ -21,7 +21,7 @@ assert.match(header,/HTTPC_DISABLE_FOLLOW_REDIRECTS/);
 assert.match(header,/WiFi\.status\(\)!=WL_CONNECTED/);
 assert.match(header,/esp_fill_random/);
 assert.match(header,/mbedtls_md_hmac/);
-assert.match(header,/status\.rtcValid/);
+assert.match(header,/s\.rtcValid/);
 assert.match(probe,/778596a98d6dcc0db19ce26692bbb2e2dcbe327fedeafd54a1300352958e2995/);
 assert.doesNotMatch(header,/setInsecure\s*\(/);
 assert.doesNotMatch(header,/\.\s*publish\s*\(|\brelay\b|\bdigitalWrite\s*\(/i);
