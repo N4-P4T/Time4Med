@@ -1,0 +1,46 @@
+name: Compile Time4Med ESP32 HTTPS status sender (Stage 3)
+
+on:
+  pull_request:
+    paths:
+      - 'firmware/telemetry_v025/**'
+      - 'firmware/Time4MedTelemetry_Probe/**'
+      - 'tests/esp32-telemetry-contract.test.mjs'
+      - 'tests/virtual-esp32-end-to-end.test.mjs'
+      - '.github/workflows/esp32-telemetry-v025-check.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  esp32-telemetry:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Validate Node contract tests and Cloudflare schema
+        run: |
+          node --check tests/esp32-telemetry-contract.test.mjs
+          node tests/esp32-telemetry-contract.test.mjs
+          node tests/device-telemetry.test.mjs
+          node tests/worker-device-status-auth.test.mjs
+      - name: Validate full virtual cabinet-to-website pipeline in Chromium
+        run: |
+          npm install --no-save playwright@1.56.1
+          npx playwright install --with-deps chromium
+          node tests/virtual-esp32-end-to-end.test.mjs
+      - uses: arduino/setup-arduino-cli@v2
+      - name: Install Espressif ESP32-S3 core on runner
+        run: |
+          arduino-cli core update-index --additional-urls https://espressif.github.io/arduino-esp32/package_esp32_index.json
+          arduino-cli core install esp32:esp32 --additional-urls https://espressif.github.io/arduino-esp32/package_esp32_index.json
+      - name: Prepare standalone probe (NO GPIO or live credentials)
+        run: |
+          cp firmware/telemetry_v025/Time4MedStatusSender.h firmware/Time4MedTelemetry_Probe/
+      - name: Compile for ESP32-S3 (no device upload)
+        run: |
+          arduino-cli compile --fqbn esp32:esp32:esp32s3 firmware/Time4MedTelemetry_Probe
