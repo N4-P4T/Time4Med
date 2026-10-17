@@ -6,6 +6,7 @@ on:
       - 'firmware/telemetry_v025/**'
       - 'firmware/Time4MedTelemetry_Probe/**'
       - 'tests/esp32-telemetry-contract.test.mjs'
+      - 'tests/virtual-esp32-end-to-end.test.mjs'
       - '.github/workflows/esp32-telemetry-v025-check.yml'
   workflow_dispatch:
 
@@ -27,6 +28,11 @@ jobs:
           node tests/esp32-telemetry-contract.test.mjs
           node tests/device-telemetry.test.mjs
           node tests/worker-device-status-auth.test.mjs
+      - name: Validate full virtual cabinet-to-website pipeline in Chromium
+        run: |
+          npm install --no-save playwright@1.56.1
+          npx playwright install --with-deps chromium
+          node tests/virtual-esp32-end-to-end.test.mjs
       - uses: arduino/setup-arduino-cli@v2
       - name: Install Espressif ESP32-S3 core on runner
         run: |
