@@ -31,6 +31,7 @@
      fetchError?'รายชื่อผู้สูงอายุโหลดไม่ได้: '+fetchError:
      rows===null||patientIds===null?'กำลังโหลดข้อมูลจาก Backend และ Google Sheets…':
      errors.length?'พบข้อผิดพลาด '+errors.length+' รายการ ต้องแก้ก่อนส่งเข้าเครื่อง':
+     report.slots.length===0?'ไม่พบรอบยาตามเวลาที่พร้อมตรวจ — ไม่ยกเลิกตารางในเครื่อง':
      'รูปแบบรายการยาเข้ากับเฟิร์มแวร์อ้างอิง ✓ แต่ยังไม่ได้ส่งไป ESP32-S3';
    slots.replaceChildren();issues.replaceChildren();
    if(rows===null||patientIds===null) {
