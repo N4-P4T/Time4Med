@@ -1,0 +1,34 @@
+name: Verify Google remembered sign-in
+
+on:
+  pull_request:
+    paths:
+      - 'test-v019/auth.js'
+      - 'tests/google-remembered-login.test.cjs'
+      - '.github/workflows/google-login-check.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  google-login:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Validate browser code
+        run: |
+          node --check test-v019/auth.js
+          node --check tests/google-remembered-login.test.cjs
+      - name: Install isolated Chromium on GitHub runner
+        run: |
+          npm install --no-save playwright@1.56.1
+          npx playwright install --with-deps chromium
+      - name: Verify Google remembered/manual sign-in and revoked access
+        run: node tests/google-remembered-login.test.cjs
+      - name: Existing dashboard regression
+        run: node tests/v021-browser.test.cjs
