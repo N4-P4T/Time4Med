@@ -470,7 +470,64 @@
 
         <!-- สถิติด้านบน -->
 
-        <section class="summary-grid">
+        <section id="home-overview" class="home-overview section-anchor">
+    <div class="home-overview-hero">
+        <div>
+            <p class="home-eyebrow">TIME4MED · CAREGIVER OVERVIEW</p>
+            <h1>ภาพรวมการดูแลและตารางยาวันนี้</h1>
+            <p id="homeTodayDate" class="home-today-date">กำลังโหลดวันที่...</p>
+        </div>
+        <a class="home-primary-link" href="#medication">จัดการรายการยา ↗</a>
+    </div>
+    <p id="homeDraftSource" class="home-data-notice">
+        ข้อมูลตารางยาในเบราว์เซอร์นี้ (ฉบับร่าง — ยังไม่ยืนยันว่าบันทึกลง ESP32-S3 แล้ว)
+    </p>
+    <div class="home-overview-panels">
+        <article class="panel-card home-panel">
+            <div class="home-panel-heading">
+                <h2>รอบแจ้งเตือนถัดไป</h2><span class="home-label">จากฉบับร่าง</span>
+            </div>
+            <strong id="homeNextTime" class="home-highlight-time">—</strong>
+            <p id="homeNextDetail" class="home-muted">กำลังตรวจตารางยาในเบราว์เซอร์...</p>
+            <div class="home-subheading">
+                <h3>รายการแจ้งเตือนประจำวัน</h3>
+                <span id="homeDraftCount" class="home-muted">—</span>
+            </div>
+            <ul id="homeTodaySchedule" class="home-schedule-list" aria-live="polite">
+                <li>กำลังโหลด...</li>
+            </ul>
+            <p class="home-disclaimer">เวลาที่ระบุไม่ใช่หลักฐานว่าเครื่องได้รับตารางยา หรือผู้สูงอายุรับประทานยาแล้ว</p>
+            <a class="home-inline-link" href="#medication">ตรวจรายการยา →</a>
+        </article>
+        <div class="home-overview-stack">
+            <article class="panel-card home-panel">
+                <div class="home-panel-heading">
+                    <h2>สิ่งที่ผู้ดูแลควรตรวจสอบ</h2><span class="home-label">ข้อมูลในเบราว์เซอร์</span>
+                </div>
+                <ul id="homeAttentionItems" class="home-schedule-list"><li>กำลังตรวจ...</li></ul>
+                <a class="home-inline-link" href="#inventory">ตรวจคลังยา →</a>
+            </article>
+            <article class="panel-card home-panel">
+                <div class="home-panel-heading">
+                    <h2>กิจกรรมที่บันทึกวันนี้</h2><span class="home-label">Google Sheets ActivityLog</span>
+                </div>
+                <strong id="homeConfirmationEvents" class="home-highlight-time">—</strong>
+                <p class="home-muted">เหตุการณ์ยืนยันสำเร็จที่พบในบันทึก</p>
+                <p id="homeActivityLabel" class="home-activity-label">กำลังโหลดเหตุการณ์จริง...</p>
+                <p id="homeActivitySource" class="home-disclaimer">ข้อมูลเหตุการณ์ไม่ใช่หลักฐานว่ากลืนยาแล้ว</p>
+                <a class="home-inline-link" href="#activity">ดู Timeline →</a>
+            </article>
+            <article class="panel-card home-panel home-device-shortcut">
+                <div>
+                    <h2>จัดการอุปกรณ์</h2>
+                    <p>ตรวจสถานะและควบคุมกลอนที่หน้าอุปกรณ์โดยเฉพาะ</p>
+                </div>
+                <a class="home-primary-link" href="#devices">ไปหน้าอุปกรณ์ →</a>
+            </article>
+        </div>
+    </div>
+</section>
+<section class="summary-grid" aria-label="สรุปรายการยาในเบราว์เซอร์">
 
             <article class="summary-card">
 
@@ -481,7 +538,7 @@
                 <div>
 
                     <p class="summary-label">
-                        รายการยาทั้งหมด
+                        รายการยาในเบราว์เซอร์
                     </p>
 
                     <h2 id="totalMedicineCount">
@@ -502,7 +559,7 @@
                 <div>
 
                     <p class="summary-label">
-                        รายการตามเวลา
+                        รายการยาตามเวลา
                     </p>
 
                     <h2 id="takenMedicineCount">
@@ -544,7 +601,7 @@
                 <div>
 
                     <p class="summary-label">
-                        เวลาแจ้งเตือนแรก
+                        เวลาแจ้งเตือนแรก (ฉบับร่าง)
                     </p>
 
                     <h2 id="latestAlert">
@@ -600,7 +657,7 @@
                         </p>
 
                         <strong id="doorStatus">
-                            ล็อกอยู่
+                            ยังไม่ทราบ
                         </strong>
 
                     </div>
@@ -617,7 +674,7 @@
                         </p>
 
                         <strong id="cameraStatus">
-                            พร้อมใช้งาน
+                            ยังไม่ทราบ
                         </strong>
 
                     </div>
@@ -634,7 +691,7 @@
                         </p>
 
                         <strong id="soundStatus">
-                            พร้อมใช้งาน
+                            ยังไม่มีข้อมูลสถานะ
                         </strong>
 
                     </div>
@@ -918,7 +975,7 @@
                             </h2>
 
                             <p class="panel-subtitle">
-                                Medication Adherence
+                                Medication Adherence — ยังไม่เชื่อมข้อมูลสถิติจริง
                             </p>
 
                         </div>
@@ -926,7 +983,7 @@
                     </div>
 
                     <span class="analytics-period-badge">
-                        อัปเดตล่าสุดวันนี้
+                        รอข้อมูลสถิติจริง
                     </span>
 
                 </div>
@@ -945,7 +1002,7 @@
                                 </span>
 
                                 <strong class="analytics-value">
-                                    100%
+                                    —
                                 </strong>
 
                             </div>
@@ -960,7 +1017,7 @@
 
                             <div
                                 class="analytics-progress-bar"
-                                style="width: 100%;"
+                                style="width: —;"
                             ></div>
 
                         </div>
@@ -968,11 +1025,11 @@
                         <div class="analytics-card-footer">
 
                             <span>
-                                รับประทานแล้ว 3 จาก 3 ครั้ง
+                                ยังไม่เชื่อมข้อมูลการรับประทานยาจริง
                             </span>
 
                             <strong class="analytics-status success">
-                                ครบถ้วน
+                                รอข้อมูล
                             </strong>
 
                         </div>
@@ -991,7 +1048,7 @@
                                 </span>
 
                                 <strong class="analytics-value">
-                                    86%
+                                    —
                                 </strong>
 
                             </div>
@@ -1006,7 +1063,7 @@
 
                             <div
                                 class="analytics-progress-bar"
-                                style="width: 86%;"
+                                style="width: —;"
                             ></div>
 
                         </div>
@@ -1014,11 +1071,11 @@
                         <div class="analytics-card-footer">
 
                             <span>
-                                รับประทานแล้ว 18 จาก 21 ครั้ง
+                                ยังไม่เชื่อมข้อมูลการรับประทานยาจริง
                             </span>
 
                             <strong class="analytics-status warning">
-                                พลาด 3 ครั้ง
+                                รอข้อมูล
                             </strong>
 
                         </div>
@@ -1037,7 +1094,7 @@
                                 </span>
 
                                 <strong class="analytics-value">
-                                    92%
+                                    —
                                 </strong>
 
                             </div>
@@ -1052,7 +1109,7 @@
 
                             <div
                                 class="analytics-progress-bar"
-                                style="width: 92%;"
+                                style="width: —;"
                             ></div>
 
                         </div>
@@ -1060,11 +1117,11 @@
                         <div class="analytics-card-footer">
 
                             <span>
-                                รับประทานแล้ว 83 จาก 90 ครั้ง
+                                ยังไม่เชื่อมข้อมูลการรับประทานยาจริง
                             </span>
 
                             <strong class="analytics-status good">
-                                อยู่ในเกณฑ์ดี
+                                รอข้อมูล
                             </strong>
 
                         </div>
@@ -1083,7 +1140,7 @@
                         </span>
 
                         <strong>
-                            ≥ 90%
+                            —
                         </strong>
 
                     </div>
@@ -1097,7 +1154,7 @@
                         </span>
 
                         <strong>
-                            92.6%
+                            —
                         </strong>
 
                     </div>
@@ -1111,7 +1168,7 @@
                         </span>
 
                         <strong class="overall-good">
-                            ดีมาก
+                            รอข้อมูล
                         </strong>
 
                     </div>
@@ -1169,225 +1226,21 @@
 
                 <div class="activity-layout">
 
-                    <div class="activity-timeline">
-
-                        <article class="activity-item completed">
-
-                            <div class="activity-time">
-
-                                <strong>
-                                    08:30
-                                </strong>
-
-                                <span>
-                                    น.
-                                </span>
-
-                            </div>
-
-                            <div class="activity-marker">
-
-                                <span class="activity-dot">
-                                    🔔
-                                </span>
-
-                                <span class="activity-line"></span>
-
-                            </div>
-
-                            <div class="activity-content">
-
-                                <div class="activity-content-heading">
-
-                                    <strong>
-                                        แจ้งเตือนรับประทานยา
-                                    </strong>
-
-                                    <span class="activity-badge completed">
-                                        สำเร็จ
-                                    </span>
-
-                                </div>
-
-                                <p>
-                                    ระบบเล่นเสียงแจ้งเตือนยาหลังอาหารเช้า
-                                </p>
-
-                                <small>
-                                    DFPlayer Mini ทำงานตามเวลาที่กำหนด
-                                </small>
-
-                            </div>
-
-                        </article>
-
-
-                        <article class="activity-item completed">
-
-                            <div class="activity-time">
-
-                                <strong>
-                                    08:31
-                                </strong>
-
-                                <span>
-                                    น.
-                                </span>
-
-                            </div>
-
-                            <div class="activity-marker">
-
-                                <span class="activity-dot">
-                                    🔓
-                                </span>
-
-                                <span class="activity-line"></span>
-
-                            </div>
-
-                            <div class="activity-content">
-
-                                <div class="activity-content-heading">
-
-                                    <strong>
-                                        ปลดล็อกตู้ยา
-                                    </strong>
-
-                                    <span class="activity-badge completed">
-                                        สำเร็จ
-                                    </span>
-
-                                </div>
-
-                                <p>
-                                    รีเลย์สั่งเปิดกลอนตู้ยาเพื่อให้หยิบยา
-                                </p>
-
-                                <small>
-                                    กลอนเปิดเป็นเวลา 30 วินาที
-                                </small>
-
-                            </div>
-
-                        </article>
-
-
-                        <article class="activity-item completed">
-
-                            <div class="activity-time">
-
-                                <strong>
-                                    08:32
-                                </strong>
-
-                                <span>
-                                    น.
-                                </span>
-
-                            </div>
-
-                            <div class="activity-marker">
-
-                                <span class="activity-dot">
-                                    📷
-                                </span>
-
-                                <span class="activity-line"></span>
-
-                            </div>
-
-                            <div class="activity-content">
-
-                                <div class="activity-content-heading">
-
-                                    <strong>
-                                        บันทึกภาพหลักฐาน
-                                    </strong>
-
-                                    <span class="activity-badge completed">
-                                        บันทึกแล้ว
-                                    </span>
-
-                                </div>
-
-                                <p>
-                                    ESP32-CAM ถ่ายภาพขณะผู้ใช้งานหยิบยา
-                                </p>
-
-                                <small>
-                                    ไฟล์ภาพถูกบันทึกใน microSD
-                                </small>
-
-                            </div>
-
-                        </article>
-
-
-                        <article class="activity-item completed">
-
-                            <div class="activity-time">
-
-                                <strong>
-                                    08:33
-                                </strong>
-
-                                <span>
-                                    น.
-                                </span>
-
-                            </div>
-
-                            <div class="activity-marker">
-
-                                <span class="activity-dot">
-                                    ✓
-                                </span>
-
-                            </div>
-
-                            <div class="activity-content">
-
-                                <div class="activity-content-heading">
-
-                                    <strong>
-                                        ยืนยันรับประทานยาแล้ว
-                                    </strong>
-
-                                    <span class="activity-badge verified">
-                                        ยืนยันแล้ว
-                                    </span>
-
-                                </div>
-
-                                <p>
-                                    บันทึกการรับประทานยาเสร็จสมบูรณ์
-                                </p>
-
-                                <small>
-                                    ระบบล็อกตู้ยาอีกครั้งเพื่อป้องกันการรับประทานซ้ำ
-                                </small>
-
-                            </div>
-
-                        </article>
-
-                    </div>
-
+                    <div class="activity-timeline"><div class="empty-state">กำลังโหลดเหตุการณ์จาก Google Sheets...</div></div>
 
                     <aside class="activity-summary-card">
 
                         <span class="activity-summary-label">
-                            รอบยาล่าสุด
+                            เหตุการณ์ล่าสุด
                         </span>
 
                         <strong class="activity-summary-time">
-                            08:30 น.
+                            --:-- น.
                         </strong>
 
                         <div class="activity-summary-status">
                             <span class="summary-status-dot"></span>
-                            ดำเนินการครบทุกขั้นตอน
+                            กำลังโหลดบันทึก
                         </div>
 
                         <div class="activity-summary-progress">
@@ -1395,11 +1248,11 @@
                             <div class="summary-progress-row">
 
                                 <span>
-                                    ความสำเร็จ
+                                    เหตุการณ์วันนี้
                                 </span>
 
                                 <strong>
-                                    4/4
+                                    รอข้อมูล
                                 </strong>
 
                             </div>
@@ -1419,11 +1272,11 @@
                             </span>
 
                             <strong>
-                                12:30 น.
+                                —
                             </strong>
 
                             <small>
-                                ยาหลังอาหารกลางวัน
+                                ยังไม่มีข้อมูล
                             </small>
 
                         </div>
@@ -1628,6 +1481,7 @@
     <script src="https://cdn.jsdelivr.net/npm/mqtt@5.14.1/dist/mqtt.min.js"></script>
     <script src="mqtt-config.js"></script>
     <script src="script.js"></script>
+    <script src="dashboard-overview.js"></script>
     <script src="schedule-sync.js"></script>
     <script src="inventory.js"></script>
 
