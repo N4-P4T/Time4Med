@@ -41,9 +41,9 @@ globalThis.fetch=async function mockExternal(input,init={}){
    return Response.json({access_token:'MOCK-SHEETS-TOKEN',expires_in:3600});
  if(url.hostname==='sheets.googleapis.com'){
    const pathname=decodeURIComponent(url.pathname);
-   if(pathname.includes('Users!'))return Response.json({values:users});
-   if(pathname.includes('Patients!'))return Response.json({values:patientRows});
-   if(pathname.includes('MealMedicines!'))return Response.json({values:medicineRows});
+   if(pathname.includes('Users'))return Response.json({values:users});
+   if(pathname.includes('Patients'))return Response.json({values:patientRows});
+   if(pathname.includes('MealMedicines'))return Response.json({values:medicineRows});
    throw Error('Unexpected Sheets call: '+pathname);
  }
  throw Error('Unexpected external HTTP call: '+url.href);
