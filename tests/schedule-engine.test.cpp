@@ -24,6 +24,7 @@ int main(){
  std::strcpy(expected.slots[1].user,"U002");std::strcpy(expected.slots[1].time,"18:30");
  std::strcpy(expected.slots[1].meal,"AFTER_DINNER");
  auto hash=t4m::fingerprint(expected);
+ CHECK(hash=="9da28728af57c536");
  std::string begin=std::string("BEGIN|")+id+"|0000000000000000|"+rev+"|2|"+hash;
  CHECK(e.handle(begin,true,false,100)=="STAGED|request123|2");
  CHECK(e.handle("ENTRY|request123|0|U001|08:30|AFTER_BREAKFAST",false,false,101)=="NACK|UNAUTHENTICATED");
