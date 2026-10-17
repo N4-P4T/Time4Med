@@ -1,0 +1,33 @@
+name: Test Time4Med v0.20 Google Dashboard
+
+on:
+  pull_request:
+    paths:
+      - 'test-v020/**'
+      - 'tests/v020-browser.test.cjs'
+      - '.github/workflows/v020-check.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  staged-preview:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Check JS syntax
+        run: |
+          node --check test-v020/script.js
+          node --check test-v020/dashboard-overview.js
+          node --check tests/v020-browser.test.cjs
+      - name: Install Chromium on cloud runner
+        run: |
+          npm install --no-save playwright@1.56.1
+          npx playwright install --with-deps chromium
+      - name: Simulate Google login and test caregiver pages (no live cloud calls)
+        run: node tests/v020-browser.test.cjs
