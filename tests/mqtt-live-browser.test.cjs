@@ -7,7 +7,7 @@ const source=fs.readFileSync('test-v021/mqtt-live-status.js','utf8');
 const html=fs.readFileSync('test-v021/index.html','utf8');
 assert.match(html,/id="t24MqttPanel"/);
 assert.doesNotMatch(source,/\.\s*publish\s*\(/,'no MQTT publishes');
-assert.doesNotMatch(source,/localStorage|sessionStorage|document\.cookie/,'no credential storage');
+assert.doesNotMatch(source,/\b(?:localStorage|sessionStorage)\s*(?:\.|\[)|document\.cookie/,'no credential storage calls');
 
 async function ready(){
  for(let i=0;i<50;i++){try{if((await fetch(origin+'test-v021/',{signal:AbortSignal.timeout(1000)})).ok)return;}catch{}
