@@ -1,0 +1,30 @@
+name: Check Time4Med Dashboard
+
+on:
+  pull_request:
+    paths:
+      - 'index.html'
+      - 'script.js'
+      - 'style.css'
+      - 'dashboard-overview.js'
+      - 'tests/dashboard-overview.test.cjs'
+      - '.github/workflows/dashboard-check.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  dashboard:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check JavaScript syntax
+        run: |
+          node --check script.js
+          node --check dashboard-overview.js
+          node --check schedule-sync.js
+          node --check inventory.js
+      - name: Dashboard smoke tests
+        run: node tests/dashboard-overview.test.cjs

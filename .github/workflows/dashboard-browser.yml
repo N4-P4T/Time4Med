@@ -1,0 +1,31 @@
+name: Browser-test Time4Med Dashboard
+
+on:
+  pull_request:
+    paths:
+      - 'index.html'
+      - 'script.js'
+      - 'style.css'
+      - 'dashboard-overview.js'
+      - 'tests/dashboard.browser.cjs'
+      - '.github/workflows/dashboard-browser.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  browser:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install Playwright / Chromium on cloud runner
+        run: |
+          npm install --no-save playwright@1.56.1
+          npx playwright install --with-deps chromium
+      - name: Test desktop/mobile dashboard navigation offline
+        run: node tests/dashboard.browser.cjs

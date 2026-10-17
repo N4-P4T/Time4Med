@@ -637,6 +637,7 @@ function updateSummary() {
     waitingMedicineCount.textContent = String(medicines.filter(m=>m.kind==='prn').length);
     const times = medicines.filter(m=>m.kind!=='prn' && /^(?:[01]\d|2[0-3]):[0-5]\d$/.test(m.time)).map(m=>m.time).sort();
     latestAlert.textContent = times[0] || '-';
+    if (window.time4medRefreshHome) window.time4medRefreshHome();
 }
 
 let editingMedicineId = null;
@@ -1439,7 +1440,7 @@ function renderTimeline(events) {
 
             item.innerHTML = `
                 <div class="activity-time">
-                    <strong>${timeText}</strong>
+                    <strong>${escapeMedicineText(timeText)}</strong>
                     <span>น.</span>
                 </div>
 
@@ -1458,30 +1459,30 @@ function renderTimeline(events) {
                 <div class="activity-content">
                     <div class="activity-content-heading">
                         <strong>
-                            ${presentation.title}
+                            ${escapeMedicineText(presentation.title)}
                         </strong>
 
                         <span class="activity-badge ${presentation.cssClass}">
-                            ${presentation.badge}
+                            ${escapeMedicineText(presentation.badge)}
                         </span>
                     </div>
 
                     <p>
                         ${
-                            eventData.details ||
-                            "ไม่มีรายละเอียดเพิ่มเติม"
+                            escapeMedicineText(eventData.details ||
+                            "ไม่มีรายละเอียดเพิ่มเติม")
                         }
                     </p>
 
                     <small>
                         ${
-                            eventData.device_id ||
-                            "Time4Med"
+                            escapeMedicineText(eventData.device_id ||
+                            "Time4Med")
                         }
                         ${
                             eventData.user_id
                                 ? " • " +
-                                  eventData.user_id
+                                  escapeMedicineText(eventData.user_id)
                                 : ""
                         }
                     </small>
@@ -1674,6 +1675,7 @@ async function loadTimeline() {
         renderTimeline(
             events
         );
+        if (window.time4medHomeTimelineUpdated) window.time4medHomeTimelineUpdated(events, true);
 
         if (
             timelineFilterButton
@@ -1690,9 +1692,11 @@ async function loadTimeline() {
             error
         );
 
-        renderTimeline(
-            []
-        );
+        renderTimeline([]);
+        if (activityTimeline) {
+            activityTimeline.textContent = "ไม่สามารถอ่านเหตุการณ์จาก Google Sheets ได้ กรุณาลองใหม่";
+        }
+        if (window.time4medHomeTimelineUpdated) window.time4medHomeTimelineUpdated([], false);
 
         if (
             timelineFilterButton
@@ -1728,8 +1732,8 @@ if (
 // ==========================================
 (function setupSidebarPageNavigation() {
     const sidebarLinks = document.querySelectorAll('.sidebar-link[href^="#"]');
+    const dashboardOverview = document.getElementById('home-overview');
     const summarySection = document.querySelector('.summary-grid');
-
     const sections = {
         devices: document.getElementById('devices'),
         medication: document.getElementById('medication'),
@@ -1740,90 +1744,48 @@ if (
         gallery: document.getElementById('gallery')
     };
 
-    function setActiveLink(viewName) {
-        sidebarLinks.forEach(function (link) {
-            const isActive = link.getAttribute('href') === '#' + viewName;
-            link.classList.toggle('active', isActive);
+    function showView(viewName, updateUrl) {
+        const targetView = viewName === 'dashboard' || sections[viewName] ? viewName : 'dashboard';
+        const isDashboard = targetView === 'dashboard';
 
-            if (isActive) {
-                link.setAttribute('aria-current', 'page');
-            } else {
-                link.removeAttribute('aria-current');
-            }
-        });
-    }
-
-    function showDashboard() {
-        if (summarySection) {
-            summarySection.hidden = false;
-        }
-
-        Object.values(sections).forEach(function (section) {
-            if (section) {
-                section.hidden = false;
-            }
-        });
-
-        setActiveLink('dashboard');
-    }
-
-    function showSingleSection(viewName) {
-        const selectedSection = sections[viewName];
-
-        if (!selectedSection) {
-            showDashboard();
-            return;
-        }
-
-        if (summarySection) {
-            summarySection.hidden = true;
-        }
+        if (dashboardOverview) dashboardOverview.hidden = !isDashboard;
+        if (summarySection) summarySection.hidden = !isDashboard;
 
         Object.entries(sections).forEach(function ([name, section]) {
-            if (section) {
-                section.hidden = name !== viewName;
-            }
+            if (section) section.hidden = isDashboard || name !== targetView;
         });
 
-        setActiveLink(viewName);
-    }
+        sidebarLinks.forEach(function (link) {
+            const active = link.getAttribute('href') === '#' + targetView;
+            link.classList.toggle('active', active);
+            if (active) link.setAttribute('aria-current', 'page');
+            else link.removeAttribute('aria-current');
+        });
 
-    function openView(viewName, updateUrl) {
-        if (viewName === 'dashboard') {
-            showDashboard();
-        } else {
-            showSingleSection(viewName);
-        }
-
-        if (viewName === 'gallery') {
+        // Pages are independent: dashboard is no longer the full devices view.
+        if (targetView === 'dashboard') {
+            if (window.time4medRefreshHome) window.time4medRefreshHome();
+            loadTimeline();
+        } else if (targetView === 'activity') {
+            loadTimeline();
+        } else if (targetView === 'gallery') {
             loadGallery();
         }
 
-        if (viewName === 'activity') {
-            loadTimeline();
-        }
-
-        if (updateUrl) {
-            history.replaceState(null, '', '#' + viewName);
-        }
-
-        window.scrollTo({ top: 0, behavior: 'smooth' });
+        if (updateUrl) history.replaceState(null, '', '#' + targetView);
+        window.scrollTo({top: 0, behavior: 'smooth'});
     }
 
     sidebarLinks.forEach(function (link) {
         link.addEventListener('click', function (event) {
             event.preventDefault();
-            const viewName = link.getAttribute('href').slice(1) || 'dashboard';
-            openView(viewName, true);
+            showView(link.getAttribute('href').slice(1), true);
         });
     });
-
-    const initialView = window.location.hash.slice(1) || 'dashboard';
-    openView(initialView, false);
-
-    if (initialView === 'dashboard') {
-        loadTimeline();
-    }
+    window.addEventListener('hashchange', function () {
+        showView(window.location.hash.slice(1) || 'dashboard', false);
+    });
+    showView(window.location.hash.slice(1) || 'dashboard', false);
 })();
 
 function escapeMedicineText(value) {
