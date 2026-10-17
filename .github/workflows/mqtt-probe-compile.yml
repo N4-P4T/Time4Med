@@ -1,0 +1,33 @@
+name: Build ESP32-S3 MQTT Probe
+
+on:
+  pull_request:
+    paths:
+      - 'firmware/Time4Med_MqttProbe/**'
+      - '.github/workflows/mqtt-probe-compile.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+      - uses: arduino/setup-arduino-cli@v2
+      - name: Install ESP32 board platform
+        run: |
+          arduino-cli core update-index --additional-urls https://espressif.github.io/arduino-esp32/package_esp32_index.json
+          arduino-cli core install esp32:esp32 --additional-urls https://espressif.github.io/arduino-esp32/package_esp32_index.json
+      - name: Install the MQTT Arduino library
+        run: arduino-cli lib install "MQTT"
+      - name: Use sample credentials for compilation only
+        run: cp firmware/Time4Med_MqttProbe/secrets.example.h firmware/Time4Med_MqttProbe/secrets.h
+      - name: Compile for ESP32-S3
+        run: |
+          arduino-cli compile \
+            --fqbn esp32:esp32:esp32s3 \
+            --additional-urls https://espressif.github.io/arduino-esp32/package_esp32_index.json \
+            firmware/Time4Med_MqttProbe
