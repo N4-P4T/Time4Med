@@ -142,7 +142,7 @@ class Sender {
     if(mac.length()!=64)return false;
 
     WiFiClientSecure tls;
-    tls.setCACert(rootCa_); // Mandatory certificate verification, never setInsecure().
+    tls.setCACert(rootCa_); // Mandatory verified TLS, never disable certificate checks.
     HTTPClient http;
     http.setConnectTimeout(1500);
     http.setTimeout(2500);
