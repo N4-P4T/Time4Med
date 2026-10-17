@@ -142,7 +142,10 @@ async function handle(request,env,url,user){
       values(env,'MealMedicines','A2:P1000')
     ]);
     const patients=mapPatients(patientRows);
-    const medicines=medicineRows.map((r,i)=>mapMedicine(r,i+1)).filter(m=>m.id&&m.active);
+    const medicines=medicineRows
+      .filter(r=>r.some(cell=>text(cell))) // exclude only truly empty rows
+      .map((r,i)=>mapMedicine(r,i+1))
+      .filter(m=>m.active); // planner detects missing/duplicate medication IDs
     return {preview:await preparePreview({user,patients,medicines,cabinetId:CABINET_ID})};
   }
   if(pathname==='/api/cabinets/'+CABINET_ID+'/schedule/commit'&&method==='POST'){
