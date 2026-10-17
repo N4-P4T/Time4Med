@@ -15,7 +15,7 @@
 
 - firmware/schedule_v2/Time4MedScheduleEngine.h เป็น C++17 transaction engine ที่ไม่มี GPIO, Wi-Fi หรือ MQTT
 - firmware/schedule_v2/ScheduleNvsStorage.h เป็นตัวอย่างอะแดปเตอร์ Preferences ใช้ namespace ใหม่ t4m-sched-v2 เพื่อไม่ทับ time4med-sch เดิม
-- firmware/schedule_v2/Time4MedSchedule_Probe.ino เป็นสเก็ตช์แบบอ่านอย่างเดียวสำหรับคอมไพล์บน ESP32-S3 ไม่ใช่โปรแกรมควบคุมตู้ยา
+- firmware/Time4MedSchedule_Probe/Time4MedSchedule_Probe.ino เป็นสเก็ตช์แบบอ่านอย่างเดียวสำหรับคอมไพล์บน ESP32-S3 ไม่ใช่โปรแกรมควบคุมตู้ยา
 - โปรโตคอล V2: INFO|requestId / BEGIN|requestId|baseRevision16|nextRevision16|count|fnv64 / ENTRY|requestId|index|U001|08:30|AFTER_BREAKFAST / COMMIT|requestId / ABORT|requestId
 - COMMIT ใช้ Snapshot ที่รับครบทุกช่อง ตรวจลำดับและ digest แล้วบันทึก Flash ครั้งเดียวพร้อม readback จึงตอบ APPLIED; ถ้าไม่ผ่านตอบ NACK โดยไม่รายงานว่าเสร็จ
 - ปฏิเสธคำสั่ง retained, payload ยาวเกิน, count เกิน 18, timestamp หมดอายุ, revision ขัดแย้ง, slot/meal/time ผิด และคำสั่งที่ไม่ผ่านการตรวจ auth flag
