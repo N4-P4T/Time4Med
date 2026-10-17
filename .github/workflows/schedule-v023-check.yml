@@ -7,6 +7,7 @@ on:
       - 'firmware/schedule_v2/**'
       - 'tests/schedule-gateway.test.mjs'
       - 'tests/worker-schedule-auth.test.mjs'
+      - 'tests/schedule-wire.test.mjs'
       - 'tests/schedule-engine.test.cpp'
       - '.github/workflows/schedule-v023-check.yml'
   workflow_dispatch:
@@ -32,6 +33,8 @@ jobs:
         run: node tests/schedule-gateway.test.mjs
       - name: Test full Worker with signed test-only Google JWT + mocked Sheets
         run: node tests/worker-schedule-auth.test.mjs
+      - name: Test HMAC device/topic/replay-sequence wire envelope
+        run: node tests/schedule-wire.test.mjs
       - name: Compile and test C++17 ESP32 schedule engine (host simulation)
         run: |
           g++ -std=c++17 -Wall -Wextra -Werror tests/schedule-engine.test.cpp -o /tmp/t4m-schedule-engine
