@@ -1,0 +1,34 @@
+name: Check Time4Med read-only live MQTT monitor
+
+on:
+  pull_request:
+    paths:
+      - 'test-v021/**'
+      - 'tests/mqtt-live-browser.test.cjs'
+      - '.github/workflows/mqtt-live-check.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  browser:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Syntax check
+        run: |
+          node --check test-v021/mqtt-live-status.js
+          node --check tests/mqtt-live-browser.test.cjs
+      - name: Install Chromium in cloud
+        run: |
+          npm install --no-save playwright@1.56.1
+          npx playwright install --with-deps chromium
+      - name: Verify Google-gated read-only live MQTT monitor
+        run: node tests/mqtt-live-browser.test.cjs
+      - name: Regression test existing Dashboard and medication menus
+        run: node tests/v021-browser.test.cjs
