@@ -45,6 +45,8 @@ jobs:
         run: |
           cp firmware/schedule_v2/Time4MedScheduleEngine.h firmware/Time4MedSchedule_Probe/
           cp firmware/schedule_v2/ScheduleNvsStorage.h firmware/Time4MedSchedule_Probe/
+          cp firmware/schedule_v2/ScheduleMqttAuth.h firmware/Time4MedSchedule_Probe/
+          cp firmware/schedule_v2/NvsReplayCounter.h firmware/Time4MedSchedule_Probe/
       - name: Compile for ESP32-S3 (no flashing, no credentials)
         run: |
           arduino-cli compile --fqbn esp32:esp32:esp32s3 firmware/Time4MedSchedule_Probe
