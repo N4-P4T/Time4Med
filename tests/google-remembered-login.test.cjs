@@ -58,7 +58,9 @@ async function runScenario(browser,scenario){
    return route.abort();
  });
  await page.goto(origin+'test-v021/',{waitUntil:'domcontentloaded'});
- await page.locator('#testGoogleButton').waitFor({state:'visible'});
+ await page.locator('#testGoogleButton').waitFor({state:'attached'});
+ // A successful auto-login intentionally hides the Google form instantly.
+ // Do not require the fallback button to remain visible after auto-login.
  assert.equal(await page.evaluate(()=>window.__gis.auto),true,'Google auto-select must be enabled');
  assert.ok(await page.evaluate(()=>window.__gis.prompts)>=1,'Google prompt attempted once');
  if(scenario==='manual'){
