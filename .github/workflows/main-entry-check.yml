@@ -28,4 +28,4 @@ jobs:
       - name: Check entry redirect + Google auth gate + no published credentials
         run: |
           node tests/main-entry.test.cjs
-          node tests/v020-browser.test.cjs
+          node tests/v021-browser.test.cjs

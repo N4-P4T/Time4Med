@@ -6,10 +6,10 @@ const {chromium} = require('playwright');
 const root = 'http://127.0.0.1:8899/';
 const html = fs.readFileSync('index.html','utf8');
 const cfg = fs.readFileSync('mqtt-config.js','utf8');
-const v020 = fs.readFileSync('test-v020/index.html','utf8');
+const v020 = fs.readFileSync('test-v021/index.html','utf8');
 const authCfg = fs.readFileSync('test-v019/auth-config.js','utf8');
 
-assert.match(html, /test-v020\//,'root must point to the new caregiver page');
+assert.match(html, /test-v021\//,'root must point to the new caregiver page');
 assert.doesNotMatch(html, /<script src="(?:mqtt-config|script)\.js"/,
   'root should not run the legacy MQTT/lock code');
 assert.doesNotMatch(cfg, /\bpassword\s*:/i,'no MQTT password in public config');
@@ -51,14 +51,14 @@ async function run() {
         return route.abort();
       });
       await page.goto(root+hash,{waitUntil:'domcontentloaded'});
-      await page.waitForURL(url=>url.pathname.endsWith('/test-v020/') && url.hash===hash);
+      await page.waitForURL(url=>url.pathname.endsWith('/test-v021/') && url.hash===hash);
       await page.locator('#t4mAuthScreen').waitFor({state:'visible'});
       assert.equal(await page.locator('#home-overview').isVisible(),false,
         'dashboard must stay behind Google Login');
       assert.equal(await page.locator('#unlockBtn').isVisible(),false,
         'lock controls must not be visible to anonymous user');
       assert.deepEqual(errors,[],'no JS errors during root redirect');
-      console.log('PASS: root'+hash+' redirects to auth-protected v0.20'+hash);
+      console.log('PASS: root'+hash+' redirects to auth-protected v0.21'+hash);
       await ctx.close();
     }
   } finally {
