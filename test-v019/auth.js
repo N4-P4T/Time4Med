@@ -55,9 +55,14 @@
   function renderSignIn(){
     if(!configured()){status('ต้องตั้งค่า apiBase ของ backend ใน auth-config.js ก่อนจึงจะเข้าสู่ระบบได้',true);return true;}
     if(!window.google?.accounts?.id)return false;
-    google.accounts.id.initialize({client_id:cfg.clientId,callback:credentialReceived,auto_select:false,ux_mode:'popup',cancel_on_tap_outside:true});
+    google.accounts.id.initialize({client_id:cfg.clientId,callback:credentialReceived,auto_select:true,ux_mode:'popup',cancel_on_tap_outside:true});
     google.accounts.id.renderButton(ui('t4mGoogleButton'),{theme:'outline',size:'large',text:'signin_with',shape:'rectangular',locale:'th',width:280});
-    status('โปรดเลือกบัญชี Google ที่เพิ่มไว้ใน Users ของ Time4Med');
+    status('กำลังตรวจสอบบัญชี Google ที่เคยใช้งาน หรือเลือกบัญชีเพื่อเข้าสู่ระบบ');
+    // Google/FedCM can reuse a previously approved account where the
+    // browser allows it. Keep the manual Google button as fallback.
+    if(typeof google.accounts.id.prompt==='function'){
+      try{google.accounts.id.prompt();}catch(_){}
+    }
     return true;
   }
   ui('t4mSignOut').addEventListener('click',()=>signOut());
