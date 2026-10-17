@@ -6,7 +6,7 @@
   'use strict';
   const cfg=window.TIME4MED_AUTH_CONFIG||{};
   const ui=(id)=>document.getElementById(id);
-  let token=''; let user=null;
+  let token=''; let user=null; let authGeneration=0;
   const roleLabel=role=>role==='ADMIN'?'แอดมิน':(role==='CAREGIVER'||role==='USER')?'ผู้ดูแล':String(role||'ผู้ใช้งาน');
   function renderProfile(){
     document.querySelectorAll('.t4m-profile-role').forEach(el=>{el.textContent=user?roleLabel(user.role):'ผู้ใช้งาน';});
@@ -28,6 +28,7 @@
     return data;
   }
   function signOut(message='ออกจากระบบแล้ว'){
+    authGeneration++;
     token='';user=null;renderProfile();
     if(window.google?.accounts?.id?.disableAutoSelect)google.accounts.id.disableAutoSelect();
     if(typeof medicines!=='undefined'){medicines=[];if(typeof renderMedicines==='function')renderMedicines();}
@@ -39,9 +40,12 @@
   }
   async function credentialReceived(response){
     if(!response?.credential)return status('Google ไม่ส่ง ID token กรุณาลองใหม่',true);
+    const generation=++authGeneration;
     token=response.credential;status('กำลังตรวจสอบบัญชีในฐานข้อมูล Time4Med…');
     try{
       const me=await api('/api/me');
+      if(generation!==authGeneration)return; // Sign-out or another login happened while waiting
+      if(!me?.user || !['ADMIN','CAREGIVER'].includes(me.user.role))throw Error('บัญชีนี้ยังไม่ได้รับสิทธิ์ใช้งาน');
       user=me.user;
       ui('t4mSignedInUser').textContent=user.name+' · '+roleLabel(user.role);
       renderProfile();
@@ -50,14 +54,25 @@
       ui('t4mAdminSection').hidden=user.role!=='ADMIN';
       window.dispatchEvent(new CustomEvent('time4med-auth-changed',{detail:{user}}));
       status('เข้าสู่ระบบสำเร็จ');
-    }catch(err){token='';user=null;status('เข้าใช้งานไม่ได้: '+err.message,true);}
+    }catch(err){
+      if(generation!==authGeneration)return;
+      token='';user=null;renderProfile();
+      document.body.classList.add('t4m-auth-locked');
+      status('เข้าใช้งานไม่ได้: '+err.message,true);
+    }
   }
   function renderSignIn(){
     if(!configured()){status('ต้องตั้งค่า apiBase ของ backend ใน auth-config.js ก่อนจึงจะเข้าสู่ระบบได้',true);return true;}
     if(!window.google?.accounts?.id)return false;
-    google.accounts.id.initialize({client_id:cfg.clientId,callback:credentialReceived,auto_select:false,ux_mode:'popup',cancel_on_tap_outside:true});
+    google.accounts.id.initialize({client_id:cfg.clientId,callback:credentialReceived,auto_select:true,ux_mode:'popup',cancel_on_tap_outside:true});
     google.accounts.id.renderButton(ui('t4mGoogleButton'),{theme:'outline',size:'large',text:'signin_with',shape:'rectangular',locale:'th',width:280});
-    status('โปรดเลือกบัญชี Google ที่เพิ่มไว้ใน Users ของ Time4Med');
+    status('กำลังตรวจสอบบัญชี Google ที่เคยใช้ หรือเลือกบัญชีเพื่อเข้าสู่ระบบ');
+    // Google may automatically return credentials for a previously approved
+    // account when browser/FedCM settings allow. Never cache tokens locally.
+    // The manual Google sign-in button remains visible as fallback.
+    if(typeof google.accounts.id.prompt==='function'){
+      try{google.accounts.id.prompt();}catch(_){}
+    }
     return true;
   }
   ui('t4mSignOut').addEventListener('click',()=>signOut());
