@@ -14,7 +14,7 @@
  */
 const PATH='/api/device/telemetry',STORAGE_KEY='telemetry:cabinet-01',FRESH_MS=150000;
 const DEVICE='ESP32S3-01';
-const telemetryFail=(status,code)=>{const e=new Error(code);e.status=status;throw e;};
+const telemetryFail=(status,code)=>{throw Object.assign(new Error(code),{status});};
 const utf8=new TextEncoder();
 const hexBytes=hex=>Uint8Array.from(hex.match(/../g)||[],x=>parseInt(x,16));
 async function authenticatedDevice(request,env,payload) {
@@ -96,7 +96,7 @@ const now = () => new Date().toISOString();
 const text = x => String(x ?? '').trim();
 const normEmail = x => text(x).toLowerCase();
 const json = (obj,status=200,origin='') => new Response(JSON.stringify(obj),{status,headers:{'Content-Type':'application/json; charset=utf-8','Cache-Control':'no-store','X-Content-Type-Options':'nosniff',...(origin?{'Access-Control-Allow-Origin':origin,'Vary':'Origin'}:{})}});
-function fail(status,message){const e=new Error(message);e.status=status;throw e;}
+function fail(status,message){throw Object.assign(new Error(message),{status});}
 function allowedOrigin(request, env) {
   const origin = request.headers.get('Origin') || '';
   const permitted = text(env.ALLOWED_ORIGIN).replace(/\/$/,'');
@@ -161,7 +161,7 @@ const row=values=>({values:values.map(cell)});
 async function batch(env,requests){return sheets(env,'POST',':batchUpdate',{requests});}
 async function appendMany(env,tabs){const requests=[];for(const [tab,arr] of tabs){requests.push({appendCells:{sheetId:await idFor(env,tab),rows:[row(arr)],fields:'userEnteredValue'}});}return batch(env,requests);}
 async function updateWithAudit(env,tab,index,values,audit){
-  const requests=[{updateCells:{start:{sheetId:await idFor(env,tab),rowIndex:index,columnIndex:0},rows:[row(values)],fields:'userEnteredValue'}}];
+  const requests=/** @type {any[]} */ ([{updateCells:{start:{sheetId:await idFor(env,tab),rowIndex:index,columnIndex:0},rows:[row(values)],fields:'userEnteredValue'}}]);
   if(audit)requests.push({appendCells:{sheetId:await idFor(env,audit.tab),rows:[row(audit.values)],fields:'userEnteredValue'}});
   return batch(env,requests);
 }
@@ -198,7 +198,7 @@ function parseMedicine(input,patients,user){
   if(!patientId||!patients.some(p=>p.id===patientId&&p.status.toUpperCase()==='ACTIVE'))fail(400,'กรุณาเลือกผู้ป่วยที่มีอยู่ในฐานข้อมูล');
   if(!canPatient(user,patientId))fail(403,'ไม่มีสิทธิ์จัดการผู้ป่วยรายนี้');
   const kind=input.kind==='prn'?'prn':'scheduled',mealType=kind==='prn'?'prn':Number(input.mealType);
-  if(kind==='scheduled'&&![1,2,3,4,5,6,7].includes(mealType))fail(400,'กรุณาเลือกมื้อยา');
+  if(kind==='scheduled'&&![1,2,3,4,5,6,7].includes(Number(mealType)))fail(400,'กรุณาเลือกมื้อยา');
   const time=kind==='prn'?'':safeString(input.time,5);
   if(kind==='scheduled'&&!/^(?:[01]\d|2[0-3]):[0-5]\d$/.test(time))fail(400,'เวลาแจ้งเตือนไม่ถูกต้อง');
   const name=safeString(input.name,150),boxNumber=safeString(input.boxNumber,12).toUpperCase(),instruction=safeString(input.instruction,300);
