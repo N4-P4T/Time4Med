@@ -1,0 +1,78 @@
+name: Compile Time4Med Real Cabinet + HTTPS Stage4 (no secrets)
+
+on:
+  pull_request:
+    paths:
+      - 'firmware/Time4Med_Cabinet_Stage4/**'
+      - 'tests/firmware-cabinet-stage4-static.test.mjs'
+      - '.github/workflows/cabinet-stage4-compile.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  compile-cabinet:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Static safety assertions
+        run: |
+          node tests/firmware-cabinet-stage4-static.test.mjs
+      - name: Package staging firmware sources (NO user secrets)
+        uses: actions/upload-artifact@v4
+        with:
+          name: Time4Med-Cabinet-Stage4-Sources
+          path: |
+            firmware/Time4Med_Cabinet_Stage4/Time4Med_Cabinet_Stage4.ino
+            firmware/Time4Med_Cabinet_Stage4/Time4MedStatusSender.h
+            firmware/Time4Med_Cabinet_Stage4/telemetry_config.h
+            firmware/Time4Med_Cabinet_Stage4/telemetry_private.h.example
+            firmware/Time4Med_Cabinet_Stage4/README_TH.md
+          if-no-files-found: error
+          retention-days: 14
+      - uses: arduino/setup-arduino-cli@v2
+      - name: Install Arduino ESP32 core
+        run: |
+          arduino-cli core update-index --additional-urls https://espressif.github.io/arduino-esp32/package_esp32_index.json
+          arduino-cli core install esp32:esp32 --additional-urls https://espressif.github.io/arduino-esp32/package_esp32_index.json
+      - name: Install original firmware libraries
+        run: |
+          arduino-cli lib install "MQTT"
+          arduino-cli lib install "RTClib"
+          arduino-cli lib install "U8g2"
+          arduino-cli lib install "DFRobotDFPlayerMini"
+      - name: Build-only mock of private local headers
+        run: |
+          cd firmware/Time4Med_Cabinet_Stage4
+          cat > secrets.h <<'EOF'
+          #pragma once
+          const char MQTT_HOST[] = "";
+          const int MQTT_PORT = 8883;
+          const char MQTT_USERNAME[] = "";
+          const char MQTT_PASSWORD[] = "";
+          const char TIME4MED_CLOUD_API_URL[] = "";
+          EOF
+          cat > mqtt_certs.h <<'EOF'
+          #pragma once
+          const char HIVEMQ_ROOT_CA_BUNDLE[] = "";
+          EOF
+          cat > google_certs.h <<'EOF'
+          #pragma once
+          const char GOOGLE_ROOT_CA_BUNDLE[] = "";
+          EOF
+          cat > network_config.h <<'EOF'
+          #pragma once
+          class Time4MedNetworkConfig {
+          public:
+            bool begin(unsigned long timeoutMs) {(void)timeoutMs; return false;}
+            void loop() {}
+          };
+          EOF
+      - name: Compile full cabinet firmware for ESP32-S3 (no upload)
+        run: |
+          arduino-cli compile --fqbn esp32:esp32:esp32s3 firmware/Time4Med_Cabinet_Stage4
