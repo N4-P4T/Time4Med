@@ -10,6 +10,9 @@
 - ส่งเมื่อสถานะเปลี่ยน (คั่นอย่างน้อย 2 วินาที) หรือทุก 60 วินาที
 - คง GPIO, DFPlayer, RTC, OLED, ESP32-CAM, MQTT, การล็อก/ปลดล็อก และตารางยาเดิมไว้ **ไม่แก้ flow**
 - ปิด HTTPS telemetry เป็นค่าปริยาย (ไม่มี Key หรือ verified Root CA ก็ไม่สร้าง task และไม่ส่งออก)
+- ปฏิเสธการส่งไปโดเมนอื่น: อนุญาตเฉพาะ `time4med-api-staging.napat-kaewboonpan.workers.dev/api/device/telemetry`
+- ไม่เข้าคิวส่ง HTTPS ใหม่ขณะระบบเตือนยา/หยิบยา/กลอนรอปิด/ฉุกเฉิน/DFPlayer กำลังเล่นเสียง โดยระบบผู้ดูแลอาจเห็นข้อมูลเก่าระหว่างช่วงดังกล่าว
+- **การส่งที่เริ่มก่อนเหตุฉุกเฉินอาจยังทำงานอยู่ใน Background** จึงต้องทดสอบการแย่งทรัพยากรจริงก่อนอนุญาตให้นำไปใช้กับผู้สูงอายุ
 
 ## ข้อสำคัญก่อนคอมไพล์/อัปโหลด
 
@@ -32,13 +35,13 @@
 - ติดตาม Serial `[T4M HTTPS] DISABLED` ก่อนเปิดส่ง
 - ทดสอบการกด Confirm, Emergency, Reed, ปิดประตูให้สนิท, แจ้งเสียง, NVS schedules เหมือนเดิม
 - หลังการตรวจ CA ของ Worker และเพิ่ม key เฉพาะ Staging เท่านั้น ดู Serial `[T4M HTTPS] STATUS_OK` และตรวจ Google Login หน้า Staging แสดง LIVE; ปิด Wi-Fi แล้วรอเกิน 150 วินาทีเพื่อให้แสดง STALE
-- ความสามารถ Remote Lock ผ่าน MQTT ในของเก่า **ยังอยู่** แต่ไม่ได้ถูกนำเข้าสู่หน้า Staging (หน้านั้น read-only).
+- ความสามารถ Remote Lock ผ่าน MQTT ในของเก่า **ยังอยู่** แต่ไม่ได้ถูกนำเข้าสู่หน้า Staging (หน้านั้น read-only).\n- โค้ดเดิมยังมี HTTP ส่ง ActivityLog แบบ blocking สูงสุดหลายวินาที และฟังก์ชันอื่นที่ต้องทดสอบ latency จริง; Stage4 ไม่ได้แก้ข้อจำกัดจากโค้ดเดิมส่วนนี้
 - ก่อนเชื่อมบริการหลักต้องทำ security review และทดสอบ RTC/Lock/Reminder จริงอีกครั้ง
 
 ## สถานะการพิสูจน์
 
 - ฝั่ง Server: ทดสอบ PowerShell HMAC→Worker Staging→KV HTTP 200/401/TTL แล้ว
-- ฝั่ง Firmware: โค้ด Stage4 ได้เชื่อมจริงในระดับ source แต่ **ยังไม่ได้แฟลชบนตู้จริง** และยังไม่ได้ตรวจ TLS chain บน workers.dev จากบอร์ด
+- ฝั่ง Firmware: โค้ด Stage4 ได้เชื่อมจริงในระดับ source และ **คอมไพล์ได้ใน GitHub Actions ด้วย stub/mock private headers** แต่ **ยังไม่ได้แฟลชบนตู้จริง** ยังไม่ได้ตรวจ TLS chain บน workers.dev จากบอร์ด และยังไม่รับประกันว่า header ไฟล์ลับของผู้ใช้จะคอมไพล์ตรงกับ mock
 - โฟลเดอร์นี้เป็น candidate สำหรับการคอมไพล์ / bench test ไม่ใช่ firmware พร้อมใช้งานกับผู้ป่วย
 - ESP32-S3 ล่าสุดบนโต๊ะยังเป็น `Network Probe v0.3` ไม่ใช่โค้ดนี้
 
