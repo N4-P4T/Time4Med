@@ -5,6 +5,8 @@ on:
     paths:
       - 'staging-google-login/**'
       - 'tests/staging-google-login.test.mjs'
+      - 'tests/staging-schedule-preview.test.mjs'
+      - 'test-v021/schedule-contract.js'
       - '.github/workflows/staging-google-login-check.yml'
   workflow_dispatch:
 
@@ -24,4 +26,7 @@ jobs:
         run: |
           node --check staging-google-login/status.js
           node --check tests/staging-google-login.test.mjs
+          node --check staging-google-login/schedule-preview.js
+          node --check tests/staging-schedule-preview.test.mjs
           node tests/staging-google-login.test.mjs
+          node tests/staging-schedule-preview.test.mjs
