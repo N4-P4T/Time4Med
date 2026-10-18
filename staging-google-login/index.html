@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="referrer" content="strict-origin-when-cross-origin">
+  <title>Time4Med | Google Login · STAGING</title>
+  <style>
+    :root{color-scheme:light;--ink:#173353;--blue:#175bad;--muted:#52657b;--line:#d7e2ef;--paper:#fff;--bg:#eff4fa;}
+    *{box-sizing:border-box}
+    body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.6 system-ui,"Segoe UI",Tahoma,sans-serif}
+    header{background:#fff;border-bottom:1px solid var(--line)}
+    .wrap{width:min(860px,calc(100% - 32px));margin:0 auto}
+    header .wrap{min-height:74px;display:flex;align-items:center;justify-content:space-between;gap:16px}
+    h1{font-size:1.6rem;line-height:1.3;margin:0 0 10px}
+    h2{font-size:1.1rem;margin:0 0 10px}
+    p{margin:6px 0 12px}
+    small,.muted{color:var(--muted)}
+    .brand{font-weight:800;font-size:1.15rem}
+    .env{display:inline-block;padding:2px 9px;border:1px solid #ca9c39;background:#fff4db;border-radius:6px;font-size:.8rem;letter-spacing:.05em;margin-left:8px}
+    .card{background:var(--paper);border:1px solid var(--line);border-radius:16px;padding:24px;margin:20px auto;box-shadow:0 8px 24px #1936520a}
+    .t4m-auth-screen{display:none;min-height:calc(100vh - 75px);align-items:center}
+    .t4m-auth-locked .t4m-auth-screen{display:flex}
+    .t4m-auth-locked #stagingApp,.t4m-auth-locked #t4mUserbar{display:none!important}
+    .t4m-auth-card{max-width:520px;margin:30px auto;text-align:center}
+    .t4m-google-button{display:flex;justify-content:center;min-height:44px;padding:12px 0}
+    #t4mAuthMessage[data-bad="true"]{color:#a30b24;font-weight:700}
+    button{font:inherit;cursor:pointer;background:#fff;border:1px solid #abc1da;border-radius:8px;color:var(--blue);padding:8px 14px}
+    button:hover{background:#eff7ff}
+    button:disabled{cursor:wait;opacity:.6}
+    .status{font-weight:700;font-size:1.15rem}
+    .status[data-state="LIVE"]{color:#137b43}
+    .status[data-state="STALE"],.status[data-state="UNAVAILABLE"]{color:#a04404}
+    .grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin:16px 0}
+    .metric{border:1px solid var(--line);border-radius:10px;padding:12px}
+    .metric strong{display:block;font-size:1.1rem;overflow-wrap:anywhere}
+    .tag{font-size:.8rem;color:var(--muted);display:block}
+    .buttons{display:flex;gap:12px;flex-wrap:wrap;align-items:center}
+    #t4mUserbar[hidden],#t4mAdminSection[hidden],#t25DevicePanel[hidden]{display:none!important}
+    .notice{border-left:4px solid #b68a39;padding:10px 14px;background:#fffaf0;border-radius:4px}
+    @media(max-width:570px){.grid{grid-template-columns:1fr}.card{padding:18px}header .wrap{flex-wrap:wrap;padding:10px 0}}
+  </style>
+</head>
+<body class="t4m-auth-locked">
+  <header>
+    <div class="wrap">
+      <div class="brand">Time4Med <span class="env">STAGING</span></div>
+      <div id="t4mUserbar" hidden>
+        <span id="t4mSignedInUser"></span>
+        <button type="button" id="t4mSignOut">ออกจากระบบ</button>
+      </div>
+    </div>
+  </header>
+
+  <section class="t4m-auth-screen" id="t4mAuthScreen" aria-label="เข้าสู่ระบบทดสอบ">
+    <div class="wrap">
+      <div class="card t4m-auth-card">
+        <h1>ทดสอบเข้าสู่ระบบด้วย Google</h1>
+        <p>สำหรับ ADMIN / CAREGIVER ที่ได้รับอนุญาตใน <strong>Time4Med-Staging</strong> เท่านั้น</p>
+        <div id="t4mGoogleButton" class="t4m-google-button"></div>
+        <p id="t4mAuthMessage" role="status" aria-live="polite">กำลังโหลด Google Sign-In…</p>
+        <p class="muted">ระบบจะตรวจสิทธิ์ผ่าน Cloudflare Staging และ Google Sheets ทดสอบ</p>
+      </div>
+    </div>
+  </section>
+
+  <main id="stagingApp" class="wrap">
+    <div class="card">
+      <h1>ศูนย์ทดสอบ Google Login</h1>
+      <p>บัญชี: <strong class="t4m-profile-name">กำลังตรวจสอบ…</strong> · บทบาท: <strong class="t4m-profile-role">—</strong></p>
+      <p class="notice">หน้านี้เป็นระบบทดสอบแบบอ่านข้อมูลเท่านั้น ไม่สั่งกลอน ไม่แก้ตารางยา และไม่ยืนยันว่าผู้สูงอายุรับประทานยาแล้ว</p>
+    </div>
+
+    <section class="card" id="t25DevicePanel" hidden aria-label="สถานะอุปกรณ์จาก API ทดสอบ">
+      <h2>สถานะอุปกรณ์ ESP32-S3</h2>
+      <p class="status" id="t25DeviceState" role="status" aria-live="polite" data-state="NO_DATA">กำลังตรวจสอบ…</p>
+      <p id="t25DeviceMessage" class="muted">ข้อมูลต้องมาจาก API ที่ยืนยันสิทธิ์แล้ว</p>
+      <div class="grid">
+        <div class="metric"><span class="tag">อุปกรณ์</span><strong id="t25Device">—</strong></div>
+        <div class="metric"><span class="tag">ประตู</span><strong id="t25Door">—</strong></div>
+        <div class="metric"><span class="tag">กลอน</span><strong id="t25Lock">—</strong></div>
+        <div class="metric"><span class="tag">ฉุกเฉิน</span><strong id="t25Emergency">—</strong></div>
+        <div class="metric"><span class="tag">ความถูกต้องของ RTC</span><strong id="t25Rtc">—</strong></div>
+        <div class="metric"><span class="tag">รับข้อมูลล่าสุด</span><strong id="t25LastSeen">—</strong></div>
+      </div>
+      <div class="buttons">
+        <button id="t25Refresh" type="button">ตรวจสถานะใหม่</button>
+        <small>อ่านสถานะอัตโนมัติทุก 30 วินาที</small>
+      </div>
+    </section>
+
+    <section class="card" id="t4mAdminSection" hidden>
+      <h2>ADMIN · โหมดทดสอบ</h2>
+      <p class="muted">บัญชีนี้ผ่านการตรวจสิทธิ์ ADMIN แล้ว การจัดการผู้ใช้และรายการยาไม่ได้เปิดใช้บนหน้านี้</p>
+    </section>
+  </main>
+
+  <!-- Public OAuth client ID only. Never put service-account keys or MQTT credentials in GitHub Pages. -->
+  <script>
+    window.TIME4MED_AUTH_CONFIG = Object.freeze({
+      clientId: '858391878195-uivvvsdp54basuk410etp9fi3ln5bocc.apps.googleusercontent.com',
+      apiBase: 'https://time4med-api-staging.napat-kaewboonpan.workers.dev'
+    });
+    window.TIME4MED_SECURE_MODE = true;
+  </script>
+  <script src="https://accounts.google.com/gsi/client" async defer></script>
+  <script src="../test-v019/auth.js"></script>
+  <script src="./status.js"></script>
+</body>
+</html>
