@@ -124,6 +124,18 @@
     if(old&&old.patientId!==patientId)throw Error('ห้ามย้ายรายการเดิมไปยังผู้สูงอายุคนอื่น');
     const next={patientId,name,kind:'scheduled',mealType,time,boxNumber:mapping[patientId],
       instruction,stockStatus:old?.stockStatus||'unchecked'};
+    // Use the same schedule contract as the read-only review.
+    // Reject malformed data or a >18-round schedule BEFORE changing Sheets.
+    const core=window.Time4MedScheduleContract;
+    if(!core?.evaluate)throw Error('ระบบตรวจรอบยายังไม่พร้อม');
+    const tentative=medicines.filter(m=>m.id!==old?.id).concat([{
+      ...(old||{}),...next,id:old?.id||'NEW-UNSAVED',active:true
+    }]);
+    const validation=core.evaluate(tentative,patients.map(p=>p.id));
+    if(!validation.ok) {
+      const issue=validation.issues.find(x=>x.kind==='error');
+      throw Error('ไม่บันทึกเพราะตารางไม่ผ่านการตรวจ: '+(issue?.message||'พบข้อมูลไม่ถูกต้อง'));
+    }
     if(old) {
       if(!old.updatedAt)throw Error('รายการเดิมไม่มีเวลาปรับปรุง กรุณาตรวจข้อมูลใน Sheets ก่อนแก้ไข');
       next.updatedAt=old.updatedAt;
