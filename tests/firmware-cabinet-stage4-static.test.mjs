@@ -31,6 +31,12 @@ assert.match(sketch,/maintainT4MStatusTelemetry\(\);/);
 assert.match(sketch,/void beginT4MStatusTelemetry\(\)/);
 assert.match(sketch,/beginT4MStatusTelemetry\(\);/);
 assert.match(sketch,/current\.lockUnlocked = lockIsUnlocked;/);
+assert.match(sketch,/systemState != SystemState::IDLE/,'HTTPS must not start during medicine or access state');
+assert.match(sketch,/pendingLockReason != PendingLockReason::NONE/,'HTTPS must not start while locking');
+assert.match(sketch,/emergencyIsActive\(\) \|\| audioPlaying \|\| audioCount != 0/,'Do not queue TLS while emergency or audio');
+assert.match(sketch,/String\(TIME4MED_STATUS_ENDPOINT\) !=/,'Only dedicated Staging host allowed');
+assert.match(sketch,/time4med-api-staging\.napat-kaewboonpan\.workers\.dev\/api\/device\/telemetry/);
+
 assert.match(sketch,/current\.doorClosed = doorIsClosed\(\);/);
 assert.match(sketch,/current\.emergency = emergencyIsActive\(\);/);
 assert.match(sketch,/current\.rtcValid = rtcTimeValid;/);
