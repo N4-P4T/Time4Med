@@ -726,8 +726,11 @@ void t4mStatusSenderTask(void *parameter) {
 }
 
 void beginT4MStatusTelemetry() {
-  if (!t4mStatusSender.configured()) {
-    Serial.println("[T4M HTTPS] DISABLED (local key/verified CA not configured)");
+  // Refuse accidental uploads to any URL outside our isolated staging Worker.
+  if (String(TIME4MED_STATUS_ENDPOINT) !=
+      "https://time4med-api-staging.napat-kaewboonpan.workers.dev/api/device/telemetry" ||
+      !t4mStatusSender.configured()) {
+    Serial.println("[T4M HTTPS] DISABLED (staging URL / HMAC / verified CA not configured)");
     return;
   }
   t4mStatusQueue = xQueueCreate(1, sizeof(T4MStatusSnapshot));
@@ -749,6 +752,13 @@ void beginT4MStatusTelemetry() {
 
 void maintainT4MStatusTelemetry() {
   if (!t4mStatusEnabled || WiFi.status() != WL_CONNECTED) return;
+  // Avoid QUEUEING a new TLS upload during dose confirmation,
+  // manual access, door closing, emergency alerts or spoken instructions.
+  // An in-flight HTTPS upload may still overlap a later event: bench-test
+  // RAM, CPU and Wi-Fi contention before using this with a real cabinet.
+  if (systemState != SystemState::IDLE ||
+      pendingLockReason != PendingLockReason::NONE ||
+      emergencyIsActive() || audioPlaying || audioCount != 0) return;
 
   T4MStatusSnapshot current{};
   current.lockUnlocked = lockIsUnlocked;
@@ -762,8 +772,7 @@ void maintainT4MStatusTelemetry() {
   // Event changes can be queued after 2 s, otherwise heartbeat every 60 s.
   // Only a short RAM queue operation happens on the medicine-control loop.
   const bool changed = !t4mHasPreviousStatus ||
-      memcmp(&current.lockUnlocked, &t4mPreviousStatus.lockUnlocked,
-             sizeof(current.lockUnlocked)) != 0 ||
+      current.lockUnlocked != t4mPreviousStatus.lockUnlocked ||
       current.doorClosed != t4mPreviousStatus.doorClosed ||
       current.emergency != t4mPreviousStatus.emergency ||
       current.rtcValid != t4mPreviousStatus.rtcValid ||
