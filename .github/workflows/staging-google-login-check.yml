@@ -1,0 +1,27 @@
+name: Staging Google Login (read-only UI)
+
+on:
+  pull_request:
+    paths:
+      - 'staging-google-login/**'
+      - 'tests/staging-google-login.test.mjs'
+      - '.github/workflows/staging-google-login-check.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  staging-login:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Validate staging UI
+        run: |
+          node --check staging-google-login/status.js
+          node --check tests/staging-google-login.test.mjs
+          node tests/staging-google-login.test.mjs
