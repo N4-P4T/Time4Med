@@ -438,6 +438,6 @@ export default {
         return json(await deviceTelemetryPost(request,env),200,origin);
       }
       const user=await authUser(request,env);const result=await handle(request,env,url,user);return json(result,200,origin);
-    }catch(e){console.error('Time4Med API',e.status||500,e.message);return json({error:e.message||'เกิดข้อผิดพลาด'},e.status||500,origin);}
+    }catch(e){console.error('Time4Med API',e.status||500,e.message);return json({error:e instanceof SchedulePlanError ? e.code : (e.message||'เกิดข้อผิดพลาด')},e.status||500,origin);}
   }
 };
