@@ -22,7 +22,7 @@
   }
   function enable() {
     const available=authorized()&&!saving&&!loading&&loaded;
-    existing.disabled=!available;patient.disabled=!available;
+    existing.disabled=!available;patient.disabled=!available||!!existing.value;
     save.disabled=!available||!patients.length;
     $('t27Reload').disabled=!authorized()||saving||loading;
     $('t27New').disabled=!available;
