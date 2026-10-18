@@ -27,3 +27,16 @@
 node --check staging-google-login/status.js
 node tests/staging-google-login.test.mjs
 ```
+
+
+## Schedule preview (อ่านอย่างเดียว)
+
+- เพิ่ม `GET /api/patients` และ `GET /api/medicines` ผ่าน Google Login ที่ Backend Staging ตรวจสิทธิ์
+- ดึงข้อมูลจากแท็บ `Patients` (A5:G1000) และ `MealMedicines` (A2:P1000) โดยตรงผ่าน Backend ไม่ใช้รหัสลับในเบราว์เซอร์
+- ใช้ `test-v021/schedule-contract.js` ตรวจ P001→U001/กล่อง 1, P002→U002/กล่อง 2, P003→U003/กล่อง 3; มื้อยา 7 ช่วง, เวลารูปแบบ 24 ชั่วโมง, ข้าม PRN, รวมรอบซ้ำ, สูงสุด 18 รอบ
+- **ไม่มีการส่งตาราง** ไป ESP32-S3, MQTT, Worker command หรือขยับกลอน ผู้ใช้จะเห็นเพียง `ตรวจรูปแบบผ่าน` ไม่ใช่ `SYNC SUCCESS`
+- หากไม่มีรายชื่อ/รายการยา Backend จะคืนอาร์เรย์ว่างและ UI แจ้งว่าไม่มีข้อมูลจริง
+- ถ้า API ไม่ตอบหรือการตรวจผิดพลาด UI ปิดไม่ให้สรุปว่าพร้อมใช้
+- เมื่อ Logout ต้องล้างผลจากหน้าจอและละทิ้งผลคำขอที่ตอบมาล่าช้า
+- ตาราง Sheet ใช้เวลาเขต `Asia/Bangkok` แต่วันที่ audit ของ Worker ยังคงอยู่ในรูป UTC ISO `Z`
+- TODO งานถัดไป: Gateway ที่เซ็นคำสั่งและมี ACK transaction จาก ESP32-S3; **ห้ามส่ง SET/CLEAR ทีละรายการ** บนตู้ที่ใช้งานจริง
