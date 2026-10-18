@@ -23,6 +23,18 @@ jobs:
       - name: Static safety assertions
         run: |
           node tests/firmware-cabinet-stage4-static.test.mjs
+      - name: Package staging firmware sources (NO user secrets)
+        uses: actions/upload-artifact@v4
+        with:
+          name: Time4Med-Cabinet-Stage4-Sources
+          path: |
+            firmware/Time4Med_Cabinet_Stage4/Time4Med_Cabinet_Stage4.ino
+            firmware/Time4Med_Cabinet_Stage4/Time4MedStatusSender.h
+            firmware/Time4Med_Cabinet_Stage4/telemetry_config.h
+            firmware/Time4Med_Cabinet_Stage4/telemetry_private.h.example
+            firmware/Time4Med_Cabinet_Stage4/README_TH.md
+          if-no-files-found: error
+          retention-days: 14
       - uses: arduino/setup-arduino-cli@v2
       - name: Install Arduino ESP32 core
         run: |
