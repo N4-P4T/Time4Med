@@ -7,7 +7,7 @@
   if (!panel) return;
   const $ = id => document.getElementById(id);
   const STALE_MS = 150000;
-  let active = false, generation = 0, busy = false;
+  let active = false, generation = 0, inflightGeneration = null;
 
   function put(id, value) {
     const el = $(id);
@@ -64,9 +64,9 @@
         'Backend เพิ่งได้รับสถานะจากผู้ส่งที่ลงลายเซ็นถูกต้อง ไม่ใช่หลักฐานการรับประทานยา', 'LIVE');
   }
   async function refresh() {
-    if (!active || busy || !window.Time4MedAuth?.user) return;
+    if (!active || inflightGeneration === generation || !window.Time4MedAuth?.user) return;
     const requestGeneration = generation;
-    busy = true;
+    inflightGeneration = requestGeneration;
     $('t25Refresh').disabled = true;
     try {
       const response = await window.Time4MedAuth.api('/api/devices/status');
@@ -77,8 +77,10 @@
         setState('อ่าน Backend ไม่สำเร็จ', String(error?.message || 'เกิดข้อผิดพลาด').slice(0, 140), 'UNAVAILABLE');
       }
     } finally {
-      busy = false;
-      $('t25Refresh').disabled = false;
+      if (inflightGeneration === requestGeneration) {
+        inflightGeneration = null;
+        $('t25Refresh').disabled = false;
+      }
     }
   }
   window.addEventListener('time4med-auth-changed', event => {
