@@ -36,7 +36,7 @@
     .metric strong{display:block;font-size:1.1rem;overflow-wrap:anywhere}
     .tag{font-size:.8rem;color:var(--muted);display:block}
     .buttons{display:flex;gap:12px;flex-wrap:wrap;align-items:center}
-    #t4mUserbar[hidden],#t4mAdminSection[hidden],#t25DevicePanel[hidden]{display:none!important}
+    #t4mUserbar[hidden],#t4mAdminSection[hidden],#t25DevicePanel[hidden],#t26SchedulePanel[hidden]{display:none!important}
     .notice{border-left:4px solid #b68a39;padding:10px 14px;background:#fffaf0;border-radius:4px}
     @media(max-width:570px){.grid{grid-template-columns:1fr}.card{padding:18px}header .wrap{flex-wrap:wrap;padding:10px 0}}
   </style>
@@ -89,6 +89,22 @@
       </div>
     </section>
 
+    <section class="card" id="t26SchedulePanel" hidden aria-label="ตัวอย่างตารางยาจาก Google Sheets ทดสอบ">
+      <h2>ตารางยา — ตรวจข้อมูลก่อนส่งเข้าเครื่อง</h2>
+      <p class="notice">อ่านจาก Google Sheets Staging เท่านั้น · <strong>ยังไม่ส่งตารางเข้า ESP32-S3</strong> · ไม่มีคำสั่งเปลี่ยนตารางยาจริงบนหน้านี้</p>
+      <p id="t26ScheduleStatus" class="status" role="status" aria-live="polite">รออ่านรายการจาก Backend…</p>
+      <p id="t26ScheduleInfo" class="muted">ตรวจสอบรายการยา เวลา มื้อ และกล่อง ก่อนเปิด Gateway ในขั้นถัดไป</p>
+      <div class="grid">
+        <div class="metric"><span class="tag">รอบยาที่ตรวจได้</span><strong id="t26ScheduleSlots">—</strong></div>
+        <div class="metric"><span class="tag">Revision (ตัวอย่าง)</span><strong id="t26ScheduleRevision">—</strong></div>
+      </div>
+      <ul id="t26ScheduleList" aria-label="รายการรอบยา"></ul>
+      <div class="buttons">
+        <button type="button" id="t26ScheduleRefresh">อ่านตารางจาก Sheets อีกครั้ง</button>
+        <small>ไม่มีปุ่มส่ง / ลบตารางยาไปยังเครื่อง</small>
+      </div>
+    </section>
+
     <section class="card" id="t4mAdminSection" hidden>
       <h2>ADMIN · โหมดทดสอบ</h2>
       <p class="muted">บัญชีนี้ผ่านการตรวจสิทธิ์ ADMIN แล้ว การจัดการผู้ใช้และรายการยาไม่ได้เปิดใช้บนหน้านี้</p>
@@ -106,5 +122,6 @@
   <script src="https://accounts.google.com/gsi/client" async defer></script>
   <script src="../test-v019/auth.js"></script>
   <script src="./status.js"></script>
+  <script src="./schedule-preview.js"></script>
 </body>
 </html>
