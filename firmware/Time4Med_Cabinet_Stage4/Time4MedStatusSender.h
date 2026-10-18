@@ -3,8 +3,8 @@
  * Time4Med v0.25 - READ-ONLY ESP32-S3 status -> Cloudflare HTTPS sender.
  *
  * No MQTT subscribe/publish, no GPIO and no actuator control.
- * Standalone library: production firmware integration is intentionally deferred
- * until the flashed firmware and existing reminder/lock logic are confirmed.
+ * Integrated in the Stage4 cabinet candidate only; hardware safety
+ * and in-cabinet behavior are not yet verified.
  *
  * Compatible with backend/device-telemetry.mjs POST /api/device/telemetry.
  * The HTTPS URL, HMAC key and verified TLS root CA must come from local
@@ -18,6 +18,7 @@
 #include <mbedtls/md.h>
 #include <time.h>
 #include <stdint.h>
+#include <cstring>
 
 namespace t4m_telemetry {
 static constexpr const char* kStatusPath = "/api/device/telemetry";
@@ -113,7 +114,8 @@ class Sender {
   Sender(const char* fullEndpoint,const char* hexKey,const char* rootCA)
     : endpoint_(fullEndpoint),keyHex_(hexKey),rootCa_(rootCA){}
   bool configured()const {
-    if(!endpoint_||!rootCa_||rootCa_[0]=='\0')return false;
+    if(!endpoint_||!rootCa_||!std::strstr(rootCa_,"-----BEGIN CERTIFICATE-----")||
+       !std::strstr(rootCa_,"-----END CERTIFICATE-----"))return false;
     const String url(endpoint_);
     if(!url.startsWith("https://")||!url.endsWith(kStatusPath)||
        url.indexOf('@')>=0 || url.length()>240)return false;
