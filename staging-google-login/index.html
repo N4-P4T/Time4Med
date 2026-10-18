@@ -38,6 +38,11 @@
     .buttons{display:flex;gap:12px;flex-wrap:wrap;align-items:center}
     #t4mUserbar[hidden],#t4mAdminSection[hidden],#t25DevicePanel[hidden]{display:none!important}
     .notice{border-left:4px solid #b68a39;padding:10px 14px;background:#fffaf0;border-radius:4px}
+    .t26-subheading{margin:8px 0 4px;font-weight:700}
+    .t26-list{padding-left:24px;margin:8px 0 12px;line-height:1.75}
+    .t26-list li{padding:4px 0;overflow-wrap:anywhere}
+    .t26-meta{font-variant-numeric:tabular-nums}
+
     @media(max-width:570px){.grid{grid-template-columns:1fr}.card{padding:18px}header .wrap{flex-wrap:wrap;padding:10px 0}}
   </style>
 </head>
@@ -89,6 +94,27 @@
       </div>
     </section>
 
+    <section class="card" id="t26SchedulePanel" hidden aria-label="ตรวจตารางยาจาก Google Sheets Staging">
+      <h2>ตารางแจ้งเตือนยา · Google Sheets STAGING</h2>
+      <p class="notice"><strong>อ่านข้อมูลเท่านั้น:</strong> ตรวจรายการยาและสร้างตัวอย่างรอบแจ้งเตือนในเบราว์เซอร์ ไม่ส่งตารางไป ESP32-S3 ไม่แก้ไขข้อมูล และไม่สั่งกลอน</p>
+      <p class="status" id="t26ScheduleState" role="status" aria-live="polite">รอการเข้าสู่ระบบ…</p>
+      <p id="t26ScheduleMessage" class="muted">ระบบจะอ่านเฉพาะข้อมูลที่บัญชีนี้ได้รับสิทธิ์</p>
+      <div class="grid">
+        <div class="metric"><span class="tag">ผู้สูงอายุที่ได้รับสิทธิ์</span><strong id="t26PatientCount">—</strong></div>
+        <div class="metric"><span class="tag">รายการยาทั้งหมด</span><strong id="t26MedicineCount">—</strong></div>
+        <div class="metric"><span class="tag">รอบแจ้งเตือนหลังรวมยาซ้ำมื้อ</span><strong id="t26SlotCount">—</strong></div>
+        <div class="metric"><span class="tag">ความจุของเฟิร์มแวร์</span><strong>18 รอบ</strong></div>
+      </div>
+      <p class="t26-subheading">รอบแจ้งเตือนที่ตรวจผ่าน</p>
+      <ol id="t26ScheduleSlots" class="t26-list"><li>ยังไม่มีข้อมูล</li></ol>
+      <p class="t26-subheading">ข้อสังเกตและข้อผิดพลาด</p>
+      <ul id="t26ScheduleIssues" class="t26-list"><li>รอการตรวจ</li></ul>
+      <div class="buttons">
+        <button id="t26RefreshSchedule" type="button">อ่านข้อมูลจาก Sheets ใหม่</button>
+        <small>ต้องมีการส่งแบบปลอดภัยและ ACK จากอุปกรณ์ก่อนจึงจะถือว่าซิงก์สำเร็จ</small>
+      </div>
+    </section>
+
     <section class="card" id="t4mAdminSection" hidden>
       <h2>ADMIN · โหมดทดสอบ</h2>
       <p class="muted">บัญชีนี้ผ่านการตรวจสิทธิ์ ADMIN แล้ว การจัดการผู้ใช้และรายการยาไม่ได้เปิดใช้บนหน้านี้</p>
@@ -106,5 +132,7 @@
   <script src="https://accounts.google.com/gsi/client" async defer></script>
   <script src="../test-v019/auth.js"></script>
   <script src="./status.js"></script>
+  <script src="../test-v021/schedule-contract.js"></script>
+  <script src="./schedule-preview.js"></script>
 </body>
 </html>
