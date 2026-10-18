@@ -1,4 +1,4 @@
-/* Time4Med v0.24 read-only browser status monitor */
+/* Time4Med v0.25 Google-only device status display */
 .t24-live {margin:14px 0 20px;padding:20px 22px;background:#fff;border:1px solid #d9e8f6;border-radius:17px;box-shadow:0 5px 16px rgba(11,47,92,.05)}
 .t24-live[hidden]{display:none!important}
 .t24-live-heading{display:flex;align-items:center;justify-content:space-between;gap:15px;flex-wrap:wrap}
