@@ -1,0 +1,31 @@
+name: Staging Schedule Preview v0.26 — Google Sheets authorized read only
+
+on:
+  pull_request:
+    paths:
+      - 'backend/worker-v026-staging-schedule-preview-singlefile.mjs'
+      - 'staging-google-login/**'
+      - 'tests/staging-schedule-preview-*.test.mjs'
+      - '.github/workflows/staging-schedule-preview-v026.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  schedule-preview:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Syntax check (no real credentials)
+        run: |
+          node --check backend/worker-v026-staging-schedule-preview-singlefile.mjs
+          node --check staging-google-login/schedule-preview.js
+      - name: Google JWT, role, Sheets and medicine contract (mock network)
+        run: node tests/staging-schedule-preview-auth.test.mjs
+      - name: Staging front-end no-write and logout tests
+        run: node tests/staging-schedule-preview-ui.test.mjs
