@@ -1,6 +1,9 @@
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import vm from 'node:vm';
+import {createRequire} from 'node:module';
+const require=createRequire(import.meta.url);
+const core=require('../test-v021/schedule-contract.js');
 
 const html=readFileSync(new URL('../staging-google-login/index.html',import.meta.url),'utf8');
 const src=readFileSync(new URL('../staging-google-login/medicine-editor.js',import.meta.url),'utf8');
@@ -50,7 +53,7 @@ const auth={user:null,async api(path,opts={}) {
 let refreshes=0;
 node('t26RefreshSchedule').click=()=>{refreshes++};
 const win={
- Time4MedAuth:auth,TIME4MED_AUTH_CONFIG:{apiBase:base},confirm:()=>true,
+ Time4MedAuth:auth,Time4MedScheduleContract:core,TIME4MED_AUTH_CONFIG:{apiBase:base},confirm:()=>true,
  addEventListener(n,h){events[n]=h}
 };
 const doc={getElementById:node,createElement:()=>({value:'',textContent:''})};
