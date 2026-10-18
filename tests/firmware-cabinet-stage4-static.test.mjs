@@ -42,6 +42,8 @@ assert.match(sketch,/current\.emergency = emergencyIsActive\(\);/);
 assert.match(sketch,/current\.rtcValid = rtcTimeValid;/);
 assert.match(sketch,/snprintf\(current\.systemState/);
 assert.match(sender,/tls\.setCACert\(rootCa_\)/);
+assert.match(sender,/BEGIN CERTIFICATE/);
+assert.match(sender,/END CERTIFICATE/);
 assert.doesNotMatch(sender,/\.setInsecure\(/);
 assert.match(sender,/\/api\/device\/telemetry/);
 assert.match(sender,/T4M-STATUS-V1/);
