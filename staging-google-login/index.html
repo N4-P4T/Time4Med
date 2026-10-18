@@ -36,13 +36,22 @@
     .metric strong{display:block;font-size:1.1rem;overflow-wrap:anywhere}
     .tag{font-size:.8rem;color:var(--muted);display:block}
     .buttons{display:flex;gap:12px;flex-wrap:wrap;align-items:center}
-    #t4mUserbar[hidden],#t4mAdminSection[hidden],#t25DevicePanel[hidden]{display:none!important}
+    #t4mUserbar[hidden],#t4mAdminSection[hidden],#t25DevicePanel[hidden],#t27EditorPanel[hidden]{display:none!important}
     .notice{border-left:4px solid #b68a39;padding:10px 14px;background:#fffaf0;border-radius:4px}
     .t26-subheading{margin:8px 0 4px;font-weight:700}
     .t26-list{padding-left:24px;margin:8px 0 12px;line-height:1.75}
     .t26-list li{padding:4px 0;overflow-wrap:anywhere}
     .t26-meta{font-variant-numeric:tabular-nums}
 
+    .t27-form{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;margin:14px 0}
+    .t27-field{display:flex;flex-direction:column;gap:4px;font-weight:600;font-size:.92rem}
+    .t27-field input,.t27-field select,.t27-field textarea{font:inherit;font-weight:400;color:var(--ink);padding:9px 11px;border:1px solid #abc1da;border-radius:8px;width:100%;min-height:42px;background:#fff}
+    .t27-field textarea{resize:vertical;min-height:65px}
+    .t27-wide{grid-column:1/-1}
+    .t27-message{padding:10px 12px;border:1px solid var(--line);border-radius:8px;background:#f7faff;overflow-wrap:anywhere}
+    .t27-message[data-state="bad"]{border-color:#d88383;background:#fff5f5;color:#9e1b32}
+    .t27-message[data-state="success"]{border-color:#89cba3;background:#f2fcf6;color:#126e39}
+    @media(max-width:570px){.t27-form{grid-template-columns:1fr}}
     @media(max-width:570px){.grid{grid-template-columns:1fr}.card{padding:18px}header .wrap{flex-wrap:wrap;padding:10px 0}}
   </style>
 </head>
@@ -73,7 +82,7 @@
     <div class="card">
       <h1>ศูนย์ทดสอบ Google Login</h1>
       <p>บัญชี: <strong class="t4m-profile-name">กำลังตรวจสอบ…</strong> · บทบาท: <strong class="t4m-profile-role">—</strong></p>
-      <p class="notice">หน้านี้เป็นระบบทดสอบแบบอ่านข้อมูลเท่านั้น ไม่สั่งกลอน ไม่แก้ตารางยา และไม่ยืนยันว่าผู้สูงอายุรับประทานยาแล้ว</p>
+      <p class="notice">หน้านี้เป็นระบบทดสอบ: อ่านสถานะอุปกรณ์และแก้รายการยาจำลองใน Google Sheets Staging ได้ แต่ไม่สั่งกลอน ไม่เปลี่ยนตารางบน ESP32-S3 และไม่ยืนยันการรับประทานยา</p>
     </div>
 
     <section class="card" id="t25DevicePanel" hidden aria-label="สถานะอุปกรณ์จาก API ทดสอบ">
@@ -115,9 +124,54 @@
       </div>
     </section>
 
+
+    <section class="card" id="t27EditorPanel" hidden aria-label="จัดการเวลามื้อยาทดสอบ">
+      <h2>จัดการตารางยา · Google Sheets STAGING</h2>
+      <p class="notice"><strong>สำหรับข้อมูลจำลองเท่านั้น:</strong> บันทึกและแก้ไขรายการยาใน Google Sheets <strong>Time4Med-Staging</strong> ไม่เปลี่ยนเวลามื้อยาบน ESP32-S3 และไม่สั่งกลอน ห้ามใช้ตารางนี้เป็นคำแนะนำการใช้ยาจริง</p>
+      <p id="t27Message" role="status" aria-live="polite" class="t27-message">รอเข้าสู่ระบบแอดมิน</p>
+      <div class="t27-form">
+        <label class="t27-field t27-wide" for="t27Existing">เลือกรายการเดิมเพื่อแก้ไข (หากไม่เลือก จะเพิ่มใหม่)
+          <select id="t27Existing" disabled><option value="">เพิ่มรายการยาใหม่</option></select>
+        </label>
+      </div>
+      <form id="t27Form" autocomplete="off">
+        <div class="t27-form">
+          <label class="t27-field" for="t27Patient">ผู้สูงอายุ / ช่องยาประจำ
+            <select id="t27Patient" required disabled><option value="">กำลังโหลดผู้สูงอายุ…</option></select>
+          </label>
+          <label class="t27-field" for="t27MedicineName">ชื่อรายการยา (กรอกชื่อทดสอบ)
+            <input id="t27MedicineName" maxlength="150" placeholder="เช่น รายการยาทดสอบ A" required>
+          </label>
+          <label class="t27-field" for="t27Meal">มื้อยา
+            <select id="t27Meal" required>
+              <option value="1">ก่อนอาหารเช้า</option>
+              <option value="2">หลังอาหารเช้า</option>
+              <option value="3">ก่อนอาหารกลางวัน</option>
+              <option value="4">หลังอาหารกลางวัน</option>
+              <option value="5">ก่อนอาหารเย็น</option>
+              <option value="6">หลังอาหารเย็น</option>
+              <option value="7">ก่อนนอน</option>
+            </select>
+          </label>
+          <label class="t27-field" for="t27Time">เวลาแจ้งเตือน (24 ชั่วโมง)
+            <input id="t27Time" type="time" step="60" required>
+          </label>
+          <label class="t27-field t27-wide" for="t27Instruction">หมายเหตุรายการทดสอบ (ไม่ใช่คำแนะนำทางการแพทย์)
+            <textarea id="t27Instruction" maxlength="300" rows="2" placeholder="ตัวอย่างข้อมูลจำลองเท่านั้น"></textarea>
+          </label>
+        </div>
+        <div class="buttons">
+          <button type="submit" id="t27Save" disabled>บันทึกลง Google Sheets Staging</button>
+          <button type="button" id="t27Reload">อ่านรายการใหม่</button>
+          <button type="button" id="t27New">เปลี่ยนเป็นเพิ่มรายการใหม่</button>
+        </div>
+      </form>
+      <p class="muted">เมื่อบันทึกสำเร็จ ระบบจะอ่านข้อมูลกลับมาตรวจอีกครั้ง และอัปเดตผลตรวจรอบยาเหนือกล่องนี้ · ยังไม่มีการส่งคำสั่งลงตู้ยา</p>
+    </section>
+
     <section class="card" id="t4mAdminSection" hidden>
       <h2>ADMIN · โหมดทดสอบ</h2>
-      <p class="muted">บัญชีนี้ผ่านการตรวจสิทธิ์ ADMIN แล้ว การจัดการผู้ใช้และรายการยาไม่ได้เปิดใช้บนหน้านี้</p>
+      <p class="muted">บัญชีนี้ผ่านการตรวจสิทธิ์ ADMIN แล้ว สามารถเพิ่มและแก้รายการยาจำลองใน Sheets Staging ได้จากกล่องด้านบน แต่ยังไม่สามารถส่งคำสั่งถึง ESP32-S3</p>
     </section>
   </main>
 
@@ -134,5 +188,6 @@
   <script src="./status.js"></script>
   <script src="../test-v021/schedule-contract.js"></script>
   <script src="./schedule-preview.js"></script>
+  <script src="./medicine-editor.js"></script>
 </body>
 </html>
