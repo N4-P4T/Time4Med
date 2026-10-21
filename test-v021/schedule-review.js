@@ -12,13 +12,19 @@
  '<div class="t22-review-metrics"><div><small>รายการยา</small><strong id="t22TotalRows">—</strong></div><div><small>รอบยา</small><strong id="t22ScheduledSlots">—</strong></div><div><small>ความจุ</small><strong>18</strong></div><div><small>ข้อผิดพลาด</small><strong id="t22ErrorCount">—</strong></div></div>'+
  '<p class="t22-boxes">ช่องยาที่เฟิร์มแวร์อ้างอิงกำหนด: P001→U001/กล่อง 1 · P002→U002/กล่อง 2 · P003→U003/กล่อง 3</p>'+
  '<div class="t22-review-columns"><div><h4>รายการตามเวลาที่ตรวจผ่าน</h4><ul id="t22Slots" class="t22-review-list"><li>รอข้อมูล</li></ul></div><div><h4>สิ่งที่ควรตรวจสอบ</h4><ul id="t22Issues" class="t22-review-list"><li>รอข้อมูล</li></ul></div></div>'+
- '<p class="t22-warning"><strong>ยังไม่เปิดซิงก์ตารางยา:</strong> ESP32-S3 รุ่นที่ตรวจพบใช้คำสั่งทีละรายการโดยไม่มี ACK ครบทั้งชุด จึงไม่ส่ง SET/DELETE/CLEAR จากเว็บไซต์ จนกว่า Backend Gateway และระบบยืนยันผลพร้อม</p>'+
+ '<p class="t22-warning"><strong>ยังไม่เปิดซิงก์ตารางยาทั้งชุด:</strong> ESP32-S3 ปัจจุบันยังไม่มี ACK สำหรับการแทนที่ตารางครบชุด แต่สามารถทดลองส่ง SET ทีละหนึ่งรอบผ่าน Backend หลังยืนยันก่อนส่ง โดยยังไม่ลบตารางเดิม</p>'+
  '<div class="t22-actions"><button type="button" id="t22ReviewAgain">ตรวจรูปแบบอีกครั้ง (ไม่ส่ง)</button><span id="t22SnapshotState">สถานะในเครื่อง: รอข้อมูล Snapshot ที่ยืนยันได้</span></div>';
  host.before(panel);
  const $=id=>document.getElementById(id);
  const slots=$('t22Slots'),issues=$('t22Issues'),state=$('t22ReviewState');
  const item=(message,type)=>{const el=document.createElement('li');el.className='t22-list-item '+(type||'');el.textContent=message;return el;};
  let patientIds=null,haveMedicines=false,generation=0,fetchError='';
+ let latest={ready:false,slots:[],reason:'รอ Google Login และตารางยา'};
+ // Share this validated, read-only snapshot with the single-slot pilot UI.
+ // It is a UI readiness check, NOT device confirmation or an authorization boundary.
+ window.Time4MedScheduleReviewState=Object.freeze({
+   getSnapshot:()=>({ready:latest.ready,reason:latest.reason,slots:latest.slots.map(s=>({...s}))})
+ });
  function render(){
    const loggedIn=!!window.Time4MedAuth?.user;
    const rows=loggedIn&&haveMedicines&&typeof medicines!=='undefined'&&Array.isArray(medicines)?medicines:null;
@@ -44,6 +50,15 @@
      for(const issue of report.issues)issues.append(item(issue.message,issue.kind));
    }
    $('t22SnapshotState').textContent='สถานะในเครื่อง: ยังไม่มี Snapshot ครบรายการที่ยืนยันได้';
+   const ready=Boolean(loggedIn && haveMedicines && Array.isArray(patientIds) &&
+     !fetchError && report.ok && report.slots.length>0);
+   latest={ready,slots:ready?report.slots:[],
+     reason:!loggedIn?'กรุณาเข้าสู่ระบบ Google':
+       fetchError?'ตรวจสิทธิ์ผู้สูงอายุไม่สำเร็จ: '+fetchError:
+       rows===null || patientIds===null?'กำลังโหลดรายการยาและสิทธิ์ผู้สูงอายุ':
+       errors.length?'มีข้อผิดพลาดของตารางยา '+errors.length+' รายการ':
+       report.slots.length===0?'ไม่มีรอบยาที่พร้อมส่ง':'พร้อมทดลองส่งหนึ่งรอบยา'};
+   window.dispatchEvent(new Event('time4med-schedule-review-updated'));
  }
  async function onAuth(event){
    const myGen=++generation;
