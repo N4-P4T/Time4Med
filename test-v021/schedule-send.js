@@ -23,36 +23,28 @@
   const select=el.querySelector('#t4mSendOneSelect');
   const button=el.querySelector('#t4mSendOneBtn');
   const status=el.querySelector('#t4mSendOneStatus');
-  let patients=null,slots=[],busy=false,sequence=0;
+  let slots=[],busy=false,wasReady=false;
   const setStatus=(s)=>{status.textContent=s;};
   function render(){
-    const a=auth();
-    const data=a?.user&&typeof medicines!=='undefined'&&Array.isArray(medicines)?medicines:null;
-    const report=core.evaluate(data,patients);
-    const valid=Boolean(a?.user && Array.isArray(patients) && report.ok && report.slots.length);
-    slots=valid?report.slots:[];
+    // Reuse the exact successful validator displayed in Schedule Review.
+    // Avoid a second /api/patients fetch and the resulting readiness race.
+    const checked=window.Time4MedScheduleReviewState?.getSnapshot?.() ||
+      {ready:false,slots:[],reason:'รอการตรวจตารางยา'};
+    const valid=Boolean(auth()?.user && checked.ready &&
+      Array.isArray(checked.slots) && checked.slots.length>0);
+    slots=valid?checked.slots:[];
     const previous=select.value;
     select.replaceChildren();
     for(let i=0;i<slots.length;i++){
       const s=slots[i];
-      const opt=new Option(`${s.patientId} · กล่อง ${s.compartment} · ${s.time} · ${s.meal}`,String(i));
-      select.add(opt);
+      select.add(new Option(`${s.patientId} · กล่อง ${s.compartment} · ${s.time} · ${s.meal}`,String(i)));
     }
-    if (slots.length && Number(previous)>=0 && Number(previous)<slots.length)select.value=previous;
-    if(!slots.length)select.add(new Option('ยังไม่มีรอบยาที่ผ่านการตรวจ',''));
+    if(slots.length && Number(previous)>=0 && Number(previous)<slots.length) select.value=previous;
+    if(!slots.length) select.add(new Option('ยังไม่มีรอบยาที่ผ่านการตรวจ',''));
     button.disabled=busy||!valid;
-    if(!busy && !valid) setStatus(a?.user?'ยังไม่พร้อมส่ง: ตรวจข้อมูลยา ผู้สูงอายุ และรายการข้อผิดพลาดด้านบน':'กรุณาเข้าสู่ระบบ Google');
-  }
-  async function loadPatients(){
-    const a=auth();const my=++sequence;
-    patients=null;render();
-    if(!a?.user) return;
-    try{
-      const response=await a.api('/api/patients');
-      if(my!==sequence)return;
-      if(!Array.isArray(response.patients)) throw Error('รายชื่อผู้สูงอายุไม่ถูกต้อง');
-      patients=response.patients.map(p=>String(p.id||''));render();
-    }catch(error){if(my!==sequence)return;setStatus('โหลดสิทธิ์ผู้สูงอายุไม่ได้: '+String(error.message||error));}
+    if(!busy && !valid) setStatus(checked.reason||'ยังไม่มีรอบยาพร้อมส่ง');
+    if(!busy && valid && !wasReady) setStatus('ตรวจผ่านแล้ว · เลือกหนึ่งรอบยาเพื่อทดลองส่ง (ยังไม่ได้ส่ง)');
+    wasReady=valid;
   }
   async function sendOne(){
     if(busy || !auth()?.user || !slots.length)return;
@@ -73,8 +65,8 @@
     finally{busy=false;render();}
   }
   button.addEventListener('click',()=>{void sendOne();});
-  window.addEventListener('time4med-auth-changed',()=>{void loadPatients();});
+  window.addEventListener('time4med-schedule-review-updated',render);
+  window.addEventListener('time4med-auth-changed',render);
   window.addEventListener('time4med-medicines-changed',render);
   render();
-  if(auth()?.user)void loadPatients();
 })();
