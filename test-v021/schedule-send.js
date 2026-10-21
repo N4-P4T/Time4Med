@@ -39,7 +39,7 @@
       const s=slots[i];
       select.add(new Option(`${s.patientId} · กล่อง ${s.compartment} · ${s.time} · ${s.meal}`,String(i)));
     }
-    if(slots.length && Number(previous)>=0 && Number(previous)<slots.length) select.value=previous;
+    if(slots.length) select.value=slots.some((_,i)=>String(i)===previous)?previous:'0';
     if(!slots.length) select.add(new Option('ยังไม่มีรอบยาที่ผ่านการตรวจ',''));
     button.disabled=busy||!valid;
     if(!busy && !valid) setStatus(checked.reason||'ยังไม่มีรอบยาพร้อมส่ง');
