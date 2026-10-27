@@ -6,6 +6,7 @@ on:
       - 'test-v021/**'
       - 'test-v020/script.js'
       - 'test-v019/inventory.js'
+      - 'test-v019/sheets-sync.js'
       - 'tests/v021-browser.test.cjs'
       - '.github/workflows/v021-dashboard-check.yml'
   workflow_dispatch:
@@ -27,6 +28,7 @@ jobs:
           node --check test-v021/caregiver-center.js
           node --check test-v020/script.js
           node --check test-v019/inventory.js
+          node --check test-v019/sheets-sync.js
           node --check tests/v021-browser.test.cjs
       - name: Install Chromium on GitHub runner
         run: |
