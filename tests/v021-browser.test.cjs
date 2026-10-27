@@ -15,8 +15,8 @@ for(const id of ['t21PatientCount','t21ScheduledCount','t21PatientCards','t21Sch
 }
 const people=[{id:'P001',name:'พ่อ ทดสอบ'},{id:'P002',name:'แม่ ทดสอบ'}];
 const meds=[
-{id:'a',patientId:'P001',patient:'พ่อ ทดสอบ',name:'ยาตัวอย่าง A',kind:'scheduled',mealType:2,time:'08:30',boxNumber:'1',stockStatus:'ok'},
-{id:'b',patientId:'P002',patient:'แม่ ทดสอบ',name:'ยาตัวอย่าง B',kind:'scheduled',mealType:6,time:'18:30',boxNumber:'2',stockStatus:'low'},
+{id:'a',patientId:'P001',patient:'พ่อ ทดสอบ',name:'ยาตัวอย่าง A',kind:'scheduled',mealType:2,shelf:'morning',time:'08:30',boxNumber:'1',stockStatus:'ok'},
+{id:'b',patientId:'P002',patient:'แม่ ทดสอบ',name:'ยาตัวอย่าง B',kind:'scheduled',mealType:6,shelf:'evening',time:'18:30',boxNumber:'2',stockStatus:'low'},
 {id:'c',patientId:'P002',patient:'แม่ ทดสอบ',name:'ยา PRN',kind:'prn',mealType:'prn',time:'',boxNumber:'2',stockStatus:'unchecked'}];
 async function serverReady(){
  for(let i=0;i<55;i++){try{if((await fetch(address,{signal:AbortSignal.timeout(800)})).ok)return;}catch{}
