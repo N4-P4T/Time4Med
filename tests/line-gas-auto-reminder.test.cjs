@@ -24,9 +24,9 @@ function user(id,role,scope,line,enabled='TRUE',status='ACTIVE') {
  const x=Array(10).fill('');
  x[0]=id;x[3]=role;x[4]=scope;x[5]=line;x[6]=enabled;x[7]=status;return x;
 }
-function spreadsheetSheet(rows){
+function spreadsheetSheet(rows,headerRow=0){
  return {
-  getLastColumn:()=>rows[0].length,
+  getLastColumn:()=>rows[headerRow].length,
   getLastRow:()=>rows.length,
   getRange:(row,col,num,width)=>({
    getDisplayValues:()=>rows.slice(row-1,row-1+num).map(r=>r.slice(col-1,col-1+width))
@@ -52,7 +52,7 @@ function harness(opts={}) {
   ['Users — header'],['description'],[],USER_HEAD,
   user('uadmin','ADMIN','ALL',LINEID_A)
  ];
- const map={MealMedicines:spreadsheetSheet(meds),Users:spreadsheetSheet(users)};
+ const map={MealMedicines:spreadsheetSheet(meds),Users:spreadsheetSheet(users,3)};
  const state=new Map(Object.entries({
   LINE_CHANNEL_ACCESS_TOKEN:TOKEN,
   TIME4MED_SHEET_ID:'a'.repeat(35),
