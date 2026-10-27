@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {buildReminderText,sendLineReminder,verifyLineWebhookSignature,LINE_API} from '../backend/line-messaging.mjs';
+import {buildReminderText,planCaregiverReminders,sendLineReminder,verifyLineWebhookSignature,LINE_API} from '../backend/line-messaging.mjs';
 
 const token='test-only-access-token-not-a-real-secret';
 const recipient='U0123456789abcdef0123456789abcdef';
@@ -91,4 +91,45 @@ test('webhook HMAC verifies exact raw bytes and rejects tampering',async()=>{
     signature,channelSecret:secret}),false);
   assert.equal(await verifyLineWebhookSignature({rawBody,signature:'garbage',
     channelSecret:secret}),false);
+});
+
+test('one verified caregiver receives one combined push for same meal/time',()=>{
+  const jobs=planCaregiverReminders({
+    slots:[
+      {patientId:'P001',time:'08:30',mealType:2},
+      {patientId:'P002',time:'08:30',mealType:2},
+      {patientId:'P003',time:'08:30',mealType:2},
+      {patientId:'P003',time:'08:30',mealType:2},
+      {patientId:'P001',time:'20:00',mealType:7}
+    ],
+    caregivers:[{id:'CG1',status:'ACTIVE',lineVerified:true,lineUserId:recipient,
+      patientIds:['P001','P002','P003']}]
+  });
+  assert.equal(jobs.jobs.length,2,'same meal/time must not send three pushes');
+  assert.deepEqual(jobs.jobs[0].reminder.patientIds,['P001','P002','P003']);
+  assert.deepEqual(jobs.jobs[1].reminder.patientIds,['P001']);
+  assert.deepEqual(jobs.unlinkedCaregivers,[]);
+});
+
+test('different clock times stay separate and caregiver scope is enforced',()=>{
+  const other='Uabcdef0123456789abcdef0123456789';
+  const out=planCaregiverReminders({
+    slots:[
+      {patientId:'P001',time:'08:30',mealType:2},
+      {patientId:'P002',time:'08:31',mealType:2},
+      {patientId:'P003',time:'08:30',mealType:2}
+    ],
+    caregivers:[
+      {id:'CG1',status:'ACTIVE',lineVerified:true,lineUserId:recipient,patientIds:['P001']},
+      {id:'CG2',status:'ACTIVE',lineVerified:true,lineUserId:other,patientIds:['P002']},
+      {id:'CG3',status:'ACTIVE',lineVerified:false,patientIds:['P003']}
+    ]
+  });
+  assert.equal(out.jobs.length,2);
+  assert.deepEqual(out.jobs.map(j=>j.reminder.patientIds),[['P001'],['P002']]);
+  assert.deepEqual(out.unlinkedCaregivers,['CG3']);
+  assert.throws(()=>planCaregiverReminders({slots:[{patientId:'P004',time:'08:30',mealType:2}],caregivers:[]}),
+    /INVALID_SCHEDULE_SLOT/);
+  assert.throws(()=>planCaregiverReminders({slots:[],caregivers:[{status:'ACTIVE',patientIds:['P004']}]}),
+    /INVALID_CAREGIVER_SCOPE/);
 });
