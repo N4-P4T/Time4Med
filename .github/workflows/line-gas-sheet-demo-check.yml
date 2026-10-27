@@ -1,0 +1,27 @@
+name: Verify Time4Med manual Sheets-to-LINE TEST-only flow
+
+on:
+  pull_request:
+    paths:
+      - 'integrations/line-apps-script/**'
+      - 'tests/line-gas-sheet-demo.test.cjs'
+      - '.github/workflows/line-gas-sheet-demo-check.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Verify syntax and mocked end-to-end test
+        run: |
+          node --check < integrations/line-apps-script/SheetLineDemo.gs
+          node --check tests/line-gas-sheet-demo.test.cjs
+          node --test tests/line-gas-sheet-demo.test.cjs
