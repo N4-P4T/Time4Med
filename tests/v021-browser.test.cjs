@@ -84,7 +84,7 @@ async function main(){
    // Committee-approved cabinet: shelves belong to patients, never to meal periods.
    await page.locator('.sidebar-link[href="#inventory"]').click();
    await page.locator('#inventory').waitFor({state:'visible'});
-   await page.waitForFunction(()=>document.querySelectorAll('#cabinetShelfMap .cabinet-map-shelf').length===5);
+   await page.waitForFunction(()=>document.querySelectorAll('#cabinetShelfMap .cabinet-map-shelf').length===4);
    const shelfNames=await page.locator('#cabinetShelfMap .cabinet-map-shelf h3').allInnerTexts();
    for(const [i,label] of ['ชั้น 1 — P001','ชั้น 2 — P002','ชั้น 3 — P003','ชั้น 4 — ยาสามัญประจำบ้าน'].entries())
       assert.match(shelfNames[i],new RegExp(label),'cabinet shelf '+(i+1));
