@@ -67,7 +67,7 @@ async function main(){
    await page.waitForFunction(n=>document.getElementById('t21PatientCount')?.textContent===String(n),expectedPeople);
    await page.waitForFunction(n=>document.getElementById('t21ScheduledCount')?.textContent===String(n),expectedPeople);
    await page.locator('#home-overview').waitFor({state:'visible'});
-   await page.waitForFunction(()=>document.querySelector('#t4mCabinetReadiness')?.textContent.includes('Google Sheets'));
+   await page.waitForFunction(missing=>document.querySelector('#t4mCabinetReadiness')?.textContent.includes(missing?'ยังไม่มีในบัญชี: P003':'ครบ 3 ชั้นใน Google Sheets'),incomplete);
    const cabinetStatus=await page.locator('#t4mCabinetReadiness').innerText();
    assert.match(cabinetStatus,incomplete?/ยังไม่มีในบัญชี: P003/:/ครบ 3 ชั้นใน Google Sheets/);
    assert.equal(await page.locator('#t21PatientCards article').count(),expectedPeople);
