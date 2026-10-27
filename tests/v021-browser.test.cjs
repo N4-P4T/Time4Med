@@ -32,6 +32,10 @@ async function main(){
   await serverReady();
   browser=await chromium.launch({headless:true,args:['--no-sandbox']});
   for(const viewport of [{width:1440,height:900},{width:390,height:844}]){
+   const incomplete=viewport.width===390; // test missing P003 without touching real Google Sheets
+   const scopedPeople=incomplete?people.slice(0,2):people;
+   const scopedMeds=incomplete?meds.slice(0,3):meds;
+   const expectedPeople=incomplete?2:3;
    const context=await browser.newContext({viewport});
    const page=await context.newPage();
    const errors=[];
@@ -49,8 +53,8 @@ async function main(){
     if(u.origin===new URL(base).origin)return route.continue();
     if(u.pathname==='/api/me')return route.fulfill({status:200,contentType:'application/json',
       body:JSON.stringify({user:{name:'Admin Tester',role:'ADMIN',email:'test@example.invalid',patientIds:'ALL'}})});
-    if(u.pathname==='/api/patients')return route.fulfill({status:200,contentType:'application/json',body:JSON.stringify({patients:people})});
-    if(u.pathname==='/api/medicines')return route.fulfill({status:200,contentType:'application/json',body:JSON.stringify({medicines:meds})});
+    if(u.pathname==='/api/patients')return route.fulfill({status:200,contentType:'application/json',body:JSON.stringify({patients:scopedPeople})});
+    if(u.pathname==='/api/medicines')return route.fulfill({status:200,contentType:'application/json',body:JSON.stringify({medicines:scopedMeds})});
     if(u.pathname==='/api/users')return route.fulfill({status:200,contentType:'application/json',body:'{"users":[]}'});
     if(u.hostname==='accounts.google.com'||u.hostname==='cdn.jsdelivr.net')return route.fulfill({status:200,contentType:'application/javascript',body:'// isolated from external services'});
     return route.abort();
@@ -60,28 +64,31 @@ async function main(){
    assert.equal(await page.locator('#home-overview').isVisible(),false);
    await page.locator('#fakeGoogleButton').click();
    await page.waitForFunction(()=>window.Time4MedAuth?.user?.role==='ADMIN');
-   await page.waitForFunction(()=>document.getElementById('t21PatientCount')?.textContent==='3');
-   await page.waitForFunction(()=>document.getElementById('t21ScheduledCount')?.textContent==='3');
+   await page.waitForFunction(n=>document.getElementById('t21PatientCount')?.textContent===String(n),expectedPeople);
+   await page.waitForFunction(n=>document.getElementById('t21ScheduledCount')?.textContent===String(n),expectedPeople);
    await page.locator('#home-overview').waitFor({state:'visible'});
-   assert.equal(await page.locator('#t21PatientCards article').count(),3);
+   await page.waitForFunction(()=>document.querySelector('#t4mCabinetReadiness')?.textContent.includes('Google Sheets'));
+   const cabinetStatus=await page.locator('#t4mCabinetReadiness').innerText();
+   assert.match(cabinetStatus,incomplete?/ยังไม่มีในบัญชี: P003/:/ครบ 3 ชั้นใน Google Sheets/);
+   assert.equal(await page.locator('#t21PatientCards article').count(),expectedPeople);
    assert.match(await page.locator('#t21AttentionList').innerText(),/ใกล้หมด/);
    assert.equal(await page.locator('#devices').isVisible(),false);
    assert.equal(await page.locator('#unlockBtn').isVisible(),false);
    assert.match(await page.locator('#t21PatientCards').innerText(),/พ่อ ทดสอบ/);
    assert.match(await page.locator('#t21PatientCards').innerText(),/แม่ ทดสอบ/);
-   assert.equal(await page.locator('#t21PatientFilter button').count(),4);
+   assert.equal(await page.locator('#t21PatientFilter button').count(),expectedPeople+1);
    await page.locator('#t21PatientFilter button').nth(1).click();
    assert.equal(await page.locator('#t21PatientCards article').count(),1);
    assert.equal(await page.locator('#t21ScheduledCount').innerText(),'1');
    await page.locator('#t21PatientFilter button').nth(0).click();
-   assert.equal(await page.locator('#t21PatientCards article').count(),3);
+   assert.equal(await page.locator('#t21PatientCards article').count(),expectedPeople);
    // New read-only schedule reviewer: never exposes a write/sync button.
    await page.locator('.sidebar-link[href="#medication"]').click();
    await page.locator('.t22-schedule-review').waitFor({state:'visible'});
-   await page.waitForFunction(()=>document.getElementById('t22ScheduledSlots')?.textContent==='3');
+   await page.waitForFunction(n=>document.getElementById('t22ScheduledSlots')?.textContent===String(n),expectedPeople);
    assert.equal(await page.locator('#t22ErrorCount').innerText(),'0');
    assert.equal(await page.locator('#sendMealSchedule').count(),0);
-   assert.equal(await page.locator('#t22Slots li.valid').count(),3);
+   assert.equal(await page.locator('#t22Slots li.valid').count(),expectedPeople);
    await page.locator('#t22ReviewAgain').click();
    assert.match(await page.locator('#t22ReviewState').innerText(),/ยังไม่ได้ส่ง/);
    // Committee-approved cabinet: shelves belong to patients, never to meal periods.
@@ -96,7 +103,7 @@ async function main(){
    await page.locator('#inventorySlotFilter').selectOption('P002');
    assert.equal(await page.locator('#inventoryItems .inventory-item').count(),2,'P002 scheduled and PRN stay on shelf 2');
    await page.locator('#inventorySlotFilter').selectOption('P003');
-   assert.equal(await page.locator('#inventoryItems .inventory-item').count(),1,'P003 bedtime medicine stays on shelf 3 despite legacy bedtime shelf value');
+   assert.equal(await page.locator('#inventoryItems .inventory-item').count(),incomplete?0:1,'P003 stays on shelf 3; missing record must not create fake medicine');
    await page.locator('#inventorySlotFilter').selectOption('common');
    assert.equal(await page.locator('#inventoryItems .inventory-item').count(),0,'PRN is not auto-classified as household medicine');
    await page.locator('.sidebar-link[href="#medication"]').click();
