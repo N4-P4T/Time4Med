@@ -7,6 +7,24 @@
 const auth=window.Time4MedAuth;
 const host=document.getElementById('medicineList');if(!host||!auth)return;
 const el=id=>document.getElementById(id);
+// Status is scoped to the authorized ADMIN view, never used as device-ready evidence.
+const cabinetStatus=document.createElement('p');
+cabinetStatus.id='t4mCabinetReadiness';
+cabinetStatus.setAttribute('role','status');
+cabinetStatus.textContent='รอข้อมูลผู้สูงอายุจาก Google Sheets';
+el('t4mAdminSection')?.appendChild(cabinetStatus);
+function renderCabinetReadiness(people){
+  if(!window.Time4MedAuth?.user || window.Time4MedAuth.user.role!=='ADMIN'){
+    cabinetStatus.textContent='รอข้อมูลผู้สูงอายุจาก Google Sheets';return;
+  }
+  const expected=['P001','P002','P003'];
+  const loaded=new Set(people.map(p=>String(p.id||'').trim().toUpperCase()));
+  const found=expected.filter(id=>loaded.has(id));
+  const missing=expected.filter(id=>!loaded.has(id));
+  cabinetStatus.textContent=missing.length?
+    'ตรวจพบผู้สูงอายุสำหรับชั้นตู้ยา '+found.length+'/3 ราย · ยังไม่มีในบัญชี: '+missing.join(', ')+' · ต้องเพิ่มผ่านระบบแอดมินเมื่อมีข้อมูลจริง':
+    'พบ P001, P002, P003 ครบ 3 ชั้นใน Google Sheets · ยังต้องทดสอบตารางยาและตู้จริง';
+}
 let baseline=new Map(),patients=[],busy=false,applying=false,ready=false,again=false;
 let writeChain=Promise.resolve();
 let assignedUsers=[],editingUserId=null;
@@ -47,6 +65,8 @@ function patientOptions(){
   for(const p of patients)select.appendChild(newOption(p.id,`${p.id} — ${p.name}`));
   const previous=patients.find(p=>p.id===previousPatientId);
   select.value=previous?.id||'';el('medicinePatient').value=previous?.name||'';
+  if(typeof showMedicineLocation==='function')showMedicineLocation();
+  renderCabinetReadiness(patients);
   let picker=el('t4mViewPatient');
   if(!picker){
     const label=document.createElement('label');label.className='t4m-patient-view';
