@@ -8,16 +8,19 @@ const html=fs.readFileSync('test-v021/index.html','utf8');
 const source=fs.readFileSync('test-v021/caregiver-center.js','utf8');
 assert.match(html,/id="t4mGoogleButton"/);
 assert.match(html,/id="home-overview"/);
+assert.match(html,/คลังภาพ: Google Drive/,'gallery must describe actual cloud storage');
+assert.doesNotMatch(html,/SD Card|172[.]20[.]10[.]6/,'do not show retired camera storage or changing hotspot IP');
 assert.match(html,/src="\.\.\/test-v019\/auth\.js"/);
 assert.doesNotMatch(source,/\.publish\s*\(|digitalWrite\s*\(|setInsecure\s*\(/);
 for(const id of ['t21PatientCount','t21ScheduledCount','t21PatientCards','t21ScheduleList','t21AttentionList','t21NeedsCheckCount','t21PatientFilter','mqttConnectButton','currentTime','currentDate','totalMedicineCount','takenMedicineCount','waitingMedicineCount','latestAlert']){
  assert.equal((html.match(new RegExp('id="'+id+'"','g'))||[]).length,1,'unique ID: '+id);
 }
-const people=[{id:'P001',name:'พ่อ ทดสอบ'},{id:'P002',name:'แม่ ทดสอบ'}];
+const people=[{id:'P001',name:'พ่อ ทดสอบ'},{id:'P002',name:'แม่ ทดสอบ'},{id:'P003',name:'ผู้สูงอายุที่สาม (ทดสอบ)'}];
 const meds=[
-{id:'a',patientId:'P001',patient:'พ่อ ทดสอบ',name:'ยาตัวอย่าง A',kind:'scheduled',mealType:2,time:'08:30',boxNumber:'1',stockStatus:'ok'},
-{id:'b',patientId:'P002',patient:'แม่ ทดสอบ',name:'ยาตัวอย่าง B',kind:'scheduled',mealType:6,time:'18:30',boxNumber:'2',stockStatus:'low'},
-{id:'c',patientId:'P002',patient:'แม่ ทดสอบ',name:'ยา PRN',kind:'prn',mealType:'prn',time:'',boxNumber:'2',stockStatus:'unchecked'}];
+{id:'a',patientId:'P001',patient:'พ่อ ทดสอบ',name:'ยาตัวอย่าง A',kind:'scheduled',mealType:2,shelf:'morning',time:'08:30',boxNumber:'1',stockStatus:'ok'},
+{id:'b',patientId:'P002',patient:'แม่ ทดสอบ',name:'ยาตัวอย่าง B',kind:'scheduled',mealType:6,shelf:'evening',time:'18:30',boxNumber:'2',stockStatus:'low'},
+{id:'c',patientId:'P002',patient:'แม่ ทดสอบ',name:'ยา PRN',kind:'prn',mealType:'prn',time:'',boxNumber:'2',stockStatus:'unchecked'},
+{id:'d',patientId:'P003',patient:'ผู้สูงอายุที่สาม (ทดสอบ)',name:'ยาก่อนนอนทดสอบ',kind:'scheduled',mealType:7,shelf:'bedtime',time:'21:00',boxNumber:'3',stockStatus:'ok'}];
 async function serverReady(){
  for(let i=0;i<55;i++){try{if((await fetch(address,{signal:AbortSignal.timeout(800)})).ok)return;}catch{}
  await new Promise(r=>setTimeout(r,150));}throw Error('server unavailable');
@@ -29,6 +32,10 @@ async function main(){
   await serverReady();
   browser=await chromium.launch({headless:true,args:['--no-sandbox']});
   for(const viewport of [{width:1440,height:900},{width:390,height:844}]){
+   const incomplete=viewport.width===390; // test missing P003 without touching real Google Sheets
+   const scopedPeople=incomplete?people.slice(0,2):people;
+   const scopedMeds=incomplete?meds.slice(0,3):meds;
+   const expectedPeople=incomplete?2:3;
    const context=await browser.newContext({viewport});
    const page=await context.newPage();
    const errors=[];
@@ -46,8 +53,8 @@ async function main(){
     if(u.origin===new URL(base).origin)return route.continue();
     if(u.pathname==='/api/me')return route.fulfill({status:200,contentType:'application/json',
       body:JSON.stringify({user:{name:'Admin Tester',role:'ADMIN',email:'test@example.invalid',patientIds:'ALL'}})});
-    if(u.pathname==='/api/patients')return route.fulfill({status:200,contentType:'application/json',body:JSON.stringify({patients:people})});
-    if(u.pathname==='/api/medicines')return route.fulfill({status:200,contentType:'application/json',body:JSON.stringify({medicines:meds})});
+    if(u.pathname==='/api/patients')return route.fulfill({status:200,contentType:'application/json',body:JSON.stringify({patients:scopedPeople})});
+    if(u.pathname==='/api/medicines')return route.fulfill({status:200,contentType:'application/json',body:JSON.stringify({medicines:scopedMeds})});
     if(u.pathname==='/api/users')return route.fulfill({status:200,contentType:'application/json',body:'{"users":[]}'});
     if(u.hostname==='accounts.google.com'||u.hostname==='cdn.jsdelivr.net')return route.fulfill({status:200,contentType:'application/javascript',body:'// isolated from external services'});
     return route.abort();
@@ -57,30 +64,59 @@ async function main(){
    assert.equal(await page.locator('#home-overview').isVisible(),false);
    await page.locator('#fakeGoogleButton').click();
    await page.waitForFunction(()=>window.Time4MedAuth?.user?.role==='ADMIN');
-   await page.waitForFunction(()=>document.getElementById('t21PatientCount')?.textContent==='2');
-   await page.waitForFunction(()=>document.getElementById('t21ScheduledCount')?.textContent==='2');
+   await page.waitForFunction(n=>document.getElementById('t21PatientCount')?.textContent===String(n),expectedPeople);
+   await page.waitForFunction(n=>document.getElementById('t21ScheduledCount')?.textContent===String(n),expectedPeople);
    await page.locator('#home-overview').waitFor({state:'visible'});
-   assert.equal(await page.locator('#t21PatientCards article').count(),2);
+   await page.waitForFunction(missing=>document.querySelector('#t4mCabinetReadiness')?.textContent.includes(missing?'ยังไม่มีในบัญชี: P003':'ครบ 3 ชั้นใน Google Sheets'),incomplete);
+   const cabinetStatus=await page.locator('#t4mCabinetReadiness').innerText();
+   assert.match(cabinetStatus,incomplete?/ยังไม่มีในบัญชี: P003/:/ครบ 3 ชั้นใน Google Sheets/);
+   assert.equal(await page.locator('#t21PatientCards article').count(),expectedPeople);
    assert.match(await page.locator('#t21AttentionList').innerText(),/ใกล้หมด/);
    assert.equal(await page.locator('#devices').isVisible(),false);
    assert.equal(await page.locator('#unlockBtn').isVisible(),false);
    assert.match(await page.locator('#t21PatientCards').innerText(),/พ่อ ทดสอบ/);
    assert.match(await page.locator('#t21PatientCards').innerText(),/แม่ ทดสอบ/);
-   assert.equal(await page.locator('#t21PatientFilter button').count(),3);
+   assert.equal(await page.locator('#t21PatientFilter button').count(),expectedPeople+1);
    await page.locator('#t21PatientFilter button').nth(1).click();
    assert.equal(await page.locator('#t21PatientCards article').count(),1);
    assert.equal(await page.locator('#t21ScheduledCount').innerText(),'1');
    await page.locator('#t21PatientFilter button').nth(0).click();
-   assert.equal(await page.locator('#t21PatientCards article').count(),2);
+   assert.equal(await page.locator('#t21PatientCards article').count(),expectedPeople);
    // New read-only schedule reviewer: never exposes a write/sync button.
    await page.locator('.sidebar-link[href="#medication"]').click();
    await page.locator('.t22-schedule-review').waitFor({state:'visible'});
-   await page.waitForFunction(()=>document.getElementById('t22ScheduledSlots')?.textContent==='2');
+   await page.waitForFunction(n=>document.getElementById('t22ScheduledSlots')?.textContent===String(n),expectedPeople);
    assert.equal(await page.locator('#t22ErrorCount').innerText(),'0');
    assert.equal(await page.locator('#sendMealSchedule').count(),0);
-   assert.equal(await page.locator('#t22Slots li.valid').count(),2);
+   assert.equal(await page.locator('#t22Slots li.valid').count(),expectedPeople);
    await page.locator('#t22ReviewAgain').click();
    assert.match(await page.locator('#t22ReviewState').innerText(),/ยังไม่ได้ส่ง/);
+   // Committee-approved cabinet: shelves belong to patients, never to meal periods.
+   await page.locator('.sidebar-link[href="#inventory"]').click();
+   await page.locator('#inventory').waitFor({state:'visible'});
+   await page.waitForFunction(()=>document.querySelectorAll('#cabinetShelfMap .cabinet-map-shelf').length===4);
+   const shelfNames=await page.locator('#cabinetShelfMap .cabinet-map-shelf h3').allInnerTexts();
+   for(const [i,label] of ['ชั้น 1 — P001','ชั้น 2 — P002','ชั้น 3 — P003','ชั้น 4 — ยาสามัญประจำบ้าน'].entries())
+      assert.match(shelfNames[i],new RegExp(label),'cabinet shelf '+(i+1));
+   await page.locator('#inventorySlotFilter').selectOption('P001');
+   assert.equal(await page.locator('#inventoryItems .inventory-item').count(),1,'P001 medicine remains on shelf 1');
+   await page.locator('#inventorySlotFilter').selectOption('P002');
+   assert.equal(await page.locator('#inventoryItems .inventory-item').count(),2,'P002 scheduled and PRN stay on shelf 2');
+   await page.locator('#inventorySlotFilter').selectOption('P003');
+   assert.equal(await page.locator('#inventoryItems .inventory-item').count(),incomplete?0:1,'P003 stays on shelf 3; missing record must not create fake medicine');
+   await page.locator('#inventorySlotFilter').selectOption('common');
+   assert.equal(await page.locator('#inventoryItems .inventory-item').count(),0,'PRN is not auto-classified as household medicine');
+   await page.locator('.sidebar-link[href="#medication"]').click();
+   await page.locator('#medicinePatientId').selectOption('P002');
+   assert.equal(await page.locator('#medicineShelfPreview').innerText(),'ชั้น 2 — P002');
+   assert.equal(await page.locator('#medicineBox').inputValue(),'2','auto-filled patient compartment');
+   assert.equal(await page.evaluate(()=>boxMatchesPatient('P001','01')),true,'legacy leading zero maps to compartment 1');
+   assert.equal(await page.evaluate(()=>boxMatchesPatient('P003','4')),false,'wrong compartment must be rejected');
+   await page.locator('#medicineMeal').selectOption('7');
+   assert.equal(await page.locator('#medicineShelfPreview').innerText(),'ชั้น 2 — P002','bedtime changes meal, not shelf');
+   await page.locator('#medicinePatientId').selectOption('P001');
+   assert.equal(await page.locator('#medicineShelfPreview').innerText(),'ชั้น 1 — P001');
+   assert.equal(await page.locator('#medicineBox').inputValue(),'1','person change also changes expected compartment');
    await page.locator('.sidebar-link[href="#devices"]').click();
    await page.locator('#devices').waitFor({state:'visible'});
    assert.equal(await page.locator('#home-overview').isVisible(),false);
