@@ -109,10 +109,14 @@ async function main(){
    await page.locator('.sidebar-link[href="#medication"]').click();
    await page.locator('#medicinePatientId').selectOption('P002');
    assert.equal(await page.locator('#medicineShelfPreview').innerText(),'ชั้น 2 — P002');
+   assert.equal(await page.locator('#medicineBox').inputValue(),'2','auto-filled patient compartment');
+   assert.equal(await page.evaluate(()=>boxMatchesPatient('P001','01')),true,'legacy leading zero maps to compartment 1');
+   assert.equal(await page.evaluate(()=>boxMatchesPatient('P003','4')),false,'wrong compartment must be rejected');
    await page.locator('#medicineMeal').selectOption('7');
    assert.equal(await page.locator('#medicineShelfPreview').innerText(),'ชั้น 2 — P002','bedtime changes meal, not shelf');
    await page.locator('#medicinePatientId').selectOption('P001');
    assert.equal(await page.locator('#medicineShelfPreview').innerText(),'ชั้น 1 — P001');
+   assert.equal(await page.locator('#medicineBox').inputValue(),'1','person change also changes expected compartment');
    await page.locator('.sidebar-link[href="#devices"]').click();
    await page.locator('#devices').waitFor({state:'visible'});
    assert.equal(await page.locator('#home-overview').isVisible(),false);
