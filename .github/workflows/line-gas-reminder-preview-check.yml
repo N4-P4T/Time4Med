@@ -1,0 +1,27 @@
+name: Verify Time4Med LINE reminder preview only
+
+on:
+  pull_request:
+    paths:
+      - 'integrations/line-apps-script/ReminderPreview.gs'
+      - 'tests/line-gas-reminder-preview.test.cjs'
+      - '.github/workflows/line-gas-reminder-preview-check.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Check syntax and offline safety test
+        run: |
+          node --check < integrations/line-apps-script/ReminderPreview.gs
+          node --check tests/line-gas-reminder-preview.test.cjs
+          node --test tests/line-gas-reminder-preview.test.cjs
