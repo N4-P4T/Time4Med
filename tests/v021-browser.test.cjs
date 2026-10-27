@@ -81,6 +81,26 @@ async function main(){
    assert.equal(await page.locator('#t22Slots li.valid').count(),2);
    await page.locator('#t22ReviewAgain').click();
    assert.match(await page.locator('#t22ReviewState').innerText(),/ยังไม่ได้ส่ง/);
+   // Committee-approved cabinet: shelves belong to patients, never to meal periods.
+   await page.locator('.sidebar-link[href="#inventory"]').click();
+   await page.locator('#inventory').waitFor({state:'visible'});
+   await page.waitForFunction(()=>document.querySelectorAll('#cabinetShelfMap .cabinet-map-shelf').length===5);
+   const shelfNames=await page.locator('#cabinetShelfMap .cabinet-map-shelf h3').allInnerTexts();
+   for(const [i,label] of ['ชั้น 1 — P001','ชั้น 2 — P002','ชั้น 3 — P003','ชั้น 4 — ยาสามัญประจำบ้าน'].entries())
+      assert.match(shelfNames[i],new RegExp(label),'cabinet shelf '+(i+1));
+   await page.locator('#inventorySlotFilter').selectOption('P001');
+   assert.equal(await page.locator('#inventoryItems .inventory-item').count(),1,'P001 medicine remains on shelf 1');
+   await page.locator('#inventorySlotFilter').selectOption('P002');
+   assert.equal(await page.locator('#inventoryItems .inventory-item').count(),2,'P002 scheduled and PRN stay on shelf 2');
+   await page.locator('#inventorySlotFilter').selectOption('common');
+   assert.equal(await page.locator('#inventoryItems .inventory-item').count(),0,'PRN is not auto-classified as household medicine');
+   await page.locator('.sidebar-link[href="#medication"]').click();
+   await page.locator('#medicinePatientId').selectOption('P002');
+   assert.equal(await page.locator('#medicineShelfPreview').innerText(),'ชั้น 2 — P002');
+   await page.locator('#medicineMeal').selectOption('7');
+   assert.equal(await page.locator('#medicineShelfPreview').innerText(),'ชั้น 2 — P002','bedtime changes meal, not shelf');
+   await page.locator('#medicinePatientId').selectOption('P001');
+   assert.equal(await page.locator('#medicineShelfPreview').innerText(),'ชั้น 1 — P001');
    await page.locator('.sidebar-link[href="#devices"]').click();
    await page.locator('#devices').waitFor({state:'visible'});
    assert.equal(await page.locator('#home-overview').isVisible(),false);
