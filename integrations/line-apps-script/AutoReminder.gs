@@ -198,6 +198,23 @@ function t4mAutoReadSource_() {
   return {meds:meds,users:users};
 }
 /**
+ * Keep a bounded de-identified delivery ledger (45 days).
+ * Under the Script Lock, remove ONLY ledger keys from older dates.
+ */
+function t4mAutoPruneOldLedgers_(props, now) {
+  var today=t4mAutoSlotAt_(now).date;
+  if(props.getProperty('T4M_AUTO_PRUNE_DAY')===today)return 0;
+  var cutoff=t4mAutoSlotAt_(new Date(now.getTime()-45*86400000)).date;
+  var all=props.getProperties(),removed=0;
+  Object.keys(all).forEach(function(key){
+    var match=/^T4M_AUTO_V1_(\d{8})_[A-Za-z0-9_-]{24}$/.exec(key);
+    if(match && match[1]<cutoff){props.deleteProperty(key);removed++;}
+  });
+  props.setProperty('T4M_AUTO_PRUNE_DAY',today);
+  return removed;
+}
+
+/**
  * Does not send or modify anything. Useful before any activation.
  * No user IDs, email, medicine names, or tokens printed.
  */
@@ -262,6 +279,7 @@ function runTime4MedReminders() {
     var u=t4mAutoAuthorizedRecipients_(data.users,allowed);
     var deliveries=t4mAutoPlan_(m,u,new Date(),T4M_AUTO_MAX_CATCHUP_MINUTES);
     var props=PropertiesService.getScriptProperties();
+    t4mAutoPruneOldLedgers_(props,new Date());
     var unsent=deliveries.filter(function(d){
       return !props.getProperty(t4mAutoHashKey_(d));
     });
@@ -283,9 +301,9 @@ function runTime4MedReminders() {
       // Defense-in-depth when a caller retries manually while lock active.
       if(props.getProperty(key))return;
       var retryKey=Utilities.getUuid();
+      var payload=JSON.stringify({to:item.lineId,messages:[t4mAutoMessage_(item)]});
       props.setProperty(key,'ATTEMPTED');
       remaining--;
-      var payload=JSON.stringify({to:item.lineId,messages:[t4mAutoMessage_(item)]});
       var response;
       try {
         response=UrlFetchApp.fetch(T4M_LINE_BASE+'/message/push',{
