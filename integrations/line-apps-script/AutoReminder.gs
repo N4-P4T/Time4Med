@@ -119,13 +119,18 @@ function t4mAutoAuthorizedRecipients_(usersData,allowed) {
   return {recipients:byLineId,stats:stats};
 }
 function t4mAutoSlotAt_(date) {
-  var formatted=Utilities.formatDate(date,T4M_REMINDER_TZ,'yyyyMMdd|HH:mm|EEE');
+  var formatted=Utilities.formatDate(date,T4M_REMINDER_TZ,'yyyyMMdd|HH:mm');
   var fields=formatted.split('|');
-  if(fields.length!==3 || !/^\d{8}$/.test(fields[0]) ||
-     !t4mPreviewValidTime_(fields[1]) ||
-     ['MON','TUE','WED','THU','FRI','SAT','SUN'].indexOf(fields[2].toUpperCase())<0)
+  if(fields.length!==2 || !/^\d{8}$/.test(fields[0]) ||
+     !t4mPreviewValidTime_(fields[1]))
     throw new Error('LINE_AUTO_TIME_FORMAT_INVALID');
-  return {date:fields[0],time:fields[1],day:fields[2].toUpperCase()};
+  // UTC date is built from the Bangkok calendar day: no locale-dependent EEE.
+  var y=Number(fields[0].substring(0,4));
+  var m=Number(fields[0].substring(4,6));
+  var d=Number(fields[0].substring(6,8));
+  var dateNo=new Date(Date.UTC(y,m-1,d)).getUTCDay();
+  var names=['SUN','MON','TUE','WED','THU','FRI','SAT'];
+  return {date:fields[0],time:fields[1],day:names[dateNo]};
 }
 /** Build one delivery per authorized LINE recipient, date and minute. */
 function t4mAutoPlan_(slots,recipients,now,maxLookback) {
