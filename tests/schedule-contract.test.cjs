@@ -45,7 +45,7 @@ const ui=fs.readFileSync('test-v021/schedule-review.js','utf8');
 const page=fs.readFileSync('test-v021/index.html','utf8');
 const protectedConfig=fs.readFileSync('test-v019/auth-config.js','utf8');
 assert.match(page,/src="schedule-contract\.js"/);
-assert.match(page,/src="schedule-review\.js"/);
+assert.match(page,/src="schedule-review\.js(?:\?[^"]*)?"/);
 assert.doesNotMatch(page,/src="\.\.\/test-v019\/schedule-sync\.js"/);
 assert.doesNotMatch(ui,/\.\s*publish\s*\(|\.\s*subscribe\s*\(|mqtt\.connect|client\.connect|command\/lock/,'review must never call MQTT');
 assert.doesNotMatch(ui,/setInsecure|fetch\s*\(/);
