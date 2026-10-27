@@ -284,6 +284,22 @@ test('unknown days and wrong medicine compartment are excluded',()=>{
  assert.equal(r.readyToInstall,false);
 });
 
+test('ledger cleanup prunes only old hashed entries, never current-day keys',()=>{
+ const t=harness({properties:{
+  LINE_AUTO_ENABLED:'YES',LINE_AUTO_SEND_ENABLED:'YES',
+  LINE_AUTO_ALLOWED_USER_IDS:LINEID_A,
+  T4M_AUTO_V1_20260101_123456789012345678901234:'API_ACCEPTED',
+  T4M_AUTO_V1_20261027_123456789012345678901234:'API_ACCEPTED',
+  OTHER_PROPERTY:'preserve'
+ }});
+ const result=t.ctx.runTime4MedReminders();
+ assert.equal(result.notificationsSent,0);
+ assert.equal(t.state.has('T4M_AUTO_V1_20260101_123456789012345678901234'),false);
+ assert.equal(t.state.get('T4M_AUTO_V1_20261027_123456789012345678901234'),'API_ACCEPTED');
+ assert.equal(t.state.get('OTHER_PROPERTY'),'preserve');
+ assert.equal(t.state.get('T4M_AUTO_PRUNE_DAY'),'20261027');
+});
+
 test('no Cloudflare Worker endpoint/webhook or mutation of production sheet',()=>{
  const engine=fs.readFileSync('integrations/line-apps-script/AutoReminder.gs','utf8');
  assert.doesNotMatch(engine,/workers[.]dev|function\s+doPost\s*\(|[.]appendRow\s*\(|[.]setValue\s*\(/);
