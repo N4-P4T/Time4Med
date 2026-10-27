@@ -528,6 +528,16 @@ function shelfDef(patientId) {
     return TIME4MED_PATIENT_SHELVES[String(patientId || '').trim()] ||
         {shelf:'unassigned',shelfLabel:'ยังไม่กำหนดชั้น (ตรวจสอบรหัสผู้สูงอายุ)'};
 }
+// Legacy field "boxNumber" denotes the person's fixed compartment, not a
+// separately numbered medicine container inside a shelf.
+function compartmentForPatient(patientId) {
+    return ({P001:'1',P002:'2',P003:'3'})[String(patientId || '').trim()] || '';
+}
+function boxMatchesPatient(patientId,boxNumber) {
+    return /^\d{1,2}$/.test(String(boxNumber || '')) &&
+        Number(boxNumber)===Number(compartmentForPatient(patientId)) &&
+        Boolean(compartmentForPatient(patientId));
+}
 const TIME4MED_MEAL_DEFS = Object.freeze({
     '1': {label:'ก่อนอาหารเช้า'},
     '2': {label:'หลังอาหารเช้า'},
@@ -672,6 +682,7 @@ function showMedicineLocation() {
     const def = TIME4MED_MEAL_DEFS[medicineMeal.value] || TIME4MED_MEAL_DEFS['2'];
     const prn = medicineMeal.value === 'prn';
     medicineShelfPreview.textContent = shelfDef(medicinePatientId?.value).shelfLabel;
+    if (!editingMedicineId) medicineBox.value=compartmentForPatient(medicinePatientId?.value);
     medicineTimeGroup.hidden = prn;
     medicineTime.required = !prn;
     medicineInstruction.required = prn;
@@ -744,13 +755,11 @@ function addMedicine() {
         showFormMessage('กรุณากรอกผู้ป่วย ชื่อยา หมายเลขกล่อง และเวลาสำหรับยาตามมื้อให้ครบ','error');return;
     }
     if (prn && !instruction) {showFormMessage('ยา PRN ต้องมีวิธีใช้ตามฉลากหรือคำสั่งแพทย์ ก่อนบันทึก','error');medicineInstruction.focus();return;}
-    if (!/^[0-9A-Za-zก-๙_-]{1,12}$/.test(boxNumber)) {
-        showFormMessage('หมายเลขกล่องใช้ตัวอักษร ตัวเลข ขีดกลาง หรือขีดล่างเท่านั้น','error');return;
+    if (!boxMatchesPatient(patientId,boxNumber)) {
+        showFormMessage('ช่องยาต้องตรงกับผู้สูงอายุ: P001=1, P002=2, P003=3','error');return;
     }
-    const conflict=medicines.find(m=>m.id!==editingMedicineId &&
-        mealDef(m).shelf===shelfDef(patientId).shelf && String(m.boxNumber).toUpperCase()===boxNumber &&
-        (m.patient!==patient || String(m.mealType)!==String(prn?'prn':mealValue)));
-    if (conflict) {showFormMessage('หมายเลขกล่องนี้ในชั้นเดียวกันใช้กับผู้ป่วยหรือมื้ออื่นแล้ว กรุณาเลือกกล่องอื่นเพื่อป้องกันหยิบผิด','error');return;}
+    // Multiple medicines and different meal times can share ONE person's
+    // compartment. The physical sub-box inventory is not represented here.
     const entry = editingMedicineId ? medicines.find(m=>m.id===editingMedicineId) : null;
     if (editingMedicineId && !entry) {showFormMessage('ไม่พบรายการที่ต้องการแก้ไข','error');return;}
     const target=entry || {id:time4medUid(),stockStatus:'unchecked'};
