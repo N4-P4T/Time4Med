@@ -13,11 +13,12 @@ assert.doesNotMatch(source,/\.publish\s*\(|digitalWrite\s*\(|setInsecure\s*\(/);
 for(const id of ['t21PatientCount','t21ScheduledCount','t21PatientCards','t21ScheduleList','t21AttentionList','t21NeedsCheckCount','t21PatientFilter','mqttConnectButton','currentTime','currentDate','totalMedicineCount','takenMedicineCount','waitingMedicineCount','latestAlert']){
  assert.equal((html.match(new RegExp('id="'+id+'"','g'))||[]).length,1,'unique ID: '+id);
 }
-const people=[{id:'P001',name:'พ่อ ทดสอบ'},{id:'P002',name:'แม่ ทดสอบ'}];
+const people=[{id:'P001',name:'พ่อ ทดสอบ'},{id:'P002',name:'แม่ ทดสอบ'},{id:'P003',name:'ผู้สูงอายุที่สาม (ทดสอบ)'}];
 const meds=[
 {id:'a',patientId:'P001',patient:'พ่อ ทดสอบ',name:'ยาตัวอย่าง A',kind:'scheduled',mealType:2,shelf:'morning',time:'08:30',boxNumber:'1',stockStatus:'ok'},
 {id:'b',patientId:'P002',patient:'แม่ ทดสอบ',name:'ยาตัวอย่าง B',kind:'scheduled',mealType:6,shelf:'evening',time:'18:30',boxNumber:'2',stockStatus:'low'},
-{id:'c',patientId:'P002',patient:'แม่ ทดสอบ',name:'ยา PRN',kind:'prn',mealType:'prn',time:'',boxNumber:'2',stockStatus:'unchecked'}];
+{id:'c',patientId:'P002',patient:'แม่ ทดสอบ',name:'ยา PRN',kind:'prn',mealType:'prn',time:'',boxNumber:'2',stockStatus:'unchecked'},
+{id:'d',patientId:'P003',patient:'ผู้สูงอายุที่สาม (ทดสอบ)',name:'ยาก่อนนอนทดสอบ',kind:'scheduled',mealType:7,shelf:'bedtime',time:'21:00',boxNumber:'3',stockStatus:'ok'}];
 async function serverReady(){
  for(let i=0;i<55;i++){try{if((await fetch(address,{signal:AbortSignal.timeout(800)})).ok)return;}catch{}
  await new Promise(r=>setTimeout(r,150));}throw Error('server unavailable');
@@ -57,28 +58,28 @@ async function main(){
    assert.equal(await page.locator('#home-overview').isVisible(),false);
    await page.locator('#fakeGoogleButton').click();
    await page.waitForFunction(()=>window.Time4MedAuth?.user?.role==='ADMIN');
-   await page.waitForFunction(()=>document.getElementById('t21PatientCount')?.textContent==='2');
-   await page.waitForFunction(()=>document.getElementById('t21ScheduledCount')?.textContent==='2');
+   await page.waitForFunction(()=>document.getElementById('t21PatientCount')?.textContent==='3');
+   await page.waitForFunction(()=>document.getElementById('t21ScheduledCount')?.textContent==='3');
    await page.locator('#home-overview').waitFor({state:'visible'});
-   assert.equal(await page.locator('#t21PatientCards article').count(),2);
+   assert.equal(await page.locator('#t21PatientCards article').count(),3);
    assert.match(await page.locator('#t21AttentionList').innerText(),/ใกล้หมด/);
    assert.equal(await page.locator('#devices').isVisible(),false);
    assert.equal(await page.locator('#unlockBtn').isVisible(),false);
    assert.match(await page.locator('#t21PatientCards').innerText(),/พ่อ ทดสอบ/);
    assert.match(await page.locator('#t21PatientCards').innerText(),/แม่ ทดสอบ/);
-   assert.equal(await page.locator('#t21PatientFilter button').count(),3);
+   assert.equal(await page.locator('#t21PatientFilter button').count(),4);
    await page.locator('#t21PatientFilter button').nth(1).click();
    assert.equal(await page.locator('#t21PatientCards article').count(),1);
    assert.equal(await page.locator('#t21ScheduledCount').innerText(),'1');
    await page.locator('#t21PatientFilter button').nth(0).click();
-   assert.equal(await page.locator('#t21PatientCards article').count(),2);
+   assert.equal(await page.locator('#t21PatientCards article').count(),3);
    // New read-only schedule reviewer: never exposes a write/sync button.
    await page.locator('.sidebar-link[href="#medication"]').click();
    await page.locator('.t22-schedule-review').waitFor({state:'visible'});
-   await page.waitForFunction(()=>document.getElementById('t22ScheduledSlots')?.textContent==='2');
+   await page.waitForFunction(()=>document.getElementById('t22ScheduledSlots')?.textContent==='3');
    assert.equal(await page.locator('#t22ErrorCount').innerText(),'0');
    assert.equal(await page.locator('#sendMealSchedule').count(),0);
-   assert.equal(await page.locator('#t22Slots li.valid').count(),2);
+   assert.equal(await page.locator('#t22Slots li.valid').count(),3);
    await page.locator('#t22ReviewAgain').click();
    assert.match(await page.locator('#t22ReviewState').innerText(),/ยังไม่ได้ส่ง/);
    // Committee-approved cabinet: shelves belong to patients, never to meal periods.
@@ -92,6 +93,8 @@ async function main(){
    assert.equal(await page.locator('#inventoryItems .inventory-item').count(),1,'P001 medicine remains on shelf 1');
    await page.locator('#inventorySlotFilter').selectOption('P002');
    assert.equal(await page.locator('#inventoryItems .inventory-item').count(),2,'P002 scheduled and PRN stay on shelf 2');
+   await page.locator('#inventorySlotFilter').selectOption('P003');
+   assert.equal(await page.locator('#inventoryItems .inventory-item').count(),1,'P003 bedtime medicine stays on shelf 3 despite legacy bedtime shelf value');
    await page.locator('#inventorySlotFilter').selectOption('common');
    assert.equal(await page.locator('#inventoryItems .inventory-item').count(),0,'PRN is not auto-classified as household medicine');
    await page.locator('.sidebar-link[href="#medication"]').click();
