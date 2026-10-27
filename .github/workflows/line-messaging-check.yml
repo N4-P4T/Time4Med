@@ -1,0 +1,28 @@
+name: Test Time4Med LINE Messaging API helpers
+
+on:
+  pull_request:
+    paths:
+      - 'backend/line-messaging.mjs'
+      - 'tests/line-messaging.test.mjs'
+      - '.github/workflows/line-messaging-check.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  line:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Check syntax
+        run: |
+          node --check backend/line-messaging.mjs
+          node --check tests/line-messaging.test.mjs
+      - name: Test quota guard, push requests and webhook signature offline
+        run: node --test tests/line-messaging.test.mjs
