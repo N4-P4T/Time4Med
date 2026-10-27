@@ -1,0 +1,28 @@
+name: Verify Time4Med LINE Google Apps Script pilot
+
+on:
+  pull_request:
+    paths:
+      - 'integrations/line-apps-script/**'
+      - 'tests/line-gas-pilot.test.cjs'
+      - '.github/workflows/line-gas-pilot-check.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Validate Apps Script JavaScript syntax and tests
+        run: |
+          node --check < integrations/line-apps-script/Code.gs
+          node --check tests/line-gas-pilot.test.cjs
+      - name: Run offline LINE mock tests (no real messaging)
+        run: node --test tests/line-gas-pilot.test.cjs
