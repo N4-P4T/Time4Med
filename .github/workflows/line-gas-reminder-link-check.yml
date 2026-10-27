@@ -1,0 +1,27 @@
+name: Verify Time4Med LINE reminder website link
+
+on:
+  pull_request:
+    paths:
+      - 'integrations/line-apps-script/ReminderLink.gs'
+      - 'tests/line-gas-reminder-link.test.cjs'
+      - '.github/workflows/line-gas-reminder-link-check.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Verify link-bearing reminder and one-time sandbox send
+        run: |
+          node --check < integrations/line-apps-script/ReminderLink.gs
+          node --check tests/line-gas-reminder-link.test.cjs
+          node --test tests/line-gas-reminder-link.test.cjs
