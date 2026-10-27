@@ -28,6 +28,50 @@ export function buildReminderText({patientIds, time, mealType}) {
     'หมายเหตุ: การแจ้งเตือนนี้ไม่ใช่หลักฐานว่าได้รับประทานยาแล้ว';
 }
 
+/**
+ * Prepare ONE notification per verified caregiver, meal and clock time.
+ * The caller MUST load slots and caregiver assignments from its authorized
+ * server-side Sheets records, never directly from a browser request.
+ * Does not schedule or send anything; unmatched caregiver stays unlinked.
+ */
+export function planCaregiverReminders({slots, caregivers}) {
+  if (!Array.isArray(slots) || slots.length>18 || !Array.isArray(caregivers))
+    throw Error('INVALID_PLAN_SOURCE');
+  const canonicalSlots=[];
+  const seenSlots=new Set();
+  for (const s of slots) {
+    const id=String(s?.patientId||''), time=String(s?.time||''), meal=Number(s?.mealType);
+    if(!PATIENTS.has(id)||!TIME.test(time)||!MEALS[meal]) throw Error('INVALID_SCHEDULE_SLOT');
+    const key=id+'|'+time+'|'+meal;
+    if(!seenSlots.has(key)){seenSlots.add(key);canonicalSlots.push({patientId:id,time,mealType:meal});}
+  }
+  const groups=new Map(),unlinked=[];
+  for(const c of caregivers) {
+    if(c?.status!=='ACTIVE') continue;
+    if(!Array.isArray(c.patientIds) || c.patientIds.some(id=>!PATIENTS.has(id)))
+      throw Error('INVALID_CAREGIVER_SCOPE');
+    if(!c.lineVerified || !c.lineUserId) {
+      unlinked.push(String(c.id||'unspecified'));continue;
+    }
+    if(!LINE_USER_ID.test(c.lineUserId)) throw Error('INVALID_LINE_RECIPIENT');
+    const allowed=new Set(c.patientIds);
+    for(const slot of canonicalSlots) {
+      if(!allowed.has(slot.patientId))continue;
+      const key=c.lineUserId+'|'+slot.time+'|'+slot.mealType;
+      const prior=groups.get(key);
+      if(prior){prior.reminder.patientIds.push(slot.patientId);}
+      else groups.set(key,{lineUserId:c.lineUserId,
+        reminder:{patientIds:[slot.patientId],time:slot.time,mealType:slot.mealType}});
+    }
+  }
+  const jobs=[...groups.values()].map(job=>({
+    lineUserId:job.lineUserId,
+    reminder:{...job.reminder,patientIds:[...new Set(job.reminder.patientIds)].sort()}
+  })).sort((a,b)=>a.reminder.time.localeCompare(b.reminder.time) ||
+    a.lineUserId.localeCompare(b.lineUserId) || a.reminder.mealType-b.reminder.mealType);
+  return {jobs,unlinkedCaregivers:unlinked};
+}
+
 async function readLineJson(response) {
   try { return await response.json(); } catch { throw Error('LINE_INVALID_RESPONSE'); }
 }
