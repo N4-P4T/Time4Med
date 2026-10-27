@@ -42,6 +42,7 @@ const medicinePatient = document.getElementById("medicinePatient");
 const medicinePatientId = document.getElementById("medicinePatientId");
 if (medicinePatientId) medicinePatientId.addEventListener('change',()=>{
   medicinePatient.value=medicinePatientId.selectedOptions[0]?.dataset.patientName||'';
+  showMedicineLocation();
 });
 const medicineMeal = document.getElementById("medicineMeal");
 const medicineBox = document.getElementById("medicineBox");
@@ -517,20 +518,32 @@ try {
 }
 
 
-// ข้อมูลตู้ยา v0.16 — ดึงชั้นจากมื้อโดยตรง และไม่เดาหมายเลขกล่องของข้อมูลเก่า
+// ชั้น 1–3 สำหรับ P001–P003; ชั้น 4 เก็บยาสามัญประจำบ้าน (ไม่เท่ากับ PRN)
+const TIME4MED_PATIENT_SHELVES = Object.freeze({
+    P001: Object.freeze({shelf:'P001',shelfLabel:'ชั้น 1 — P001'}),
+    P002: Object.freeze({shelf:'P002',shelfLabel:'ชั้น 2 — P002'}),
+    P003: Object.freeze({shelf:'P003',shelfLabel:'ชั้น 3 — P003'})
+});
+function shelfDef(patientId) {
+    return TIME4MED_PATIENT_SHELVES[String(patientId || '').trim()] ||
+        {shelf:'unassigned',shelfLabel:'ยังไม่กำหนดชั้น (ตรวจสอบรหัสผู้สูงอายุ)'};
+}
 const TIME4MED_MEAL_DEFS = Object.freeze({
-    '1': {shelf:'morning', shelfLabel:'ชั้น 1 — เช้า', label:'ก่อนอาหารเช้า'},
-    '2': {shelf:'morning', shelfLabel:'ชั้น 1 — เช้า', label:'หลังอาหารเช้า'},
-    '3': {shelf:'noon', shelfLabel:'ชั้น 2 — กลางวัน', label:'ก่อนอาหารกลางวัน'},
-    '4': {shelf:'noon', shelfLabel:'ชั้น 2 — กลางวัน', label:'หลังอาหารกลางวัน'},
-    '5': {shelf:'evening', shelfLabel:'ชั้น 3 — เย็น', label:'ก่อนอาหารเย็น'},
-    '6': {shelf:'evening', shelfLabel:'ชั้น 3 — เย็น', label:'หลังอาหารเย็น'},
-    '7': {shelf:'bedtime', shelfLabel:'ชั้น 4 — ก่อนนอน', label:'ก่อนนอน'},
-    'prn': {shelf:'prn', shelfLabel:'พื้นที่ PRN (แยกจาก 4 ชั้น)', label:'ใช้เมื่อมีอาการ (PRN)'}
+    '1': {label:'ก่อนอาหารเช้า'},
+    '2': {label:'หลังอาหารเช้า'},
+    '3': {label:'ก่อนอาหารกลางวัน'},
+    '4': {label:'หลังอาหารกลางวัน'},
+    '5': {label:'ก่อนอาหารเย็น'},
+    '6': {label:'หลังอาหารเย็น'},
+    '7': {label:'ก่อนนอน'},
+    'prn': {label:'ใช้เมื่อมีอาการ (PRN)'}
 });
 const TIME4MED_STATUS_LABELS = Object.freeze({unchecked:'ยังไม่ตรวจสอบ',ok:'ยาเพียงพอ',low:'ยาใกล้หมด',out:'ยาหมด'});
 function time4medUid() { return typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : `med-${Date.now()}-${Math.random().toString(36).slice(2)}`; }
-function mealDef(row) { return TIME4MED_MEAL_DEFS[row.kind === 'prn' ? 'prn' : String(row.mealType)] || TIME4MED_MEAL_DEFS['2']; }
+function mealDef(row) {
+    const meal = TIME4MED_MEAL_DEFS[row.kind === 'prn' ? 'prn' : String(row.mealType)] || TIME4MED_MEAL_DEFS['2'];
+    return {...meal,...shelfDef(row.patientId)};
+}
 function normalizeMedicineRecords() {
     let changed = false; const ids = new Set();
     medicines = medicines.filter(row=>row && typeof row === 'object');
@@ -658,7 +671,7 @@ let editingMedicineId = null;
 function showMedicineLocation() {
     const def = TIME4MED_MEAL_DEFS[medicineMeal.value] || TIME4MED_MEAL_DEFS['2'];
     const prn = medicineMeal.value === 'prn';
-    medicineShelfPreview.textContent = def.shelfLabel;
+    medicineShelfPreview.textContent = shelfDef(medicinePatientId?.value).shelfLabel;
     medicineTimeGroup.hidden = prn;
     medicineTime.required = !prn;
     medicineInstruction.required = prn;
@@ -735,7 +748,7 @@ function addMedicine() {
         showFormMessage('หมายเลขกล่องใช้ตัวอักษร ตัวเลข ขีดกลาง หรือขีดล่างเท่านั้น','error');return;
     }
     const conflict=medicines.find(m=>m.id!==editingMedicineId &&
-        mealDef(m).shelf===def.shelf && String(m.boxNumber).toUpperCase()===boxNumber &&
+        mealDef(m).shelf===shelfDef(patientId).shelf && String(m.boxNumber).toUpperCase()===boxNumber &&
         (m.patient!==patient || String(m.mealType)!==String(prn?'prn':mealValue)));
     if (conflict) {showFormMessage('หมายเลขกล่องนี้ในชั้นเดียวกันใช้กับผู้ป่วยหรือมื้ออื่นแล้ว กรุณาเลือกกล่องอื่นเพื่อป้องกันหยิบผิด','error');return;}
     const entry = editingMedicineId ? medicines.find(m=>m.id===editingMedicineId) : null;
@@ -750,7 +763,7 @@ function addMedicine() {
     if (!entry) medicines.push(target);
     try {saveMedicines();} catch(e) {showFormMessage('บันทึกไม่สำเร็จ พื้นที่เบราว์เซอร์อาจเต็ม','error');return;}
     renderMedicines();clearMedicineForm();
-    showFormMessage(`กำลังซิงก์ ${name} · ${def.shelfLabel} · กล่อง ${boxNumber} กรุณารอข้อความบันทึกสำเร็จ`,'success');
+    showFormMessage(`กำลังซิงก์ ${name} · ${shelfDef(patientId).shelfLabel} · กล่อง ${boxNumber} กรุณารอข้อความบันทึกสำเร็จ`,'success');
 }
 function deleteMedicine(id) {
     const row=medicines.find(m=>m.id===id);if (!row) return;
