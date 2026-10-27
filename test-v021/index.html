@@ -565,8 +565,8 @@
                         <input id="medicineBox" type="text" maxlength="12" autocomplete="off" placeholder="เช่น 01 หรือ A1">
                     </div>
                     <div class="form-group cabinet-location-note" aria-live="polite">
-                        <span class="cabinet-location-title">ตำแหน่งจากมื้อยาที่เลือก</span>
-                        <strong id="medicineShelfPreview">ชั้น 1 — เช้า</strong>
+                        <span class="cabinet-location-title">ตำแหน่งชั้นตามผู้สูงอายุที่เลือก</span>
+                        <strong id="medicineShelfPreview">กรุณาเลือก P001–P003</strong>
                         <small>แนะนำติดหมายเลขกล่องจริงให้ตรงกับเว็บไซต์</small>
                     </div>
                     <details class="medicine-extra">
@@ -648,7 +648,7 @@
              <div class="panel-heading inventory-heading">
                <div class="heading-left"><span class="heading-icon">🗂️</span>
                  <div><h2>แผนผังตู้และสถานะยา</h2>
-                   <p class="panel-subtitle">4 ชั้นตามมื้ออาหาร · ยา PRN แยกพื้นที่ · ผู้ดูแลเป็นผู้ตรวจสอบสถานะ</p>
+                   <p class="panel-subtitle">ชั้น 1–3 สำหรับ P001–P003 · ชั้น 4 สำหรับยาสามัญประจำบ้าน · ผู้ดูแลเป็นผู้ตรวจสอบสถานะ</p>
                  </div>
                </div>
                <span class="inventory-local-badge">ข้อมูลบัญชีนี้ / Google Sheets (เมื่อเชื่อมต่อ)</span>
@@ -662,14 +662,14 @@
              <div id="cabinetShelfMap" class="cabinet-shelf-map" aria-label="แผนผังตู้ยา"></div>
              <div class="inventory-toolbar">
                <div class="inventory-filters">
-                 <label for="inventorySlotFilter">กรองตามมื้อ / ตำแหน่ง</label>
+                 <label for="inventorySlotFilter">กรองตามชั้น / ผู้สูงอายุ</label>
                  <select id="inventorySlotFilter">
                    <option value="all">ทุกชั้น</option>
-                   <option value="morning">ชั้น 1 — เช้า</option>
-                   <option value="noon">ชั้น 2 — กลางวัน</option>
-                   <option value="evening">ชั้น 3 — เย็น</option>
-                   <option value="bedtime">ชั้น 4 — ก่อนนอน</option>
-                   <option value="prn">พื้นที่ PRN</option>
+                   <option value="P001">ชั้น 1 — P001</option>
+                   <option value="P002">ชั้น 2 — P002</option>
+                   <option value="P003">ชั้น 3 — P003</option>
+                   <option value="common">ชั้น 4 — ยาสามัญประจำบ้าน</option>
+                   <option value="unassigned">ยังไม่กำหนดชั้น</option>
                  </select>
                </div>
                <div class="inventory-export-actions">
