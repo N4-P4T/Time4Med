@@ -1,0 +1,27 @@
+name: Verify Time4Med read-only Sheets schedule preview
+
+on:
+  pull_request:
+    paths:
+      - 'integrations/line-apps-script/SheetPreview.gs'
+      - 'tests/line-gas-sheet-preview.test.cjs'
+      - '.github/workflows/line-gas-sheet-preview-check.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Validate Apps Script syntax and mock tests
+        run: |
+          node --check < integrations/line-apps-script/SheetPreview.gs
+          node --check tests/line-gas-sheet-preview.test.cjs
+          node --test tests/line-gas-sheet-preview.test.cjs
