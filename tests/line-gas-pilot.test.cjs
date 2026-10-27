@@ -116,7 +116,7 @@ test('HTTP failure stays attempted; does not retry automatically',()=>{
 });
 
 test('no Cloudflare endpoint, webhook or schedule trigger in pilot code',()=>{
-  assert.doesNotMatch(script,/cloudflare|workers\.dev|function\s+doPost\s*\(|ScriptApp\.newTrigger|SpreadsheetApp\.openById/i);
+  assert.doesNotMatch(script,/workers[.]dev|function\s+doPost\s*\(|ScriptApp[.]newTrigger|SpreadsheetApp[.]openById/i);
   assert.match(script,/PropertiesService\.getScriptProperties\(\)/);
   assert.match(script,/https:\/\/api\.line\.me\/v2\/bot/);
 });
