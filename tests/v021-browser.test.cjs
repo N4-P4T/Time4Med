@@ -8,6 +8,8 @@ const html=fs.readFileSync('test-v021/index.html','utf8');
 const source=fs.readFileSync('test-v021/caregiver-center.js','utf8');
 assert.match(html,/id="t4mGoogleButton"/);
 assert.match(html,/id="home-overview"/);
+assert.match(html,/คลังภาพ: Google Drive/,'gallery must describe actual cloud storage');
+assert.doesNotMatch(html,/SD Card|172\\.20\\.10\\.6/,'do not show retired camera storage or changing hotspot IP');
 assert.match(html,/src="\.\.\/test-v019\/auth\.js"/);
 assert.doesNotMatch(source,/\.publish\s*\(|digitalWrite\s*\(|setInsecure\s*\(/);
 for(const id of ['t21PatientCount','t21ScheduledCount','t21PatientCards','t21ScheduleList','t21AttentionList','t21NeedsCheckCount','t21PatientFilter','mqttConnectButton','currentTime','currentDate','totalMedicineCount','takenMedicineCount','waitingMedicineCount','latestAlert']){
