@@ -1,0 +1,25 @@
+name: Verify isolated Time4Med LINE staging one-shot scheduler
+on:
+  pull_request:
+    paths:
+      - 'integrations/line-apps-script/StagingReminder.gs'
+      - 'tests/line-staging-one-shot.test.cjs'
+      - '.github/workflows/line-staging-one-shot-check.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Syntax check
+        run: |
+          node --check < integrations/line-apps-script/StagingReminder.gs
+          node --check tests/line-staging-one-shot.test.cjs
+      - name: Run staging dry-run mocks only (cannot send LINE)
+        run: node --test tests/line-staging-one-shot.test.cjs
