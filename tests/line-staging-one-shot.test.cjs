@@ -15,7 +15,7 @@ const USER_HEAD=['user_id','email','display_name','role','patient_id','line_user
  'notification_enabled','status','created_at','updated_at'];
 const makeSheet=rows=>({
  rows,
- getLastColumn(){return rows.find(row=>row.length>0).length;},
+ getLastColumn(){return Math.max(...rows.map(row=>row.length));},
  getLastRow(){return rows.length;},
  getRange(row,col,height=1,width=1) {
   return {
