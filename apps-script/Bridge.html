@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="th"><head><meta charset="utf-8"><title>Time4Med Bridge</title></head><body>
+<p>Time4Med secure bridge</p>
+<script>
+'use strict';
+(function() {
+  const channel = '<?= channel ?>';
+  const allowedOrigin = 'https://n4-p4t.github.io';
+  const routes = Object.freeze({
+    requestOtp: true, verifyOtp: true, bootstrap: true,
+    saveMedicine: true, disableMedicine: true, saveUser: true,
+    readImage: true, testLine: true, logout: true
+  });
+  let acknowledged = false;
+  function ready() {
+    if (!acknowledged) window.top.postMessage({app:'time4med-gas-bridge',type:'ready',channel}, allowedOrigin);
+  }
+  window.addEventListener('message', function(event) {
+    if (event.source !== window.top || event.origin !== allowedOrigin) return;
+    const data = event.data;
+    if (!data || data.app !== 'time4med-gas-bridge' || data.channel !== channel) return;
+    if (data.type === 'hello') {acknowledged = true;ready();return;}
+    if (data.type !== 'call' || !Number.isSafeInteger(data.id) || !routes[data.method] ||
+      !Array.isArray(data.args) || data.args.length > 3 ||
+      JSON.stringify(data.args).length > 100000) return;
+    acknowledged = true;
+    const reply = (ok,value) => event.source.postMessage({
+      app:'time4med-gas-bridge',type:'reply',channel,id:data.id,ok,
+      ...(ok?{value}:{error:String(value && value.message || value).slice(0,250)})
+    }, allowedOrigin);
+    try {
+      google.script.run.withSuccessHandler(value=>reply(true,value))
+        .withFailureHandler(err=>reply(false,err))[data.method].apply(null,data.args);
+    } catch(err) { reply(false,err); }
+  });
+  ready();
+  const timer=setInterval(()=>{if(acknowledged)clearInterval(timer);else ready();},900);
+  setTimeout(()=>clearInterval(timer),30000);
+})();
+</script></body></html>
