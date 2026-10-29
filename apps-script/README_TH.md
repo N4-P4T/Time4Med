@@ -9,6 +9,14 @@
 - ต้องกำหนด DEVICE_API_KEY ใน Script Properties และตั้ง DEMO_DEVICE_ID เป็น deviceId ของ ESP32-S3 หากไม่ใช่ S3-001
 - อ่านรายละเอียด API และเงื่อนไขไม่บันทึกข้อมูลใน apps-script/DEMO_MODE_TH.md
 
+## LINE แจ้งเตือนพร้อมลิงก์เว็บไซต์ (อัปเดต 29 ต.ค. 2569)
+- แจ้งเตือนรอบยาตาม `MealMedicines` จะระบุ P001–P003, ชั้น, มื้อ, เวลา, ชื่อยา และลิงก์เข้าเว็บไซต์ Time4Med
+- ข้อความทดสอบ LINE ของ ADMIN และแจ้งเตือน Emergency จากอุปกรณ์จะมีลิงก์เดียวกันด้วย
+- ลิงก์เริ่มต้นคือ Web App `/exec` ที่ใช้งานในโครงการปัจจุบัน; ถ้า Deploy เปลี่ยน URL ภายหลัง ให้ตั้ง Script Property `TIME4MED_WEBSITE_URL` เป็น URL `/exec` ใหม่
+- ระบบข้ามรายการทดสอบที่ ID หรือชื่อขึ้นต้น `TEST_`, `DEMO_`, `LINECHECK_` ไม่ให้เป็นตารางยาจริง
+- **ค่า `LINE_REMINDERS_ENABLED=FALSE` ต้องคงไว้ก่อน** การแก้โค้ดนี้ไม่เปิดใช้งาน Trigger LINE อัตโนมัติ
+- การแก้ไฟล์บน GitHub ยังไม่เปลี่ยน Apps Script ที่ Deploy แล้ว เจ้าของโปรเจ็กต์ต้องคัดลอก `apps-script/Code.gs` เวอร์ชันนี้ไปแทนในโปรเจ็กต์ `Time4Med-System` แล้ว Deploy → Manage deployments → Edit → New version เพื่อให้ `/exec` ใช้โค้ดใหม่
+- เมื่อปล่อยเวอร์ชันใหม่แล้ว ทดสอบปุ่ม LINE ในเว็บด้วยบัญชี ADMIN ที่เชื่อม LINE แล้ว ควรได้รับข้อความพร้อม URL โดยไม่เปิด `LINE_REMINDERS_ENABLED`
 ## ของที่พร้อมแล้วในชุดนี้
 - `apps-script/Code.gs`: API สร้างเซสชันผ่านอีเมล OTP, ตรวจบทบาท ADMIN / CAREGIVER ฝั่งเซิร์ฟเวอร์, อ่าน/แก้ไข MealMedicines, จำกัดสิทธิ์ตาม patient_id, ดึงผู้สูงอายุและประวัติ, รับข้อมูลจากอุปกรณ์, ส่ง LINE, ลบภาพเก่า 30 วัน
 - `apps-script/Index.html`: เว็บสำหรับคอมพิวเตอร์และมือถือ; ภาพรวม, ตารางยา, ชั้นยา, สถานะอุปกรณ์, ประวัติ, คลังภาพ, การจัดการบัญชีสำหรับ ADMIN
