@@ -7,7 +7,7 @@ const T4M = Object.freeze({
   spreadsheet: '1pU1YnZUHrxTxxCDnoNx5Xmaosh-d4H92BUXQwQYQg8I',
   tz: 'Asia/Bangkok',
   // Public Web App URL only. Never put DEVICE_API_KEY here.
-  website: 'https://script.google.com/macros/s/AKfycbx2-O9PDp-T0eXoP1A9_xesHk8mWcWszAbLsbsFOMpARpIIICibdKu6On0G0agGdMIEtQ/exec',
+  website: 'https://n4-p4t.github.io/Time4Med/',
   patients: {'P001':1,'P002':2,'P003':3},
   meal: {1:'ก่อนอาหารเช้า',2:'หลังอาหารเช้า',3:'ก่อนอาหารกลางวัน',4:'หลังอาหารกลางวัน',5:'ก่อนอาหารเย็น',6:'หลังอาหารเย็น',7:'ก่อนนอน'},
   cols: {Users:4, Patients:4, Medicines:4, Schedules:4, IntakeLog:4,
