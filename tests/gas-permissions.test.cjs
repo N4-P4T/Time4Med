@@ -62,6 +62,21 @@ assert.throws(()=>med.run(`disableMedicine('token','OTHER')`),/ไม่มี�
 med.run(`session_=()=>({id:'ADM',role:'ADMIN',patientIds:['P001','P002','P003']});`);
 assert.equal(med.run(`saveMedicine('token',${JSON.stringify(medicine('OTHER','P002'))}).ok`),true,'Admin may edit any patient medicine');
 
+// One physical cabinet can assign all P001–P003 to one CAREGIVER.
+med.run(`session_=()=>({id:'CG-ALL3',email:'all3@example.org',role:'CAREGIVER',patientIds:['P001','P002','P003']});`);
+for(const patient of ['P001','P002','P003']){
+  assert.equal(med.run(`saveMedicine('token',${JSON.stringify(medicine('',patient))}).ok`),true,
+    'One caregiver should create medicines for '+patient);
+}
+assert.equal(med.run(`saveMedicine('token',${JSON.stringify(medicine('OTHER','P002'))}).ok`),true,
+  'Multi-assigned caregiver should edit P002');
+assert.equal(med.run(`disableMedicine('token','OTHER').ok`),true,
+  'Multi-assigned caregiver should disable P002');
+assert.throws(()=>med.run(`saveMedicine('token',${JSON.stringify(medicine('', 'P004'))})`),
+  /P001–P003/, 'Fourth personal shelf must not exist');
+assert.throws(()=>med.run(`saveUser('token',{email:'not-allowed@example.org',role:'ADMIN',status:'ACTIVE'})`),
+  /เฉพาะแอดมิน/, 'Multi-assigned caregiver is still not an admin');
+
 c=ctx({LockService:{getScriptLock(){return {waitLock(){},releaseLock(){}}}}});
 c.run(`
   session_=()=>({id:'ADMIN1',email:'admin@example.org',role:'ADMIN',patientIds:['P001','P002','P003']});
@@ -96,4 +111,4 @@ assert.match(html,/String\(x\.kind\)\.toUpperCase\(\)!=='PRN'/,'PRN needs filter
 assert.match(html,/u\.status==='ACTIVE'\?'ACTIVE':'INACTIVE'/,'Legacy DISABLED must render inactive');
 assert.match(html,/function canManageMedicines\(\)/,'Web must permit caregivers to manage medicines');
 assert.ok(html.includes("data.patients.map(({id:p,shelf})"),'Patient selection must derive from scoped server data');
-console.log('OK: strict roles, per-patient caregiver create/edit/disable, cross-patient denial, legacy statuses, reminder/retention guards, JPEG checks, frontend syntax');
+console.log('OK: strict roles, per-patient caregiver create/edit/disable, three-patient caregiver, cross-patient denial, legacy statuses, reminder/retention guards, JPEG checks, frontend syntax');
