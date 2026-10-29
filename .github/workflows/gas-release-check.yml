@@ -25,3 +25,5 @@ jobs:
         run: node tests/gas-logic.test.cjs
       - name: Authorization, fail-closed LINE and image retention tests
         run: node tests/gas-permissions.test.cjs
+      - name: Admin-only ephemeral real-device demonstration tests
+        run: node tests/gas-demo.test.cjs
