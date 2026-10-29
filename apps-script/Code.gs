@@ -18,10 +18,8 @@ function doGet() {
     .addMetaTag('viewport','width=device-width, initial-scale=1');
 }
 function props_() { return PropertiesService.getScriptProperties(); }
-// A future deployment URL can be changed in Script Properties without changing code.
-function time4medWebsiteUrl_() {
-  return str_(props_().getProperty('TIME4MED_WEBSITE_URL') || T4M.website);
-}
+// Use the actual deployed /exec URL; avoid extra script properties for this public link.
+function time4medWebsiteUrl_() { return T4M.website; }
 function db_() {
   return SpreadsheetApp.openById(props_().getProperty('SPREADSHEET_ID') || T4M.spreadsheet);
 }
