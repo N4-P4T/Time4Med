@@ -6,6 +6,8 @@
 const T4M = Object.freeze({
   spreadsheet: '1pU1YnZUHrxTxxCDnoNx5Xmaosh-d4H92BUXQwQYQg8I',
   tz: 'Asia/Bangkok',
+  // Public Web App URL only. Never put DEVICE_API_KEY here.
+  website: 'https://script.google.com/macros/s/AKfycbx2-O9PDp-T0eXoP1A9_xesHk8mWcWszAbLsbsFOMpARpIIICibdKu6On0G0agGdMIEtQ/exec',
   patients: {'P001':1,'P002':2,'P003':3},
   meal: {1:'ก่อนอาหารเช้า',2:'หลังอาหารเช้า',3:'ก่อนอาหารกลางวัน',4:'หลังอาหารกลางวัน',5:'ก่อนอาหารเย็น',6:'หลังอาหารเย็น',7:'ก่อนนอน'},
   cols: {Users:4, Patients:4, Medicines:4, Schedules:4, IntakeLog:4,
@@ -16,6 +18,10 @@ function doGet() {
     .addMetaTag('viewport','width=device-width, initial-scale=1');
 }
 function props_() { return PropertiesService.getScriptProperties(); }
+// A future deployment URL can be changed in Script Properties without changing code.
+function time4medWebsiteUrl_() {
+  return str_(props_().getProperty('TIME4MED_WEBSITE_URL') || T4M.website);
+}
 function db_() {
   return SpreadsheetApp.openById(props_().getProperty('SPREADSHEET_ID') || T4M.spreadsheet);
 }
@@ -106,7 +112,8 @@ function safeMedicine_(d) {
     mealType:Number(d.meal_type)||0,meal:T4M.meal[Number(d.meal_type)]||'—',
     time:normalizedTime_(d.reminder_time),days:str_(d.reminder_days),instruction:str_(d.instruction),
     stock:str_(d.stock_status),active:active_(d.is_active),kind:str_(d.kind),
-    shelf:fixedShelf_(p),demo:/^(TEST|DEMO)[_\s-]/i.test(str_(d.name))
+    shelf:fixedShelf_(p),demo:/^(TEST|DEMO|LINECHECK)[_\s-]/i.test(str_(d.name)) ||
+      /^(TEST|DEMO|LINECHECK)[_\s-]/i.test(str_(d.record_id))
   };
 }
 function isoLocal_(s) { return str_(s).replace('T',' ').slice(0,19); }
@@ -228,7 +235,7 @@ function lineTo_(lineId,text) {
 }
 function testLine(token) {
   const u=session_(token);needAdmin_(u);assert_(u.lineId,'บัญชีแอดมินยังไม่ได้เชื่อม LINE User ID');
-  lineTo_(u.lineId,'Time4Med: ทดสอบการเชื่อมต่อ LINE จาก Google Apps Script สำเร็จ');
+  lineTo_(u.lineId,'Time4Med: ทดสอบการเชื่อมต่อ LINE จาก Google Apps Script สำเร็จ\n\nเปิดเว็บไซต์ Time4Med:\n'+time4medWebsiteUrl_());
   logActivity_('ALL',u.id,'LINE_TEST','ทดสอบการส่ง LINE');return {ok:true};
 }
 function notificationLog_(key,p,recipient,type,status,error) {
@@ -264,7 +271,7 @@ function scheduledLineReminders_() {
       // A failed attempt is not falsely displayed as SENT.
       const logRow=notificationLog_(key,m.patientId,u.id,'MEDICINE_DUE','ATTEMPTED');seen.add(key);
       try{
-        lineTo_(u.lineId,'Time4Med แจ้งเตือน '+m.patientId+' ชั้น '+m.shelf+'\n'+m.meal+' เวลา '+m.time+'\nยา: '+m.name+'\nกรุณาตรวจสอบการรับยาตามคำแนะนำ');
+        lineTo_(u.lineId,'Time4Med แจ้งเตือน '+m.patientId+' ชั้น '+m.shelf+'\n'+m.meal+' เวลา '+m.time+'\nยา: '+m.name+'\nกรุณาตรวจสอบการรับยาตามคำแนะนำ\n\nเปิดเว็บไซต์ Time4Med:\n'+time4medWebsiteUrl_());
         writeRow_(grid_('NotificationLog'),logRow,{delivery_status:'SENT',error_message:''});
       } catch(err){
         writeRow_(grid_('NotificationLog'),logRow,{delivery_status:'FAILED',error_message:String(err).slice(0,200)});
@@ -486,7 +493,7 @@ function postDevice_(e) {
     logActivity_('ALL',deviceId,'EMERGENCY','กดปุ่มฉุกเฉินส่วนกลางที่ตู้ยา');
     const recipients=grid_('Users').rows.map(x=>userForEmail_(x.data.email))
       .filter(x=>x&&x.lineEnabled&&x.lineId);
-    recipients.forEach(u=>{try{lineTo_(u.lineId,'Time4Med ฉุกเฉิน! กดปุ่มฉุกเฉินส่วนกลางที่ตู้ยา กรุณาตรวจสอบทันที');}
+    recipients.forEach(u=>{try{lineTo_(u.lineId,'Time4Med ฉุกเฉิน! กดปุ่มฉุกเฉินส่วนกลางที่ตู้ยา กรุณาตรวจสอบทันที\n\nเปิดเว็บไซต์ Time4Med:\n'+time4medWebsiteUrl_());}
       catch(err){console.error('Emergency LINE failed',String(err));}});
     return {ok:true,receivedAt:tzNow_(),patientId:'ALL'};
   }
@@ -512,7 +519,7 @@ function postDevice_(e) {
   }
   if(p.action==='emergency'){
     grid_('Users').rows.map(x=>userForEmail_(x.data.email)).filter(x=>x&&x.lineEnabled&&x.lineId&&can_(x,patientId))
-      .forEach(u=>{try{lineTo_(u.lineId,'Time4Med ฉุกเฉิน! มีการกดปุ่มฉุกเฉินที่ตู้ยา ชั้น '+fixedShelf_(patientId)+' ('+patientId+') กรุณาตรวจสอบทันที');}
+      .forEach(u=>{try{lineTo_(u.lineId,'Time4Med ฉุกเฉิน! มีการกดปุ่มฉุกเฉินที่ตู้ยา ชั้น '+fixedShelf_(patientId)+' ('+patientId+') กรุณาตรวจสอบทันที\n\nเปิดเว็บไซต์ Time4Med:\n'+time4medWebsiteUrl_());}
       catch(err){console.error('Emergency line failed',err);}});
   }
   return {ok:true,receivedAt:tzNow_()};
