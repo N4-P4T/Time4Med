@@ -13,7 +13,18 @@ const T4M = Object.freeze({
   cols: {Users:4, Patients:4, Medicines:4, Schedules:4, IntakeLog:4,
     Devices:4, ActivityLog:4, ImageIndex:4, NotificationLog:4, MealMedicines:1}
 });
-function doGet() {
+function doGet(e) {
+  // Dedicated, origin-bound RPC bridge for the GitHub Pages caregiver UI.
+  // Public page traffic never exposes DEVICE_API_KEY, LINE tokens or spreadsheet credentials.
+  if(e && e.parameter && e.parameter.bridge === '1') {
+    const channel = String(e.parameter.channel || '');
+    if(!/^[a-zA-Z0-9_-]{24,96}$/.test(channel))
+      return HtmlService.createHtmlOutput('Invalid bridge channel');
+    const template = HtmlService.createTemplateFromFile('Bridge');
+    template.channel = channel;
+    return template.evaluate().setTitle('Time4Med secure bridge')
+      .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
+  }
   return HtmlService.createHtmlOutputFromFile('Index').setTitle('Time4Med | ระบบดูแลการใช้ยา')
     .addMetaTag('viewport','width=device-width, initial-scale=1');
 }
