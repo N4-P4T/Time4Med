@@ -9,12 +9,5 @@ a{display:inline-block;background:#1769b1;color:white;text-decoration:none;borde
 </style></head><body>
 <main><div class="logo">✚</div><h1>Time4Med</h1>
 <p>ตู้ยาอัจฉริยะ · ระบบติดตามและแจ้งเตือนการรับประทานยา</p><p>สำหรับแอดมินและผู้ดูแลผู้สูงอายุ</p>
-<a id="enter" href="#">เข้าสู่ระบบ</a><p class="note" id="status">ใช้ Google Apps Script + Google Sheets + LINE</p></main>
-<script>
-const APP_URL='https://script.google.com/macros/s/AKfycbx2-O9PDp-T0eXoP1A9_xesHk8mWcWszAbLsbsFOMpARpIIICibdKu6On0G0agGdMIEtQ/exec';
-const ready=/^https:\/\/script\.google\.com\/macros\/s\/[A-Za-z0-9_-]+\/exec$/.test(APP_URL);
-const enter=document.getElementById('enter');
-if(ready){enter.href=APP_URL;document.getElementById('status').textContent='เปิดหน้าลงชื่อเข้าใช้ผ่าน Google Apps Script';}
-else{enter.removeAttribute('href');enter.setAttribute('aria-disabled','true');enter.style.opacity='.55';
-document.getElementById('status').textContent='ยังไม่ได้ตั้งค่า URL เว็บแอป Google Apps Script กรุณาติดตั้งก่อนเปิดใช้';}
-</script></body></html>
+<a id="enter" href="./test-v021/">เข้าสู่เว็บไซต์ Time4Med</a><p class="note" id="status">GitHub Pages + Google Apps Script + Google Sheets + LINE</p></main>
+<script>document.getElementById('enter').href='./test-v021/';</script></body></html>
