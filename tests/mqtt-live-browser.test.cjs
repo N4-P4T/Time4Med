@@ -5,6 +5,13 @@ const {spawn}=require('node:child_process');
 const origin='http://127.0.0.1:8894/';
 const source=fs.readFileSync('test-v021/mqtt-live-status.js','utf8');
 const html=fs.readFileSync('test-v021/index.html','utf8');
+if (html.includes('src="gas-only.js"')) {
+  assert.doesNotMatch(html,/src="mqtt-live-status\.js"|mqtt\.min\.js/);
+  assert.match(html,/src="gas-only\.js"/);
+  console.log('PASS: MQTT browser scripts intentionally removed from GAS-only UI');
+  process.exit(0);
+}
+
 assert.match(html,/id="t24MqttPanel"/);
 assert.doesNotMatch(source,/\.\s*publish\s*\(/,'no MQTT publishes');
 assert.doesNotMatch(source,/\b(?:localStorage|sessionStorage)\s*(?:\.|\[)|document\.cookie/,'no credential storage calls');

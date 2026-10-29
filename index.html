@@ -1,36 +1,13 @@
 <!doctype html>
-<html lang="th">
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="referrer" content="no-referrer">
-  <meta http-equiv="refresh" content="0;url=./test-v021/">
-  <title>Time4Med — เข้าสู่ระบบผู้ดูแล</title>
-  <style>
-    :root {font-family:system-ui,"Noto Sans Thai",sans-serif;background:#f2f6fc;color:#183b60}
-    body {min-height:100vh;display:grid;place-items:center;margin:0;padding:24px}
-    main {width:min(100%,460px);padding:32px;border-radius:18px;
-      background:#fff;box-shadow:0 10px 35px rgba(25,57,95,.1);text-align:center}
-    h1 {font-size:1.55rem;margin:.4rem 0}
-    p {color:#50657d;line-height:1.7}
-    a {display:inline-block;background:#135e9f;color:#fff;padding:11px 18px;
-      text-decoration:none;border-radius:10px;font-weight:700}
-    a:focus-visible {outline:3px solid #e8a334;outline-offset:3px}
-  </style>
-  <script>
-    (function () {
-      var allowed = /^(#dashboard|#devices|#medication|#inventory|#analytics|#activity|#camera|#gallery)$/;
-      var section = allowed.test(window.location.hash) ? window.location.hash : '';
-      window.location.replace('./test-v021/' + section);
-    }());
-  </script>
-</head>
-<body>
-  <main>
-    <h1>Time4Med</h1>
-    <p>กำลังเปิดระบบผู้ดูแลเวอร์ชันใหม่ พร้อม Google Sign-In และแดชบอร์ดภาพรวม</p>
-    <p>หากไม่เปลี่ยนหน้าอัตโนมัติ ให้กดปุ่มด้านล่าง</p>
-    <a href="./test-v021/">เข้าสู่ระบบ Time4Med</a>
-  </main>
-</body>
-</html>
+<html lang="th"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Time4Med | เข้าสู่ระบบ</title>
+<style>
+body{margin:0;font-family:system-ui,"Noto Sans Thai",sans-serif;min-height:100vh;display:grid;place-items:center;background:#eef5fb;color:#163954}
+main{width:min(90%,520px);background:white;border:1px solid #d6e4ef;box-shadow:0 15px 40px #1b48711a;border-radius:22px;padding:38px;text-align:center}
+h1{font-size:2rem}p{line-height:1.8;color:#547087}.logo{font-size:44px;color:#1870b6}
+a{display:inline-block;background:#1769b1;color:white;text-decoration:none;border-radius:12px;padding:13px 20px;font-weight:700}
+.note{font-size:13px;margin-top:20px}
+</style></head><body>
+<main><div class="logo">✚</div><h1>Time4Med</h1>
+<p>ตู้ยาอัจฉริยะ · ระบบติดตามและแจ้งเตือนการรับประทานยา</p><p>สำหรับแอดมินและผู้ดูแลผู้สูงอายุ</p>
+<a id="enter" href="./test-v021/">เข้าสู่เว็บไซต์ Time4Med</a><p class="note" id="status">GitHub Pages + Google Apps Script + Google Sheets + LINE</p></main>
+<script>document.getElementById('enter').href='./test-v021/';</script></body></html>

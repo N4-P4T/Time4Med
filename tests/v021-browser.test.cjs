@@ -5,6 +5,18 @@ const {spawn}=require('node:child_process');
 const base='http://127.0.0.1:8897/';
 const address=base+'test-v021/';
 const html=fs.readFileSync('test-v021/index.html','utf8');
+if (html.includes('src="gas-only.js"')) {
+  assert.match(html,/class="sidebar-navigation"/);
+  assert.match(html,/class="t21-brand"/);
+  assert.match(html,/src="gas-only\.js"/);
+  assert.doesNotMatch(html,/src="\.\.\/test-v019\/auth\.js"|mqtt\.min\.js|gateway-control\.js/);
+  new (require('node:vm').Script)(fs.readFileSync('test-v021/gas-only.js','utf8'));
+
+  console.log('PASS: retained caregiver shell, GAS-only script and no legacy Worker auth');
+  const runner=require('node:child_process').spawnSync(process.execPath,[require('node:path').join(__dirname,'gas-pages-integration.test.cjs')],{stdio:'inherit',timeout:90000});
+  process.exit(runner.status===0?0:1);
+}
+
 const source=fs.readFileSync('test-v021/caregiver-center.js','utf8');
 assert.match(html,/id="t4mGoogleButton"/);
 assert.match(html,/id="home-overview"/);

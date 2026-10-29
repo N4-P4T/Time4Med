@@ -1,0 +1,29 @@
+name: GAS-only release checks
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'apps-script/**'
+      - 'tests/gas-*.cjs'
+      - '.github/workflows/gas-release-check.yml'
+  push:
+    paths:
+      - 'apps-script/**'
+      - 'tests/gas-*.cjs'
+      - '.github/workflows/gas-release-check.yml'
+jobs:
+  gas-offline-tests:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Medicine schedule, shelf and role tests
+        run: node tests/gas-logic.test.cjs
+      - name: Authorization, fail-closed LINE and image retention tests
+        run: node tests/gas-permissions.test.cjs
+      - name: Admin-only ephemeral real-device demonstration tests
+        run: node tests/gas-demo.test.cjs

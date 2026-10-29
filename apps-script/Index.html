@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="th"><head><meta charset="utf-8"><base target="_top"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Time4Med | ระบบดูแลการใช้ยา</title>
+<style>
+:root{font-family:system-ui,-apple-system,'Noto Sans Thai',sans-serif;color:#122d46;background:#f3f7fb;font-size:15px}*{box-sizing:border-box}body{margin:0}button,input,select,textarea{font:inherit}button{cursor:pointer}button:disabled{opacity:.55;cursor:not-allowed}a{color:#1765b1}.wrap{max-width:1300px;margin:auto;padding:0 20px}.top{background:#10365e;color:white;min-height:68px;display:flex;align-items:center;justify-content:space-between;padding:12px 24px;gap:12px}.brand{display:flex;align-items:center;gap:10px;font-size:22px;font-weight:800}.mark{background:#7de2cc;color:#10365e;border-radius:14px;width:38px;height:38px;display:grid;place-items:center}.sub{font-size:12px;font-weight:400;opacity:.78}.account{display:flex;align-items:center;gap:12px;font-size:13px}.layout{display:grid;grid-template-columns:225px 1fr;min-height:calc(100vh - 68px)}aside{background:#fff;border-right:1px solid #dce5ee;padding:20px 12px}aside button{display:block;width:100%;text-align:left;background:none;border:0;border-radius:10px;padding:13px 14px;margin:3px 0;color:#335371;font-weight:600}aside button.sel{background:#dceefe;color:#0a4a8b}main{padding:28px;min-width:0}.hero h1{margin:0 0 7px;font-size:26px}.hero p{margin:0;color:#61778a;line-height:1.65}.notice{background:#e9f4ff;color:#204a70;border-left:4px solid #2585d5;padding:14px 16px;border-radius:10px;margin:19px 0}.notice.warn{background:#fff4de;border-color:#d99616;color:#714d13}.cards{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:15px;margin:20px 0}.card,.panel{background:white;border:1px solid #dfebf4;border-radius:16px;box-shadow:0 5px 25px #163a6010}.card{padding:19px}.stat{font-size:29px;font-weight:800;margin:4px 0}.small{color:#667d91;font-size:13px}.panels{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:17px}.panel{padding:20px;margin-bottom:16px;min-width:0}.panel h2{font-size:18px;margin:0 0 15px}.tags{display:flex;gap:8px;flex-wrap:wrap}.tag{display:inline-flex;align-items:center;padding:4px 9px;border-radius:7px;background:#edf3f8;color:#365c7b;font-size:12px}.tag.good{background:#ddf7eb;color:#146848}.tag.bad{background:#ffe9e4;color:#ae3e2f}.btn{border:0;border-radius:10px;background:#1767b3;color:white;font-weight:700;padding:10px 16px}.btn.alt{background:#e8f1fa;color:#14538e}.btn.ghost{background:transparent;border:1px solid #a2bed5;color:inherit}.actions{display:flex;gap:9px;flex-wrap:wrap;align-items:center}.list{display:grid;gap:10px}.item{padding:12px;border:1px solid #e2eaf0;border-radius:11px;display:flex;gap:12px;justify-content:space-between;align-items:center}.item strong{display:block}.item p{font-size:13px;color:#698195;margin:5px 0 0}.table-wrap{overflow-x:auto}table{border-collapse:collapse;width:100%;font-size:14px}th,td{padding:12px 10px;text-align:left;border-bottom:1px solid #e8edf2}th{color:#56718a;background:#f5f9fc;font-size:13px}tr:hover td{background:#fbfdff}.empty{border:1px dashed #c8d7e6;border-radius:12px;padding:24px;color:#667d90;text-align:center}.formgrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}.field{display:grid;gap:6px}.field label{font-size:13px;color:#43627c;font-weight:700}input,select,textarea{border:1px solid #bfcfdf;background:white;border-radius:9px;padding:10px;width:100%;color:#19364e}textarea{min-height:75px;resize:vertical}.full{grid-column:1/-1}.login{min-height:calc(100vh - 68px);display:grid;place-items:center;padding:18px}.login .panel{max-width:430px;width:100%;padding:30px}.login h1{margin-top:0}.login p{line-height:1.8;color:#516a80}.login .field{margin-bottom:12px}.help{color:#516a80;font-size:13px}.hidden,[hidden]{display:none!important}.gallery{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:15px}.gallery .panel{margin:0}.preview{width:100%;max-width:660px;max-height:60vh;object-fit:contain;border-radius:10px;margin-top:15px}#message{min-height:22px;font-size:13px}.float-status{position:fixed;bottom:18px;right:18px;max-width:500px;background:#163f60;color:white;box-shadow:0 8px 25px #0003;border-radius:12px;padding:12px 18px;z-index:5}footer{margin:25px 0;color:#718495;font-size:12px}@media(max-width:900px){.layout{grid-template-columns:1fr}aside{display:flex;overflow-x:auto;gap:5px;border-right:0;border-bottom:1px solid #ddd;padding:8px}aside button{width:auto;white-space:nowrap}.cards{grid-template-columns:repeat(2,1fr)}.panels{grid-template-columns:1fr}main{padding:20px}}@media(max-width:550px){.top{padding:10px 15px}.account{font-size:11px}.brand{font-size:17px}.cards{grid-template-columns:1fr 1fr;gap:8px}.card{padding:13px}.stat{font-size:24px}.formgrid{grid-template-columns:1fr}.full{grid-column:auto}main{padding:14px}.panel{padding:14px}}
+</style></head>
+<body>
+<header class="top"><div class="brand"><span class="mark">✚</span><div>Time4Med<div class="sub">Smart Medicine Cabinet</div></div></div><div class="account"><span id="account">สำหรับแอดมินและผู้ดูแล</span><button id="signout" class="btn ghost hidden">ออกจากระบบ</button></div></header>
+<section id="login" class="login"><div class="panel"><h1>เข้าสู่ระบบ Time4Med</h1><p>กรอกอีเมลที่แอดมินอนุญาต ระบบจะส่งรหัส 6 หลักไปยังอีเมลนั้น ไม่ต้องจำรหัสผ่านใหม่</p><div class="field"><label for="email">อีเมล</label><input id="email" type="email" autocomplete="email" placeholder="you@example.com"></div><button id="sendOtp" class="btn">ส่งรหัสเข้าสู่ระบบ</button><div id="otpArea" class="hidden" style="margin-top:14px"><div class="field"><label for="otp">รหัสยืนยัน 6 หลัก</label><input id="otp" inputmode="numeric" maxlength="6" autocomplete="one-time-code" placeholder="123456"></div><button id="verifyOtp" class="btn" style="margin-top:10px">ยืนยันเข้าสู่ระบบ</button></div><p id="message" role="status"></p><p class="help">ผู้สูงอายุไม่จำเป็นต้องเข้าระบบ ผู้ดูแลเห็นเฉพาะผู้สูงอายุที่ได้รับสิทธิ์</p></div></section>
+<div id="app" class="layout hidden"><aside id="navigation"><button data-page="dashboard" class="sel">▦ ภาพรวม</button><button data-page="medicine">◷ ตารางยา</button><button data-page="patients">♙ ผู้สูงอายุ / ชั้นยา</button><button data-page="device">▤ อุปกรณ์</button><button data-page="activity">≡ กิจกรรม</button><button data-page="gallery">▧ คลังภาพ</button><button data-page="demo" class="admin-only">▶ ทดสอบระบบ</button><button data-page="admin" class="admin-only">⚙ จัดการระบบ</button></aside><main><div class="hero"><h1 id="pageTitle">ภาพรวมการดูแล</h1><p id="pageLead">ข้อมูลจาก Google Sheets ของ Time4Med · เขตเวลา Asia/Bangkok</p></div><div id="content"></div><footer>Time4Med · ข้อมูลการกดยืนยันหมายถึงมีการกดปุ่ม ไม่ยืนยันว่ารับประทานยาจริง · ชั้น 4 เป็นยาสามัญประจำบ้าน</footer></main></div>
+<div id="toast" class="float-status hidden" role="status"></div>
+<script>
+(() => {'use strict';
+const $=id=>document.getElementById(id), key='time4med.session', pages={dashboard:['ภาพรวมการดูแล','สรุปข้อมูลตารางยา ผู้สูงอายุ และอุปกรณ์'],medicine:['ตารางยา','แสดงตารางจาก Google Sheets ตามสิทธิ์ที่ได้รับ'],patients:['ผู้สูงอายุและชั้นยา','ชั้นยาล็อกตำแหน่ง ห้ามเปลี่ยนสลับบุคคล'],device:['สถานะอุปกรณ์','สถานะล่าสุด ไม่ถือเป็นออนไลน์เมื่อข้อมูลเก่า'],activity:['บันทึกกิจกรรม','การกดยืนยันไม่ใช่หลักฐานว่ากลืนยา'],gallery:['คลังภาพหลักฐาน','ภาพจาก Google Drive ที่มีสิทธิ์เข้าถึง'],demo:['ทดสอบระบบ','สาธิตการทำงานของตู้ยาทันที ไม่ใช้เวลายาจริงและไม่บันทึกลง Google Sheets'],admin:['จัดการระบบ','เฉพาะบัญชีแอดมินเท่านั้น']};
+let token=sessionStorage.getItem(key)||'',data=null,page='dashboard';
+let demoTimer=null,demoBusy=false,demoPreviewLoaded='';
+const escape=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+function toast(text){$('toast').textContent=text;$('toast').classList.remove('hidden');setTimeout(()=>$('toast').classList.add('hidden'),4700);}
+function rpc(method,...args){return new Promise((resolve,reject)=>{google.script.run.withSuccessHandler(resolve).withFailureHandler(reject)[method](...args);});}
+function setBusy(id,b){const el=$(id);if(el)el.disabled=b;}
+function hasAdmin(){return data?.user?.role==='ADMIN';}
+function canManageMedicines(){return ['ADMIN','CAREGIVER'].includes(data?.user?.role)&&data?.patients?.length>0;}
+function loginView(message){if(demoTimer){clearInterval(demoTimer);demoTimer=null;}data=null;token='';sessionStorage.removeItem(key);$('login').classList.remove('hidden');$('app').classList.add('hidden');$('signout').classList.add('hidden');$('account').textContent='สำหรับแอดมินและผู้ดูแล';$('message').textContent=message||'';}
+async function refresh(){try{data=await rpc('bootstrap',token);showApp();render();}catch(e){loginView(e.message||String(e));}}
+function showApp(){$('login').classList.add('hidden');$('app').classList.remove('hidden');$('signout').classList.remove('hidden');$('account').textContent=data.user.name+' · '+(hasAdmin()?'แอดมิน':'ผู้ดูแล');document.querySelectorAll('.admin-only').forEach(e=>e.hidden=!hasAdmin());}
+function changePage(next){if(!pages[next]||['admin','demo'].includes(next)&&!hasAdmin())return;if(demoTimer){clearInterval(demoTimer);demoTimer=null;}page=next;document.querySelectorAll('[data-page]').forEach(el=>el.classList.toggle('sel',el.dataset.page===page));render();}
+function render(){if(!data)return;$('pageTitle').textContent=pages[page][0];$('pageLead').textContent=pages[page][1];const c=$('content');c.replaceChildren();const html={dashboard:dashboardHtml,medicine:medicineHtml,patients:patientHtml,device:deviceHtml,activity:activityHtml,gallery:galleryHtml,demo:demoHtml,admin:adminHtml}[page]();c.innerHTML=html;bindPage();}
+function panel(heading,body){return '<section class="panel"><h2>'+heading+'</h2>'+body+'</section>';}
+function tag(text,cls=''){return '<span class="tag '+cls+'">'+escape(text)+'</span>';}
+function empty(text){return '<div class="empty">'+escape(text)+'</div>';}
+function li(title,detail,extra=''){return '<div class="item"><div><strong>'+escape(title)+'</strong><p>'+escape(detail)+'</p></div>'+extra+'</div>';}
+function medicineItems(p){return data.medicines.filter(x=>x.patientId===p&&x.active&&!x.demo&&String(x.kind).toUpperCase()!=='PRN');}
+function dashboardHtml(){const active=data.medicines.filter(x=>x.active&&!x.demo&&String(x.kind).toUpperCase()!=='PRN');
+const safeDevice=data.devices.filter(x=>x.online==='ONLINE').length;
+let cards='<div class="cards">'+[['ผู้สูงอายุ',data.patients.length],['รายการยาที่ใช้งาน',active.length],['อุปกรณ์รายงานออนไลน์',safeDevice],['ชั้นยาเฉพาะบุคคล',3]].map(([a,b])=>'<div class="card"><div class="small">'+a+'</div><div class="stat">'+b+'</div></div>').join('')+'</div>';
+let p=data.patients.map(x=>li(x.id+' · ชั้น '+x.shelf,x.name+' · '+medicineItems(x.id).length+' รายการยาที่ใช้งาน',tag('ชั้น '+x.shelf))).join('')||empty('ยังไม่มีผู้สูงอายุที่ได้รับสิทธิ์');
+let sched=active.slice().sort((a,b)=>a.time.localeCompare(b.time)).slice(0,12).map(x=>li(x.time+' · '+x.patientId+' · '+x.meal,x.name+' · '+(x.days||'ทุกวัน'),tag('ชั้น '+x.shelf))).join('')||empty('ไม่มีตารางยาที่ใช้งาน (รายการ TEST/DEMO ไม่ถูกนับ)');
+return '<div class="notice">ข้อมูลนี้มาจากฐานข้อมูลจริง ไม่ใช่ค่าจำลอง ระบบยังต้องรับข้อมูลใหม่จาก ESP32-S3 จึงจะยืนยันสถานะฮาร์ดแวร์ได้</div>'+cards+'<div class="panels">'+panel('ชั้นยาของผู้สูงอายุ','<div class="list">'+p+li('ชั้น 4 · ยาสามัญประจำบ้าน','ไม่ผูกกับ P001–P003 · ไม่มี LED',tag('ส่วนกลาง'))+'</div>')+panel('รายการยาตามเวลาที่กำหนด','<div class="list">'+sched+'</div>')+'</div>';
+}
+function medicineHtml(){const btn=canManageMedicines()?'<div class="actions" style="margin:16px 0"><button class="btn" id="newMedicine">+ เพิ่มรายการยา</button></div>':'';
+let rows=data.medicines.slice().sort((a,b)=>a.patientId.localeCompare(b.patientId)||a.time.localeCompare(b.time)).map(x=>'<tr><td>'+escape(x.patientId)+' / ชั้น '+escape(x.shelf)+'</td><td><strong>'+escape(x.name)+'</strong> '+(x.demo?tag('ทดสอบ','bad'):'')+'</td><td>'+escape(x.meal)+'</td><td>'+escape(x.time)+'</td><td>'+escape(x.days||'ทุกวัน')+'</td><td>'+tag(x.active?'ใช้งาน':'ปิดใช้งาน',x.active?'good':'bad')+'</td><td>'+(canManageMedicines()?'<button class="btn alt editMedicine" data-id="'+escape(x.id)+'">แก้ไข</button>':'—')+'</td></tr>').join('');
+return btn+'<div id="medicineEditor"></div>'+panel('รายการยา ('+data.medicines.length+')','<div class="table-wrap"><table><thead><tr><th>ผู้สูงอายุ / ชั้น</th><th>ชื่อยา</th><th>มื้อ</th><th>เวลา</th><th>วัน</th><th>สถานะ</th><th>จัดการ</th></tr></thead><tbody>'+rows+'</tbody></table></div>');}
+function patientHtml(){const items=Object.entries({'P001':1,'P002':2,'P003':3}).map(([id,shelf])=>{const x=data.patients.find(p=>p.id===id);return '<div class="card"><div class="small">ชั้น '+shelf+'</div><div class="stat">'+id+'</div><strong>'+escape(x?.name||'ไม่ได้รับสิทธิ์ / ยังไม่มีข้อมูล')+'</strong><p class="small">LED 4 ดวง: เช้า · กลางวัน · เย็น · ก่อนนอน</p></div>';}).join('');return '<div class="notice">ตำแหน่งชั้นยาเป็นค่าคงที่จากระบบ ไม่อนุญาตให้สลับผู้สูงอายุระหว่างชั้น</div><div class="cards">'+items+'<div class="card"><div class="small">ชั้น 4</div><div class="stat">ส่วนกลาง</div><strong>ยาสามัญประจำบ้าน</strong><p class="small">ไม่ผูกผู้สูงอายุ · ไม่มี LED</p></div></div>';}
+function deviceHtml(){const rows=data.devices.map(x=>li(x.id+' · '+x.type,'รายงานล่าสุด '+(x.lastSeen||'ไม่มีข้อมูลใหม่'),tag(x.online==='ONLINE'?'ออนไลน์ (ข้อมูลใหม่)':'ไม่ยืนยันออนไลน์',x.online==='ONLINE'?'good':'bad'))).join('');return '<div class="notice warn">ไม่ได้ใช้ Cloudflare หรือ HiveMQ การควบคุมกลอนจากเว็บไซต์ถูกปิดไว้ตามแนวทางลดความซับซ้อน ใช้ปุ่มยืนยันค้าง 3 วินาทีที่ตัวตู้ในการเปิดตามเฟิร์มแวร์ที่ตั้งค่าไว้</div>'+panel('ESP32-S3 / ESP32-CAM','<div class="list">'+(rows||empty('ยังไม่ได้รับข้อมูลจากอุปกรณ์'))+'</div><div class="actions" style="margin-top:14px"><button class="btn alt" id="refreshData">โหลดสถานะใหม่</button></div>')+panel('การเชื่อมต่อ','<p>หลังอัปเดตเฟิร์มแวร์ ESP32-S3 ต้องส่ง heartbeat, เหตุการณ์การกดยืนยัน และขอตารางยาจาก Apps Script ผ่าน HTTPS โดยใช้ DEVICE_API_KEY ของเครื่องเท่านั้น</p>');}
+function activityHtml(){return panel('กิจกรรมล่าสุด','<div class="list">'+(data.activity.map(x=>li((x.patientId||'ระบบ')+' · '+x.type,x.time+' · '+x.result+' · '+x.details)).join('')||empty('ยังไม่มีบันทึกกิจกรรม'))+'</div>');}
+function galleryHtml(){return panel('ภาพจาก ESP32-CAM','<div class="gallery">'+(data.images.map(x=>'<div class="panel"><strong>'+escape(x.patientId)+'</strong><p class="small">'+escape(x.time||'ไม่ระบุเวลา')+'</p><p class="small">'+escape(x.filename||x.id)+'</p><div class="actions"><button class="btn alt viewImage" data-id="'+escape(x.id)+'">ดูภาพ</button></div></div>').join('')||empty('ยังไม่มีข้อมูลภาพหลักฐาน'))+'</div><div id="imagePreview"></div>');}
+
+const DEMO_LABELS={
+  RECEIVED:'ESP32-S3 รับคำสั่งสาธิต',
+  REMINDER_STARTED:'ไฟ LED ชั้น/มื้อที่เลือกติดและเริ่มเสียงแจ้งเตือน',
+  VOICE_DONE:'DFPlayer เล่นเสียงแจ้งเตือนเสร็จ',
+  LOCK_OPENED:'เปิดตู้ด้วยปุ่มที่ตัวตู้ (ค้าง 3 วินาที)',
+  DOOR_OPENED:'Reed Switch ตรวจพบการเปิดประตู',
+  DOOR_CLOSED:'Reed Switch ตรวจพบการปิดประตู',
+  CONFIRMED:'ตรวจพบการกดปุ่มยืนยันที่ตัวตู้',
+  PHOTO_CAPTURED:'ESP32-CAM ถ่ายภาพทดสอบ',
+  COMPLETE:'ESP32-S3 ยืนยันว่าครบขั้นตอนและหยุดไฟทดสอบ'
+};
+function demoHtml(){
+  if(!hasAdmin())return empty('เฉพาะแอดมินเท่านั้น');
+  return '<div class="notice">โหมดสาธิต: กดเริ่มได้ทันทีโดยไม่ต้องแก้ไขตารางยา ไม่ตั้งเวลารอ และไม่บันทึก ActivityLog / IntakeLog / ImageIndex / NotificationLog หรือ Google Drive. สถานะขั้นตอนจะขึ้นเฉพาะเมื่อ ESP32-S3 ส่งผลตรวจจริงกลับมาเท่านั้น</div>'+
+    panel('สาธิตการทำงานของตู้ยา (ADMIN)', '<div class="formgrid">'+
+    '<div class="field"><label>ชั้นที่สาธิต (ค่าเริ่มต้นชั้น 1)</label><select id="demoPatient">'+
+    Object.keys({'P001':1,'P002':2,'P003':3}).map(p=>'<option value="'+p+'">'+p+' · ชั้น '+p.slice(-1)+'</option>').join('')+'</select></div>'+
+    '<div class="field"><label>มื้อที่สาธิต (ไม่เปลี่ยนเวลาในระบบ)</label><select id="demoMeal">'+
+    Object.entries({1:'ก่อนอาหารเช้า',2:'หลังอาหารเช้า',3:'ก่อนอาหารกลางวัน',4:'หลังอาหารกลางวัน',5:'ก่อนอาหารเย็น',6:'หลังอาหารเย็น',7:'ก่อนนอน'}).map(([k,v])=>'<option value="'+k+'" '+(k==='2'?'selected':'')+'>'+v+'</option>').join('')+'</select></div>'+
+    '<div class="field full"><label><input type="checkbox" id="demoLine" style="width:auto"> ส่ง LINE [DEMO] ไปยังแอดมินเมื่อสาธิตครบ (ถ้าตั้งค่า LINE แล้ว)</label></div>'+
+    '<div class="actions full"><button class="btn" id="demoStart">▶ เริ่มทดสอบระบบทันที</button><button class="btn alt" id="demoStop">■ หยุดทดสอบ</button></div></div>'+
+    '<p class="small" style="margin-top:14px">ไม่มีการปลดล็อกตู้จากเว็บไซต์: แสดงการเปิดด้วยการกดปุ่มจริงที่ตู้เท่านั้น การกดยืนยันไม่ใช่หลักฐานว่ากลืนยาแล้ว</p>')+
+    panel('สถานะสาธิตแบบเรียลไทม์',
+    '<div id="demoState" role="status" aria-live="polite">กำลังตรวจสอบการทดสอบล่าสุด...</div>'+
+    '<div id="demoPhotoPreview"></div>');
+}
+function updateDemoView(info){
+  const out=$('demoState');if(!out||page!=='demo'||!hasAdmin())return;
+  const state=info||{status:'IDLE'};
+  const messages={IDLE:'ยังไม่ได้เริ่มทดสอบ',WAITING:'รอ ESP32-S3 ดึงคำสั่งจาก Apps Script',
+    RUNNING:'กำลังสาธิตด้วยฮาร์ดแวร์จริง',DONE:'อุปกรณ์แจ้งว่าครบกระบวนการสาธิต',
+    STOPPED:'ยกเลิกการทดสอบ',TIMED_OUT:'หมดเวลารออุปกรณ์',FAILED:'อุปกรณ์แจ้งข้อผิดพลาด'};
+  const stages=Object.entries(DEMO_LABELS).map(([phase,title])=>{
+    const step=(state.steps||[]).find(x=>x.phase===phase);
+    return li((step?'✓ ':'○ ')+title,step?'รับสัญญาณเวลา '+step.at:'ยังไม่มีการยืนยันจากอุปกรณ์');
+  }).join('');
+  const line=state.lineStatus==='SENT'?'LINE [DEMO]: ส่งสำเร็จ':
+    state.lineStatus==='FAILED'?'LINE [DEMO]: ส่งไม่สำเร็จ':
+    state.lineStatus==='PENDING'||state.lineStatus==='SENDING'?'LINE [DEMO]: รอผลการส่ง':
+    state.lineStatus==='UNAVAILABLE'?'LINE [DEMO]: ยังไม่มี LINE User ID ของแอดมิน':'LINE [DEMO]: ไม่ได้เลือกส่ง';
+  out.innerHTML='<p><strong>สถานะ: '+escape(messages[state.status]||state.status)+'</strong></p>'+
+    '<p class="small"> '+escape(state.note||'')+'</p>'+
+    (state.id?'<p class="small">รอบทดสอบ: '+escape(state.id.slice(0,8))+' · '+escape(state.patientId)+
+    ' ชั้น '+escape(state.shelf)+' · '+escape(state.startedAt)+'</p>':'')+
+    '<div class="list">'+stages+'</div><p class="small">'+escape(line)+'</p>';
+  const preview=$('demoPhotoPreview');
+  if(state.id!==demoPreviewLoaded && preview)preview.replaceChildren();
+  if(state.photoAvailable && state.id && demoPreviewLoaded!==state.id){
+    demoPreviewLoaded=state.id;
+    rpc('getDemoPreview',token,state.id).then(src=>{
+      if(page!=='demo'||!$('demoPhotoPreview'))return;
+      const title=document.createElement('p');title.textContent='ภาพถ่ายชั่วคราวจากโหมดสาธิต (ไม่บันทึกลง Drive)';
+      const image=document.createElement('img');image.src=src;image.className='preview';image.alt='ภาพทดสอบจาก ESP32-CAM';
+      $('demoPhotoPreview').replaceChildren(title,image);
+    }).catch(e=>{
+      if($('demoPhotoPreview'))$('demoPhotoPreview').textContent='ยังไม่สามารถแสดงภาพสาธิต: '+(e.message||e);
+    });
+  }
+}
+async function pollDemoStatus(){
+  if(page!=='demo'||!hasAdmin()||demoBusy)return;
+  demoBusy=true;
+  try{updateDemoView(await rpc('getDemoStatus',token));}
+  catch(e){const box=$('demoState');if(box)box.textContent='โหลดสถานะไม่สำเร็จ: '+(e.message||e);}
+  finally{demoBusy=false;}
+}
+function bindDemo(){
+  if(!hasAdmin())return;
+  $('demoStart').onclick=async()=>{
+    setBusy('demoStart',true);
+    demoPreviewLoaded='';
+    try{
+      const state=await rpc('startDemo',token,{patientId:$('demoPatient').value,
+        mealType:Number($('demoMeal').value),sendLine:$('demoLine').checked});
+      updateDemoView(state);toast('ส่งคำขอเริ่มทดสอบแล้ว กำลังรอ ESP32-S3 รับคำสั่ง');
+    }catch(e){toast('เริ่มสาธิตไม่สำเร็จ: '+(e.message||e));}
+    finally{setBusy('demoStart',false);}
+  };
+  $('demoStop').onclick=async()=>{
+    setBusy('demoStop',true);
+    try{updateDemoView(await rpc('cancelDemo',token));toast('ส่งคำสั่งหยุดทดสอบแล้ว');}
+    catch(e){toast('หยุดทดสอบไม่สำเร็จ: '+(e.message||e));}
+    finally{setBusy('demoStop',false);}
+  };
+  if(demoTimer)clearInterval(demoTimer);
+  demoTimer=setInterval(pollDemoStatus,2500);
+  pollDemoStatus();
+}
+
+function adminHtml(){if(!hasAdmin())return empty('ไม่มีสิทธิ์');const users=data.users.map(u=>'<tr><td>'+escape(u.email)+'</td><td>'+escape(u.name)+'</td><td>'+escape(u.role)+'</td><td>'+escape(u.patients)+'</td><td>'+tag(u.status)+'</td><td><button class="btn alt editUser" data-email="'+escape(u.email)+'">แก้ไข</button></td></tr>').join('');
+return panel('เพิ่มหรือแก้สิทธิ์ผู้ใช้งาน','<div class="formgrid"><div class="field"><label>อีเมล</label><input id="usrEmail" type="email" placeholder="caregiver@example.com"></div><div class="field"><label>ชื่อแสดง</label><input id="usrName"></div><div class="field"><label>บทบาท</label><select id="usrRole"><option value="CAREGIVER">ผู้ดูแล</option><option value="ADMIN">แอดมิน</option></select></div><div class="field"><label>ผู้สูงอายุที่ดูแล (เช่น P001,P002)</label><input id="usrPatients" value="P001"></div><div class="field"><label>สถานะ</label><select id="usrStatus"><option value="ACTIVE">ใช้งาน</option><option value="INACTIVE">ปิดใช้งาน</option></select></div><div class="field" style="justify-content:end"><button class="btn" id="saveUser">บันทึกสิทธิ์</button></div></div>')+panel('บัญชีที่อยู่ใน Google Sheets','<div class="table-wrap"><table><thead><tr><th>อีเมล</th><th>ชื่อ</th><th>บทบาท</th><th>ผู้สูงอายุ</th><th>สถานะ</th><th>จัดการ</th></tr></thead><tbody>'+users+'</tbody></table></div>')+panel('ตรวจสอบ LINE','<div class="actions"><button class="btn alt" id="testLine">ส่งข้อความทดสอบไป LINE ของแอดมิน</button></div><p class="small">ต้องตั้ง Script Property LINE_CHANNEL_ACCESS_TOKEN และ line_user_id ของแอดมินในชีต Users ก่อน</p>');}
+function medicineEditor(id){
+if(!canManageMedicines())return;
+const x=data.medicines.find(m=>m.id===id);
+if(id&&!x)return;
+const v=(key,fallback='')=>escape(x?.[key]??fallback);
+$('medicineEditor').innerHTML=panel(x?'แก้ไขรายการยา':'เพิ่มรายการยา', '<div class="formgrid">'+
+'<div class="field"><label>ผู้สูงอายุ / ชั้น</label><select id="medPatient">'+data.patients.map(({id:p,shelf})=>'<option value="'+p+'" '+(x?.patientId===p?'selected':'')+'>'+p+' · ชั้น '+shelf+'</option>').join('')+'</select></div>'+ 
+'<div class="field"><label>ชื่อยา</label><input id="medName" maxlength="120" value="'+v('name')+'"></div>'+ 
+'<div class="field"><label>มื้อยา</label><select id="medMeal">'+Object.entries({1:'ก่อนอาหารเช้า',2:'หลังอาหารเช้า',3:'ก่อนอาหารกลางวัน',4:'หลังอาหารกลางวัน',5:'ก่อนอาหารเย็น',6:'หลังอาหารเย็น',7:'ก่อนนอน'}).map(([k,n])=>'<option value="'+k+'" '+(Number(x?.mealType)===Number(k)?'selected':'')+'>'+n+'</option>').join('')+'</select></div>'+ 
+'<div class="field"><label>เวลา (24 ชั่วโมง)</label><input id="medTime" type="time" value="'+v('time','08:00')+'"></div>'+ 
+'<div class="field full"><label>วันแจ้งเตือน (MON,TUE,WED,THU,FRI,SAT,SUN)</label><input id="medDays" value="'+v('days','MON,TUE,WED,THU,FRI,SAT,SUN')+'"></div>'+ 
+'<div class="field full"><label>คำแนะนำ</label><textarea id="medInstruction">'+escape(x?.instruction||'')+'</textarea></div>'+ 
+'<div class="field"><label>สถานะ</label><select id="medActive"><option value="true" '+(x?.active!==false?'selected':'')+'>ใช้งาน</option><option value="false" '+(x?.active===false?'selected':'')+'>ปิดใช้งาน</option></select></div>'+ 
+'<div class="actions full"><button class="btn" id="saveMedicine">บันทึก Google Sheets</button><button class="btn alt" id="cancelMedicine">ยกเลิก</button></div></div>');
+$('cancelMedicine').onclick=()=>$('medicineEditor').replaceChildren();$('saveMedicine').onclick=async()=>{setBusy('saveMedicine',true);try{await rpc('saveMedicine',token,{id:x?.id||'',patientId:$('medPatient').value,name:$('medName').value,mealType:$('medMeal').value,time:$('medTime').value,days:$('medDays').value,instruction:$('medInstruction').value,active:$('medActive').value==='true'});toast('บันทึกข้อมูลยาใน Google Sheets แล้ว');await refresh();}catch(e){toast('บันทึกไม่สำเร็จ: '+e.message);}finally{setBusy('saveMedicine',false);}};
+}
+function bindPage(){if(page==='demo'&&hasAdmin())bindDemo();if(page==='medicine'&&canManageMedicines()){$('newMedicine').onclick=()=>medicineEditor();document.querySelectorAll('.editMedicine').forEach(el=>el.onclick=()=>medicineEditor(el.dataset.id));}
+if(page==='device')$('refreshData').onclick=refresh;
+if(page==='gallery')document.querySelectorAll('.viewImage').forEach(el=>el.onclick=async()=>{el.disabled=true;const area=$('imagePreview');area.textContent='กำลังดึงภาพที่ได้รับสิทธิ์จาก Google Drive...';try{const src=await rpc('readImage',token,el.dataset.id);area.replaceChildren();const img=document.createElement('img');img.src=src;img.alt='ภาพหลักฐานจากกล้อง Time4Med';img.className='preview';area.append(img);}catch(e){area.textContent=e.message;}finally{el.disabled=false;}});
+if(page==='admin'&&hasAdmin()){$('saveUser').onclick=async()=>{setBusy('saveUser',true);try{await rpc('saveUser',token,{email:$('usrEmail').value,name:$('usrName').value,role:$('usrRole').value,patientIds:$('usrPatients').value,status:$('usrStatus').value});toast('บันทึกสิทธิ์สำเร็จ');await refresh();}catch(e){toast('บันทึกสิทธิ์ไม่สำเร็จ: '+e.message);}finally{setBusy('saveUser',false);}};document.querySelectorAll('.editUser').forEach(el=>el.onclick=()=>{const u=data.users.find(x=>x.email===el.dataset.email);if(!u)return;$('usrEmail').value=u.email;$('usrName').value=u.name;$('usrRole').value=u.role==='ADMIN'?'ADMIN':'CAREGIVER';$('usrPatients').value=u.patients;$('usrStatus').value=u.status==='ACTIVE'?'ACTIVE':'INACTIVE';window.scrollTo({top:0,behavior:'smooth'});});$('testLine').onclick=async()=>{setBusy('testLine',true);try{await rpc('testLine',token);toast('LINE รับคำขอส่งทดสอบสำเร็จ');}catch(e){toast('LINE: '+e.message);}finally{setBusy('testLine',false);}};}
+}
+$('sendOtp').onclick=async()=>{setBusy('sendOtp',true);$('message').textContent='กำลังส่งรหัส...';try{const r=await rpc('requestOtp',$('email').value);$('message').textContent=r.message;$('otpArea').classList.remove('hidden');}catch(e){$('message').textContent=e.message;}finally{setBusy('sendOtp',false);}};
+$('verifyOtp').onclick=async()=>{setBusy('verifyOtp',true);try{const r=await rpc('verifyOtp',$('email').value,$('otp').value);token=r.token;sessionStorage.setItem(key,token);await refresh();}catch(e){$('message').textContent=e.message;}finally{setBusy('verifyOtp',false);}};
+$('signout').onclick=async()=>{try{await rpc('logout',token);}catch(_){}loginView('ออกจากระบบแล้ว');};
+$('navigation').addEventListener('click',e=>{const btn=e.target.closest('button[data-page]');if(btn)changePage(btn.dataset.page);});
+if(token)refresh();else loginView();
+})();
+</script></body></html>
