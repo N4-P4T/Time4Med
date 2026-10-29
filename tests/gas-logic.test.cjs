@@ -72,3 +72,24 @@ assert.deepEqual(JSON.parse(JSON.stringify(call('events'))).map(x=>x.p),['ALL'])
 equal(call('sent.length'),1);
 assert.throws(()=>call('postDevice_({postData:{contents:JSON.stringify({action:"intake",deviceKey:"valid-for-test",patientId:"ALL"})}})'),/INVALID_PATIENT_ID/);
 console.log('OK: shelf mapping, meal LEDs, Sheets time normalization, days, date parsing, caregiver permissions, cabinet-wide emergency, intake validation');
+
+/* GitHub Pages → Apps Script migration static/parse smoke checks. */
+const webClient = fs.readFileSync(path.join(__dirname, '..','test-v021','gas-only.js'),'utf8');
+const webIndex = fs.readFileSync(path.join(__dirname, '..','test-v021','index.html'),'utf8');
+const rootIndex = fs.readFileSync(path.join(__dirname, '..','index.html'),'utf8');
+const bridgeHtml = fs.readFileSync(path.join(__dirname, '..','apps-script','Bridge.html'),'utf8');
+new vm.Script(webClient,{filename:'gas-only.js'});
+const bridgeSource = bridgeHtml.match(/<script>([\\s\\S]*?)<\\/script>/);
+assert.ok(bridgeSource,'Bridge.html includes client script');
+new vm.Script(bridgeSource[1].replace('<?= channel ?>','unit-test-channel'),{filename:'Bridge.html'});
+assert.match(webIndex,/src="gas-only\\.js"/);
+assert.doesNotMatch(webIndex,/src="\\.\\.\\/test-v019\\/auth-config\\.js"/);
+assert.doesNotMatch(webIndex,/src="mqtt-live-status\\.js"/);
+assert.doesNotMatch(webIndex,/src="gateway-control\\.js"/);
+assert.match(webClient,/crypto\\.getRandomValues/);
+assert.match(bridgeHtml,/event\\.origin !== allowedOrigin/);
+assert.match(bridgeHtml,/requestOtp: true, verifyOtp: true, bootstrap: true/);
+assert.match(fs.readFileSync(file,'utf8'),/setXFrameOptionsMode\\(HtmlService\\.XFrameOptionsMode\\.ALLOWALL\\)/);
+assert.match(rootIndex,/test-v021\\//);
+equal(call('time4medWebsiteUrl_()'),'https://n4-p4t.github.io/Time4Med/');
+console.log('OK: GitHub frontend syntax, iframe bridge whitelist/origin and legacy client isolation');
