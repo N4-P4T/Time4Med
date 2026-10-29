@@ -1,0 +1,30 @@
+/* Preserve the original Time4Med v0.21 sidebar, header, logo and card styling. */
+[hidden]{display:none!important}
+.t4m-auth-screen{position:fixed;inset:0;z-index:10000;background:#eff5fc;display:flex;align-items:center;justify-content:center;padding:20px}
+.t4m-auth-card.gas-login{width:min(100%,460px);max-width:460px;padding:32px;border:1px solid #d8e5f4;border-radius:20px;background:#fff;box-shadow:0 18px 50px #092c5720;text-align:center}
+.gas-login .t4m-auth-logo{width:64px;height:64px;object-fit:contain}
+.gas-login h1{color:#124779;margin:10px 0}.gas-login form{text-align:left}
+.gas-login label{font-weight:700;display:block;margin-top:14px;margin-bottom:6px}
+.gas-login input,.gas-form input,.gas-form select,.gas-form textarea{border:1px solid #c6d6e7;background:#fff;padding:12px;border-radius:9px;width:100%;box-sizing:border-box;font:inherit}
+.gas-login button{width:100%;margin-top:16px}
+#gasStatus{min-height:20px;color:#3975a5;font-size:14px;margin:14px 0 2px}
+.gas-btn{display:inline-block;border:0;background:#1666b1;color:#fff;border-radius:10px;padding:10px 15px;font:inherit;cursor:pointer;font-weight:700}
+.gas-btn:hover{filter:brightness(.94)}
+.gas-btn:disabled{opacity:.5;cursor:wait}
+.gas-btn.light{background:#e9f2fd;color:#15548b}.gas-btn.danger{background:#a82233;color:#fff}
+.gas-meta{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:16px;color:#647d98;font-size:13px}
+.gas-heading{margin:2px 0 22px}.gas-heading h1{color:#113d73;font-size:25px;margin:0 0 9px}.gas-heading p{color:#607a96;margin:0}
+.gas-panel{margin-bottom:20px;background:#fff}.gas-panel .panel-heading{display:flex;padding:18px 22px;border-bottom:1px solid #e7eef7}.gas-panel h2{font-size:18px;color:#143e70;margin:0}
+.gas-panel-body{padding:20px 22px;overflow-wrap:anywhere}.gas-panel-body>p{margin:0 0 12px}
+.gas-scroll{overflow-x:auto}.gas-table{width:100%;border-collapse:collapse;font-size:14px;text-align:left;min-width:530px}
+.gas-table th,.gas-table td{border-bottom:1px solid #e3ebf4;padding:12px 10px;vertical-align:top}
+.gas-table th{color:#3b617f;font-size:12px;background:#f4f8fd}
+.gas-muted{color:#697f98;font-size:14px;line-height:1.7}
+.gas-form{display:grid;gap:14px;max-width:750px}.gas-form label{font-weight:650;color:#294c6c;display:grid;gap:5px}
+.gas-form .gas-inline{display:flex;align-items:center;gap:9px}.gas-inline input,.gas-day input{width:auto}
+.gas-days{display:flex;gap:10px;flex-wrap:wrap;margin-top:7px}.gas-day{display:flex!important;flex-direction:row;gap:4px!important;align-items:center;font-weight:400!important}
+.gas-actions{display:flex;gap:10px;flex-wrap:wrap}.gas-gallery{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:16px}
+.gas-photo{border:1px solid #e2eaf4;padding:16px;border-radius:12px}.gas-photo p{overflow-wrap:anywhere}.gas-image{display:block;width:100%;max-height:440px;object-fit:contain;margin:12px 0}
+#gasPageMessage{margin:0 0 12px;font-weight:650;color:#0b8057;white-space:pre-wrap}
+#gasPageMessage.bad,.bad{color:#b11d34!important}
+@media(max-width:700px){.gas-meta{align-items:flex-start}.gas-panel-body{padding:14px}.t21-kpis{grid-template-columns:repeat(2,minmax(0,1fr))}}
