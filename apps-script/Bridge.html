@@ -29,8 +29,9 @@
       ...(ok?{value}:{error:String(value && value.message || value).slice(0,250)})
     }, allowedOrigin);
     try {
-      google.script.run.withSuccessHandler(value=>reply(true,value))
-        .withFailureHandler(err=>reply(false,err))[data.method].apply(null,data.args);
+      const runner = google.script.run.withSuccessHandler(value=>reply(true,value))
+        .withFailureHandler(err=>reply(false,err));
+      runner[data.method](...data.args);
     } catch(err) { reply(false,err); }
   });
   ready();
