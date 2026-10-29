@@ -34,6 +34,12 @@ jobs:
           echo "Contains Invalid channel: $(grep -ic 'Invalid bridge channel' /tmp/t4m-bridge-probe.html || true)"
           echo "Contains login page: $(grep -ic 'accounts.google.com\\|signin\\|ServiceLogin' /tmp/t4m-bridge-probe.html || true)"
           echo "Contains server exception: $(grep -ic 'Exception\\|Script function not found\\|Error' /tmp/t4m-bridge-probe.html || true)"
+          echo "Bridge RPC marker count: $(grep -oic 'time4med-gas-bridge' /tmp/t4m-bridge-probe.html || true)"
+          echo "Legacy Apps Script UI marker count: $(grep -oic 't4m-otp\\|sendOtp\\|medication adherence\\|ระบบดูแลการใช้ยา' /tmp/t4m-bridge-probe.html || true)"
+          echo "Response title excerpts:"
+          grep -Eo '<title>[^<]{0,120}' /tmp/t4m-bridge-probe.html | head -n 3 || true
+          echo "Header content-type:"
+          file -b --mime-type /tmp/t4m-bridge-probe.html
           echo "Bytes: $(wc -c < /tmp/t4m-bridge-probe.html)"
           exit 0
       - name: Test GitHub Pages OTP, dashboard and GAS iframe bridge (mock API)
