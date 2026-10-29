@@ -10,7 +10,8 @@ if (html.includes('src="gas-only.js"')) {
   assert.match(html,/class="t21-brand"/);
   assert.match(html,/src="gas-only\.js"/);
   assert.doesNotMatch(html,/src="\.\.\/test-v019\/auth\.js"|mqtt\.min\.js|gateway-control\.js/);
-  require('node:vm').createScript(fs.readFileSync('test-v021/gas-only.js','utf8'));
+  new (require('node:vm').Script)(fs.readFileSync('test-v021/gas-only.js','utf8'));
+
   console.log('PASS: retained caregiver shell, GAS-only script and no legacy Worker auth');
   process.exit(0);
 }
