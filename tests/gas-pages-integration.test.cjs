@@ -36,7 +36,8 @@ async function main(){
    if(u.origin===GAS&&u.pathname.endsWith('/exec'))
      return route.fulfill({status:200,contentType:'text/html',body:mockBridge(u.searchParams.get('channel'))});
    if(u.origin===GH&&u.pathname.startsWith('/Time4Med/')){
-    const local=path.resolve(root,u.pathname.slice('/Time4Med/'.length));
+    const relative=u.pathname.slice('/Time4Med/'.length);
+    const local=path.resolve(root,relative.endsWith('/')?relative+'index.html':relative);
     if(!local.startsWith(root+path.sep))return route.abort();
     try{
      const body=fs.readFileSync(local);
