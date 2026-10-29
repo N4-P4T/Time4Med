@@ -20,9 +20,47 @@ assert.equal(c.run(`userForEmail_('legacy@example.org').role`),'CAREGIVER');
 
 c=ctx();
 c.run(`session_=()=>({id:'U1',email:'user@example.org',role:'CAREGIVER',patientIds:['P001']});`);
-assert.throws(()=>c.run(`saveMedicine('fake',{patientId:'P002',name:'Medicine',mealType:2,time:'08:00'})`),/เฉพาะแอดมิน/);
+assert.throws(()=>c.run(`saveMedicine('fake',{patientId:'P002',name:'Medicine',mealType:2,time:'08:00'})`),/ไม่มีสิทธิ์/);
 assert.throws(()=>c.run(`saveUser('fake',{email:'other@example.org',role:'ADMIN',status:'ACTIVE'})`),/เฉพาะแอดมิน/);
 assert.throws(()=>c.run(`testLine('fake')`),/เฉพาะแอดมิน/);
+
+
+/* Caregivers may manage prescriptions on their assigned shelves only.
+ * Validate both the target patientId and the original record patientId.
+ * All of these tests exercise server methods directly, bypassing the web UI.
+ */
+let med=ctx({
+  LockService:{getScriptLock(){return {waitLock(){},releaseLock(){}}}},
+  Utilities:{getUuid(){return 'test-med-uuid'}}
+});
+med.run(`
+  const medicationRows=[
+    {index:2,data:{record_id:'OWN',patient_id:'P001',name:'Existing own med'}},
+    {index:3,data:{record_id:'OTHER',patient_id:'P002',name:'Existing other med'}}
+  ];
+  let medicationWrites=[];
+  session_=()=>({id:'CG001',email:'cg@example.org',role:'CAREGIVER',patientIds:['P001']});
+  grid_=(name)=>name==='MealMedicines'?{rows:medicationRows}:
+    name==='Patients'?{rows:[
+      {data:{patient_id:'P001',display_name:'Patient 1'}},
+      {data:{patient_id:'P002',display_name:'Patient 2'}}]}:{rows:[]};
+  writeRow_=(g,rowIndex,data)=>medicationWrites.push({rowIndex,data});
+  logActivity_=()=>{};
+  stamp_=()=> '2026-10-29T00:00:00.000Z';
+`);
+const medicine=(id,patientId)=>({id,patientId,name:'Sample medicine',mealType:2,time:'08:05',days:'MON',active:false});
+assert.equal(med.run(`saveMedicine('token',${JSON.stringify(medicine('', 'P001'))}).ok`),true,'Caregiver may create medicine on own shelf');
+assert.equal(med.run(`medicationWrites[0].data.patient_id`),'P001');
+assert.equal(med.run(`medicationWrites[0].data.is_active`),'FALSE');
+assert.equal(med.run(`saveMedicine('token',${JSON.stringify(medicine('OWN','P001'))}).ok`),true,'Caregiver may edit existing own medicine');
+assert.equal(med.run(`medicationWrites[1].rowIndex`),2);
+assert.equal(med.run(`disableMedicine('token','OWN').ok`),true,'Caregiver may disable medicine on own shelf');
+assert.throws(()=>med.run(`saveMedicine('token',${JSON.stringify(medicine('','P002'))})`),/ไม่มีสิทธิ์/,'Cannot create for P002');
+assert.throws(()=>med.run(`saveMedicine('token',${JSON.stringify(medicine('OTHER','P001'))})`),/ไม่มีสิทธิ์/,'Cannot steal P002 record by moving to P001');
+assert.throws(()=>med.run(`saveMedicine('token',${JSON.stringify(medicine('OWN','P002'))})`),/ไม่มีสิทธิ์/,'Cannot move P001 record to P002');
+assert.throws(()=>med.run(`disableMedicine('token','OTHER')`),/ไม่มีสิทธิ์/,'Cannot disable P002');
+med.run(`session_=()=>({id:'ADM',role:'ADMIN',patientIds:['P001','P002','P003']});`);
+assert.equal(med.run(`saveMedicine('token',${JSON.stringify(medicine('OTHER','P002'))}).ok`),true,'Admin may edit any patient medicine');
 
 c=ctx({LockService:{getScriptLock(){return {waitLock(){},releaseLock(){}}}}});
 c.run(`
@@ -56,4 +94,6 @@ const scripts=[...html.matchAll(/<script(?:\s[^>]*)?>([\s\S]*?)<\/script>/ig)].m
 for(const js of scripts) new vm.Script(js);
 assert.match(html,/String\(x\.kind\)\.toUpperCase\(\)!=='PRN'/,'PRN needs filtering');
 assert.match(html,/u\.status==='ACTIVE'\?'ACTIVE':'INACTIVE'/,'Legacy DISABLED must render inactive');
-console.log('OK: strict roles, permissions, legacy user statuses, reminder/retention guards, JPEG checks, frontend syntax');
+assert.match(html,/function canManageMedicines\(\)/,'Web must permit caregivers to manage medicines');
+assert.match(html,/data\\.patients\\.map\\(\\(\\{id:p,shelf\\}\\)/,'Patient selection must derive from scoped server data');
+console.log('OK: strict roles, per-patient caregiver create/edit/disable, cross-patient denial, legacy statuses, reminder/retention guards, JPEG checks, frontend syntax');
