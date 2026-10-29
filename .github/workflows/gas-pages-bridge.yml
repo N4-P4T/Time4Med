@@ -23,5 +23,18 @@ jobs:
         run: npm install --no-save playwright@1.56.1
       - name: Install Chromium on supported Ubuntu
         run: npx playwright install --with-deps chromium
+      - name: Probe public Apps Script Bridge deployment (no personal data or credentials)
+        shell: bash
+        run: |
+          set +e
+          URL='https://script.google.com/macros/s/AKfycbx2-O9PDp-T0eXoP1A9_xesHk8mWcWszAbLsbsFOMpARpIIICibdKu6On0G0agGdMIEtQ/exec?bridge=1&channel=abcdef0123456789abcdef0123456789'
+          CODE=$(curl --max-time 22 -sSL -o /tmp/t4m-bridge-probe.html -w '%{http_code}' "$URL")
+          echo "HTTP status: $CODE"
+          echo "Contains Bridge greeting: $(grep -ic 'Time4Med secure bridge' /tmp/t4m-bridge-probe.html || true)"
+          echo "Contains Invalid channel: $(grep -ic 'Invalid bridge channel' /tmp/t4m-bridge-probe.html || true)"
+          echo "Contains login page: $(grep -ic 'accounts.google.com\\|signin\\|ServiceLogin' /tmp/t4m-bridge-probe.html || true)"
+          echo "Contains server exception: $(grep -ic 'Exception\\|Script function not found\\|Error' /tmp/t4m-bridge-probe.html || true)"
+          echo "Bytes: $(wc -c < /tmp/t4m-bridge-probe.html)"
+          exit 0
       - name: Test GitHub Pages OTP, dashboard and GAS iframe bridge (mock API)
         run: node tests/gas-pages-integration.test.cjs
