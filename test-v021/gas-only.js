@@ -5,10 +5,13 @@
 (() => {
 'use strict';
 const WEB_APP = 'https://script.google.com/macros/s/AKfycbx2-O9PDp-T0eXoP1A9_xesHk8mWcWszAbLsbsFOMpARpIIICibdKu6On0G0agGdMIEtQ/exec';
-const CHANNEL = Array.from(crypto.getRandomValues(new Uint8Array(24)),x=>x.toString(16).padStart(2,'0')).join('');
+function makeChannel(){return Array.from(crypto.getRandomValues(new Uint8Array(24)),x=>x.toString(16).padStart(2,'0')).join('');}
+// Google Apps Script documents unsupported multi-Google-account routing. An explicit
+// authuser hint sometimes helps; it cannot be guaranteed to work on all accounts.
+const AUTHUSER_ATTEMPTS = [null, 0, 1, 2, 3];
 const MEALS = ['','ก่อนอาหารเช้า','หลังอาหารเช้า','ก่อนอาหารกลางวัน','หลังอาหารกลางวัน','ก่อนอาหารเย็น','หลังอาหารเย็น','ก่อนนอน'];
 const DAYS = [['MON','จ'],['TUE','อ'],['WED','พ'],['THU','พฤ'],['FRI','ศ'],['SAT','ส'],['SUN','อา']];
-const state={peer:null,origin:null,seq:0,pending:new Map(),token:null,data:null,ready:false,view:'dashboard'};
+const state={peer:null,origin:null,channel:null,frames:new Map(),seq:0,pending:new Map(),token:null,data:null,ready:false,view:'dashboard'};
 const $=id=>document.getElementById(id);
 const html=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const text=(id,s)=>{const e=$(id);if(e)e.textContent=s;};
@@ -20,37 +23,56 @@ function bridgeOrigin(origin) {
   try {const u=new URL(origin);return u.protocol==='https:' && (u.hostname==='script.google.com'||u.hostname==='script.googleusercontent.com'||u.hostname.endsWith('.googleusercontent.com'));}catch(_){return origin==='null';}
 }
 function call(method,...args) {
-  if(!state.ready) return Promise.reject(Error('ยังไม่เชื่อม Apps Script Bridge กรุณาติดตั้ง Bridge.html และ Deploy รุ่นใหม่'));
+  if(!state.ready) return Promise.reject(Error('ยังเชื่อมต่อ Apps Script ไม่ได้ ตรวจโปรไฟล์ Google หรือเลือกเปิดในหน้าต่างส่วนตัว'));
   return new Promise((resolve,reject)=>{
     const id=++state.seq;
     const timer=setTimeout(()=>{state.pending.delete(id);reject(Error('Apps Script ตอบสนองช้าเกินไป กรุณาลองใหม่'));},45000);
     state.pending.set(id,{resolve,reject,timer});
-    state.peer.postMessage({app:'time4med-gas-bridge',type:'call',channel:CHANNEL,id,method,args},state.origin==='null'?'*':state.origin);
+    state.peer.postMessage({app:'time4med-gas-bridge',type:'call',channel:state.channel,id,method,args},state.origin==='null'?'*':state.origin);
   });
 }
 window.addEventListener('message',event=>{
   const d=event.data;
-  if(!d||d.app!=='time4med-gas-bridge'||d.channel!==CHANNEL||!bridgeOrigin(event.origin))return;
+  if(!d||d.app!=='time4med-gas-bridge'||!state.frames.has(d.channel)||!bridgeOrigin(event.origin))return;
   if(d.type==='ready'&&!state.ready){
-    state.peer=event.source;state.origin=event.origin;state.ready=true;
+    state.peer=event.source;state.origin=event.origin;state.channel=d.channel;state.ready=true;
+    // Keep only the iframe that completed the handshake. Do not disturb live GAS RPC.
+    for(const [key,frame] of state.frames)if(key!==d.channel){frame.remove();state.frames.delete(key);}
     text('gasConnectState','เชื่อมต่อ Apps Script แล้ว');
-    state.peer.postMessage({app:'time4med-gas-bridge',type:'hello',channel:CHANNEL},event.origin==='null'?'*':event.origin);
+    state.peer.postMessage({app:'time4med-gas-bridge',type:'hello',channel:state.channel},event.origin==='null'?'*':event.origin);
     message('เชื่อมต่อแล้ว กรุณากรอกอีเมลเข้าสู่ระบบ');
   }
-  if(d.type==='reply'&&state.ready&&event.source===state.peer&&event.origin===state.origin){
+  if(d.type==='reply'&&state.ready&&d.channel===state.channel&&event.source===state.peer&&event.origin===state.origin){
     const p=state.pending.get(d.id);if(!p)return;
     state.pending.delete(d.id);clearTimeout(p.timer);
     if(d.ok)p.resolve(d.value);else p.reject(Error(d.error||'คำขอไม่สำเร็จ'));
   }
 });
 function installBridge(){
-  const frame=document.createElement('iframe');
-  frame.id='time4medSecureBridge';
-  frame.title='Time4Med Apps Script Bridge';
-  frame.hidden=true;frame.setAttribute('aria-hidden','true');
-  frame.src=WEB_APP+'?bridge=1&channel='+CHANNEL;
-  document.body.appendChild(frame);
-  setTimeout(()=>{if(!state.ready)message('ยังเชื่อม Apps Script ไม่ได้: ต้องเพิ่ม Bridge.html แล้วอัปเดต Deployment ใหม่',true);},15000);
+  let next=0;
+  function tryNext(){
+    if(state.ready)return;
+    if(next>=AUTHUSER_ATTEMPTS.length){
+      text('gasConnectState','ตรวจโปรไฟล์ Google ที่กำลังใช้งาน');
+      message('Apps Script ไม่ตอบกลับ: หากลงชื่อเข้าใช้ Google หลายบัญชี Google อาจส่ง HTTP 404 — ลองโปรไฟล์ Chrome ที่ลงชื่อเข้าใช้บัญชีของผู้ดูแลเพียงบัญชีเดียว หรือหน้าต่างไม่ระบุตัวตน',true);
+      return;
+    }
+    const hint=AUTHUSER_ATTEMPTS[next++];
+    const channel=makeChannel();
+    const frame=document.createElement('iframe');
+    frame.id=next===1?'time4medSecureBridge':'time4medSecureBridge'+next;
+    frame.title='Time4Med Apps Script Bridge';
+    frame.hidden=true;
+    frame.setAttribute('aria-hidden','true');
+    frame.src=WEB_APP+'?bridge=1&channel='+channel+(hint===null?'':'&authuser='+hint);
+    state.frames.set(channel,frame);
+    document.body.appendChild(frame);
+    if(next>1)text('gasConnectState','ลองช่องทางสำรอง '+(next-1)+'/'+(AUTHUSER_ATTEMPTS.length-1)+'…');
+    // A failed Google account route can return 404 before doGet; retry a bounded
+    // set of account hints, never send OTP or other data in the URL.
+    window.setTimeout(tryNext,5000);
+  }
+  tryNext();
 }
 function startAuth(){
   const box=$('t4mAuthScreen');
