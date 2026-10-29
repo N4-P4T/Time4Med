@@ -93,11 +93,18 @@ function can_(user,patientId) { return user.role==='ADMIN'||user.patientIds.incl
 function needAdmin_(user) { assert_(user.role==='ADMIN','เฉพาะแอดมินเท่านั้น'); }
 function fixedShelf_(patientId) { return T4M.patients[patientId]||null; }
 function patientIdOf_(d) { return str_(d.patient_id||'').toUpperCase(); }
+// Sheets can display a correctly entered 08:05 as 8:05 depending on the cell format.
+// Canonicalize valid 24-hour values before comparing schedules or sending them to devices.
+function normalizedTime_(value) {
+  const match=/^(\d{1,2}):([0-5]\d)(?::00)?$/.exec(str_(value));
+  if(!match || Number(match[1])>23) return '';
+  return String(Number(match[1])).padStart(2,'0')+':'+match[2];
+}
 function safeMedicine_(d) {
   const p=patientIdOf_(d);return {
     id:str_(d.record_id), patientId:p, patient:str_(d.patient),name:str_(d.name),
     mealType:Number(d.meal_type)||0,meal:T4M.meal[Number(d.meal_type)]||'—',
-    time:str_(d.reminder_time),days:str_(d.reminder_days),instruction:str_(d.instruction),
+    time:normalizedTime_(d.reminder_time),days:str_(d.reminder_days),instruction:str_(d.instruction),
     stock:str_(d.stock_status),active:active_(d.is_active),kind:str_(d.kind),
     shelf:fixedShelf_(p),demo:/^(TEST|DEMO)[_\s-]/i.test(str_(d.name))
   };
