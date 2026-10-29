@@ -95,5 +95,5 @@ for(const js of scripts) new vm.Script(js);
 assert.match(html,/String\(x\.kind\)\.toUpperCase\(\)!=='PRN'/,'PRN needs filtering');
 assert.match(html,/u\.status==='ACTIVE'\?'ACTIVE':'INACTIVE'/,'Legacy DISABLED must render inactive');
 assert.match(html,/function canManageMedicines\(\)/,'Web must permit caregivers to manage medicines');
-assert.match(html,/data\\.patients\\.map\\(\\(\\{id:p,shelf\\}\\)/,'Patient selection must derive from scoped server data');
+assert.ok(html.includes("data.patients.map(({id:p,shelf})"),'Patient selection must derive from scoped server data');
 console.log('OK: strict roles, per-patient caregiver create/edit/disable, cross-patient denial, legacy statuses, reminder/retention guards, JPEG checks, frontend syntax');
