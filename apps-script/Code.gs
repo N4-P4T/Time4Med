@@ -292,6 +292,170 @@ function monthlyImageCleanup_() {
     }
   });
 }
+
+/**
+ * Admin-only, one-click, real-hardware demonstration.
+ * CacheService is temporary memory: NO writes to Sheets, ActivityLog,
+ * IntakeLog, ImageIndex, NotificationLog, Drive or medication schedules.
+ * ESP32-S3 must poll demoPoll and report demoEvent using DEVICE_API_KEY.
+ * Sending START_DEMO NEVER unlocks the door remotely.
+ */
+const DEMO_KEY_='time4med:demo:active';
+const DEMO_PHASES_=Object.freeze([
+  'RECEIVED','REMINDER_STARTED','VOICE_DONE','LOCK_OPENED',
+  'DOOR_OPENED','DOOR_CLOSED','CONFIRMED','PHOTO_CAPTURED','COMPLETE'
+]);
+function demoCache_(){return CacheService.getScriptCache();}
+function readDemo_(){
+  const json=demoCache_().get(DEMO_KEY_);
+  if(!json)return null;
+  const state=JSON.parse(json);
+  if(['WAITING','RUNNING'].includes(state.status) && Date.now()>state.expiresAt){
+    state.status='TIMED_OUT';state.note='หมดเวลารออุปกรณ์ 5 นาที กรุณาเริ่มใหม่';
+    saveDemo_(state);
+  }
+  return state;
+}
+function saveDemo_(state){demoCache_().put(DEMO_KEY_,JSON.stringify(state),600);}
+function demoPublic_(state){
+  if(!state)return {status:'IDLE'};
+  return {id:state.id,status:state.status,patientId:state.patientId,
+    shelf:state.shelf,mealType:state.mealType,startedAt:state.startedAt,
+    expiresAt:state.expiresAt,steps:state.steps||[],note:state.note||'',
+    photoAvailable:!!demoCache_().get('time4med:demo:photo:'+state.id),
+    lineStatus:state.lineStatus||'SKIPPED'};
+}
+function startDemo(token,opts){
+  const admin=session_(token);needAdmin_(admin);
+  const x=opts||{},patientId=upper_(x.patientId||'P001'),mealType=Number(x.mealType||2);
+  assert_(fixedShelf_(patientId),'การสาธิตรองรับ P001–P003 เท่านั้น');
+  assert_(Number.isInteger(mealType)&&mealType>=1&&mealType<=7,'มื้อยาไม่ถูกต้อง');
+  const lock=LockService.getScriptLock();lock.waitLock(5000);
+  try{
+    const existing=readDemo_();
+    assert_(!existing||!['WAITING','RUNNING'].includes(existing.status),
+      'มีการทดสอบกำลังทำงานอยู่ โปรดหยุดหรือรอให้สิ้นสุดก่อน');
+    const now=Date.now();
+    // LINE demo is optional, explicit opt-in and never sends a scheduled reminder.
+    const sendLine=x.sendLine===true;
+    const state={id:Utilities.getUuid(),status:'WAITING',
+      patientId,shelf:fixedShelf_(patientId),mealType,
+      startedAt:Utilities.formatDate(new Date(),T4M.tz,'yyyy-MM-dd HH:mm:ss'),
+      expiresAt:now+300000,steps:[],note:'รอ ESP32-S3 เชื่อมต่อเพื่อเริ่มสาธิต',
+      lineStatus:sendLine?'PENDING':'SKIPPED',
+      lineRecipient:sendLine?str_(admin.lineId):''};
+    if(sendLine&&!state.lineRecipient)state.lineStatus='UNAVAILABLE';
+    saveDemo_(state);
+    return demoPublic_(state);
+  }finally{lock.releaseLock();}
+}
+function getDemoStatus(token){
+  needAdmin_(session_(token));
+  return demoPublic_(readDemo_());
+}
+function cancelDemo(token){
+  needAdmin_(session_(token));
+  const lock=LockService.getScriptLock();lock.waitLock(5000);
+  try{
+    const state=readDemo_();
+    if(!state)return {status:'IDLE'};
+    if(['WAITING','RUNNING'].includes(state.status)){
+      state.status='STOPPED';state.note='แอดมินสั่งหยุดการทดสอบ';
+      saveDemo_(state);
+    }
+    return demoPublic_(state);
+  }finally{lock.releaseLock();}
+}
+function getDemoPreview(token,id){
+  needAdmin_(session_(token));
+  const state=readDemo_();
+  assert_(state&&state.id===str_(id),'ไม่พบการสาธิตที่ร้องขอ');
+  const base64=demoCache_().get('time4med:demo:photo:'+state.id);
+  assert_(base64,'ยังไม่มีรูปสาธิตในหน่วยความจำชั่วคราว');
+  return 'data:image/jpeg;base64,'+base64;
+}
+function demoDevicePoll_(p){
+  const deviceId=str_(p.deviceId);
+  assert_(deviceId.length>0 && deviceId===str_(props_().getProperty('DEMO_DEVICE_ID')||'S3-001'),
+    'DEMO_DEVICE_NOT_AUTHORIZED');
+  const state=readDemo_();
+  if(!state)return {ok:true,command:'NONE'};
+  if(['STOPPED','TIMED_OUT'].includes(state.status))
+    return {ok:true,command:'STOP_DEMO',demoId:state.id};
+  if(['WAITING','RUNNING'].includes(state.status)){
+    // Idempotent: firmware MUST ignore a repeated START_DEMO for the same demoId.
+    return {ok:true,command:'START_DEMO',demoId:state.id,
+      demoOnly:true,patientId:state.patientId,shelf:state.shelf,
+      mealType:state.mealType,expiresAt:state.expiresAt};
+  }
+  return {ok:true,command:'NONE'};
+}
+function demoDeviceEvent_(p){
+  const deviceId=str_(p.deviceId);
+  assert_(deviceId===str_(props_().getProperty('DEMO_DEVICE_ID')||'S3-001'),
+    'DEMO_DEVICE_NOT_AUTHORIZED');
+  const id=str_(p.demoId),phase=upper_(p.phase);
+  assert_(DEMO_PHASES_.includes(phase)||phase==='ERROR','INVALID_DEMO_PHASE');
+  const lock=LockService.getScriptLock();lock.waitLock(5000);
+  let recipient='';
+  let result;
+  try{
+    const state=readDemo_();
+    assert_(state&&state.id===id,'DEMO_NOT_FOUND');
+    assert_(['WAITING','RUNNING'].includes(state.status),'DEMO_NOT_ACTIVE');
+    if(phase==='ERROR'){
+      state.status='FAILED';
+      state.note='อุปกรณ์แจ้งข้อผิดพลาด: '+str_(p.note).slice(0,120);
+    }else if(!state.steps.some(step=>step.phase===phase)){
+      if(phase==='COMPLETE'){
+        // Cannot mark complete without confirmed events from the real hardware.
+        const needed=DEMO_PHASES_.filter(x=>x!=='COMPLETE');
+        assert_(needed.every(x=>state.steps.some(step=>step.phase===x)),
+          'DEMO_STEPS_INCOMPLETE');
+        state.status='DONE';state.note='อุปกรณ์ส่งเหตุการณ์ครบทุกขั้นตอน';
+      }else{state.status='RUNNING';state.note='รับสัญญาณจาก ESP32-S3: '+phase;}
+      state.steps.push({phase,at:Utilities.formatDate(new Date(),T4M.tz,'HH:mm:ss')});
+    }
+    if(phase==='COMPLETE' && state.status==='DONE' && state.lineStatus==='PENDING'){
+      state.lineStatus='SENDING';
+      recipient=state.lineRecipient;
+    }
+    saveDemo_(state);
+    result={ok:true,status:state.status,phase};
+  }finally{lock.releaseLock();}
+  if(recipient){
+    // Intentionally NO NotificationLog/ActivityLog write for demo LINE.
+    let delivery='SENT';
+    try{lineTo_(recipient,'[Time4Med DEMO] สาธิตระบบเสร็จสิ้น: '+id+
+      '\nผู้สูงอายุ '+str_(p.patientId||'')+' (โหมดทดสอบ ไม่มีการบันทึกประวัติการรับยา)');}
+    catch(err){delivery='FAILED';}
+    const lineLock=LockService.getScriptLock();lineLock.waitLock(5000);
+    try{
+      const latest=readDemo_();
+      if(latest&&latest.id===id&&latest.lineStatus==='SENDING'){
+        latest.lineStatus=delivery;saveDemo_(latest);
+      }
+    }finally{lineLock.releaseLock();}
+  }
+  return result;
+}
+function demoDevicePhoto_(p){
+  assert_(str_(p.deviceId)===str_(props_().getProperty('DEMO_DEVICE_ID')||'S3-001'),
+    'DEMO_DEVICE_NOT_AUTHORIZED');
+  const state=readDemo_();
+  assert_(state&&state.id===str_(p.demoId)&&['WAITING','RUNNING'].includes(state.status),
+    'DEMO_NOT_ACTIVE');
+  const jpeg=str_(p.jpegBase64);
+  assert_(jpeg.length>100 && jpeg.length<=60000 && /^[A-Za-z0-9+/]+={0,2}$/.test(jpeg),
+    'DEMO_PHOTO_TOO_LARGE');
+  const bytes=Utilities.base64Decode(jpeg);
+  assert_(bytes.length>=100 && (bytes[0]&255)===255 && (bytes[1]&255)===216 &&
+    (bytes[2]&255)===255,'DEMO_PHOTO_NOT_JPEG');
+  // CacheService is volatile and expires. Never create a Google Drive file.
+  demoCache_().put('time4med:demo:photo:'+state.id,jpeg,600);
+  return {ok:true,temporary:true};
+}
+
 function json_(obj) {return ContentService.createTextOutput(JSON.stringify(obj)).setMimeType(ContentService.MimeType.JSON);}
 function deviceAuthenticated_(key) {
   const actual=props_().getProperty('DEVICE_API_KEY');
@@ -300,7 +464,10 @@ function deviceAuthenticated_(key) {
 function postDevice_(e) {
   const p=JSON.parse((e&&e.postData&&e.postData.contents)||'{}');
   assert_(deviceAuthenticated_(p.deviceKey),'DEVICE_KEY_INVALID');
-  assert_(['pullSchedule','heartbeat','intake','emergency','image'].includes(p.action),'UNKNOWN_DEVICE_ACTION');
+  assert_(['pullSchedule','heartbeat','intake','emergency','image','demoPoll','demoEvent','demoPhoto'].includes(p.action),'UNKNOWN_DEVICE_ACTION');
+  if(p.action==='demoPoll')return demoDevicePoll_(p);
+  if(p.action==='demoEvent')return demoDeviceEvent_(p);
+  if(p.action==='demoPhoto')return demoDevicePhoto_(p);
   if(p.action==='pullSchedule'){
     const schedules=grid_('MealMedicines').rows.map(x=>safeMedicine_(x.data))
       .filter(x=>x.active&&!x.demo&&upper_(x.kind)!=='PRN'&&x.shelf)
