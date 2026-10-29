@@ -158,15 +158,19 @@ function logActivity_(patientId,userId,kind,details,result) {
     user_id:userId,event_type:kind,result:result||'SUCCESS',details:String(details).slice(0,400),occurred_at:tzNow_()});
 }
 function saveMedicine(token,input) {
-  const u=session_(token);needAdmin_(u);
+  const u=session_(token);
   const p=upper_(input.patientId),name=str_(input.name),n=Number(input.mealType),time=str_(input.time);
   assert_(fixedShelf_(p),'เลือก P001–P003 เท่านั้น (ชั้น 4 ไม่ใช่ยาประจำบุคคล)');
+  assert_(can_(u,p),'ไม่มีสิทธิ์จัดการยาของผู้สูงอายุนี้');
   assert_(name.length>=2&&name.length<=120,'ชื่อยาต้องยาว 2–120 ตัวอักษร');
   assert_(Number.isInteger(n)&&n>=1&&n<=7,'เลือกมื้อยา 1–7');
   assert_(/^(?:[01]\d|2[0-3]):[0-5]\d$/.test(time),'เวลาไม่ถูกต้อง (HH:mm)');
   const days=days_(input.days),id=str_(input.id),g=grid_('MealMedicines');
   const found=id?g.rows.find(r=>str_(r.data.record_id)===id):null;
   assert_(!id||found,'ไม่พบรายการยาที่ต้องการแก้ไข');
+  // Existing record ownership must be checked separately from the new patientId.
+  // This blocks a caregiver from moving another patient's medicine onto their own shelf.
+  if(found) assert_(can_(u,patientIdOf_(found.data)),'ไม่มีสิทธิ์แก้ไขรายการยาของผู้สูงอายุนี้');
   const pName=grid_('Patients').rows.find(x=>patientIdOf_(x.data)===p)?.data.display_name||p;
   const val={record_id:id||Utilities.getUuid(),patient_id:p,patient:pName,name,
     kind:'scheduled',meal_type:String(n),shelf:mealShelf_(n),box_number:String(fixedShelf_(p)).padStart(2,'0'),
@@ -178,8 +182,9 @@ function saveMedicine(token,input) {
   return {ok:true,id:val.record_id};
 }
 function disableMedicine(token,id) {
-  const u=session_(token);needAdmin_(u);const g=grid_('MealMedicines'),r=g.rows.find(x=>x.data.record_id===id);
-  assert_(r,'ไม่พบรายการยา');const lock=LockService.getScriptLock();lock.waitLock(12000);
+  const u=session_(token);const g=grid_('MealMedicines'),r=g.rows.find(x=>x.data.record_id===id);
+  assert_(r,'ไม่พบรายการยา');
+  assert_(can_(u,patientIdOf_(r.data)),'ไม่มีสิทธิ์ปิดใช้งานยาของผู้สูงอายุนี้');const lock=LockService.getScriptLock();lock.waitLock(12000);
   try{writeRow_(g,r.index,{is_active:'FALSE',updated_at:stamp_()});logActivity_(r.data.patient_id,u.id,'MEDICINE_DISABLED',id);}finally{lock.releaseLock();}
   return {ok:true};
 }
