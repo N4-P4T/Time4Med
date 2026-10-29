@@ -8,6 +8,7 @@ on:
       - 'apps-script/Bridge.html'
       - 'apps-script/Code.gs'
       - 'tests/gas-pages-integration.test.cjs'
+      - 'tests/gas-live-iframe-diagnostic.test.cjs'
       - '.github/workflows/gas-pages-bridge.yml'
   workflow_dispatch:
 jobs:
@@ -25,3 +26,5 @@ jobs:
         run: npx playwright install --with-deps chromium
       - name: Test GitHub Pages OTP, dashboard and GAS iframe bridge (mock API)
         run: node tests/gas-pages-integration.test.cjs
+      - name: Diagnose live GitHub Pages and GAS iframe without credentials
+        run: node tests/gas-live-iframe-diagnostic.test.cjs
