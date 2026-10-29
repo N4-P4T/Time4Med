@@ -12,7 +12,7 @@
 ## LINE แจ้งเตือนพร้อมลิงก์เว็บไซต์ (อัปเดต 29 ต.ค. 2569)
 - แจ้งเตือนรอบยาตาม `MealMedicines` จะระบุ P001–P003, ชั้น, มื้อ, เวลา, ชื่อยา และลิงก์เข้าเว็บไซต์ Time4Med
 - ข้อความทดสอบ LINE ของ ADMIN และแจ้งเตือน Emergency จากอุปกรณ์จะมีลิงก์เดียวกันด้วย
-- ลิงก์เริ่มต้นคือ Web App `/exec` ที่ใช้งานในโครงการปัจจุบัน; ถ้า Deploy เปลี่ยน URL ภายหลัง ให้ตั้ง Script Property `TIME4MED_WEBSITE_URL` เป็น URL `/exec` ใหม่
+- ลิงก์ปัจจุบันเป็น URL Web App `/exec` ที่กำหนดใน `T4M.website` ของ `Code.gs`; เมื่อมี Deploy URL ใหม่ให้เปลี่ยนค่านี้ในโค้ดและ Deploy เวอร์ชันใหม่ (URL ของ deployment เดิมมักคงเดิมเมื่ออัปเดตแบบ New version)
 - ระบบข้ามรายการทดสอบที่ ID หรือชื่อขึ้นต้น `TEST_`, `DEMO_`, `LINECHECK_` ไม่ให้เป็นตารางยาจริง
 - **ค่า `LINE_REMINDERS_ENABLED=FALSE` ต้องคงไว้ก่อน** การแก้โค้ดนี้ไม่เปิดใช้งาน Trigger LINE อัตโนมัติ
 - การแก้ไฟล์บน GitHub ยังไม่เปลี่ยน Apps Script ที่ Deploy แล้ว เจ้าของโปรเจ็กต์ต้องคัดลอก `apps-script/Code.gs` เวอร์ชันนี้ไปแทนในโปรเจ็กต์ `Time4Med-System` แล้ว Deploy → Manage deployments → Edit → New version เพื่อให้ `/exec` ใช้โค้ดใหม่
