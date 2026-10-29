@@ -6,6 +6,13 @@ const {spawn}=require('node:child_process');
 const {chromium}=require('playwright');
 const root='http://127.0.0.1:8899/';
 const html=fs.readFileSync('index.html','utf8');
+if (html.includes('GitHub Pages + Google Apps Script')) {
+  assert.match(html,/href="\.\/test-v021\/"/,'GitHub Pages points to caregiver dashboard');
+  assert.doesNotMatch(html,/mqtt\.min\.js|hivemq\.cloud|workers\.dev/i);
+  console.log('PASS: GitHub Pages is the GAS-only caregiver entry, without old brokers');
+  process.exit(0);
+}
+
 const oldConfig=fs.readFileSync('mqtt-config.js','utf8');
 assert.match(html,/Time4Med/);
 assert.doesNotMatch(html,/(?:test-v021\/|mqtt-config\.js|mqtt\.min\.js|Cloudflare|hivemq\.cloud)/i,
