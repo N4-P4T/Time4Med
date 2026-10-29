@@ -1,6 +1,17 @@
 const assert=require('node:assert/strict');
 const fs=require('node:fs');
 const core=require('../test-v021/schedule-contract.js');
+const activeHtml=fs.readFileSync('test-v021/index.html','utf8');
+if(activeHtml.includes('src="gas-only.js"')){
+  assert.doesNotMatch(activeHtml,/src="schedule-send\.js"|src="schedule-contract\.js"/);
+  const server=fs.readFileSync('apps-script/Code.gs','utf8');
+  assert.match(server,/p\.action==='pullSchedule'/);
+  assert.match(server,/validDaysForSchedule_/);
+  assert.match(fs.readFileSync('test-v021/gas-only.js','utf8'),/saveMedicine/);
+  console.log('PASS: new GAS-only schedule API replaces the retired MQTT schedule sender');
+  process.exit(0);
+}
+
 
 function medicine(id,patientId,time,mealType,boxNumber,kind='scheduled',stockStatus='ok'){
  return {id,patientId,time,mealType,boxNumber,kind,stockStatus,name:'Test medicine'};
