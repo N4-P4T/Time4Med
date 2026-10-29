@@ -9,12 +9,12 @@
         content="width=device-width, initial-scale=1.0"
     >
 
-    <title>Time4Med · Caregiver Center v0.21</title>
+    <title>Time4Med · Caregiver Center (Google Apps Script)</title>
 
     <link rel="stylesheet" href="../test-v019/style.css">
 <link rel="stylesheet" href="caregiver-center.css">
     <link rel="stylesheet" href="mqtt-live-status.css">
-    <link rel="stylesheet" href="schedule-review.css">
+    <link rel="stylesheet" href="gas-only.css">
 </head>
 
 <body class="t4m-auth-locked">
@@ -22,9 +22,9 @@
       <div class="t4m-auth-card">
         <img src="../test-v019/logo.png" alt="Time4Med" class="t4m-auth-logo">
         <h1>Time4Med</h1>
-        <p>เข้าสู่ระบบผู้ดูแลด้วยบัญชี Google ที่ได้รับอนุญาต</p>
+        <p>เข้าสู่ระบบผู้ดูแลด้วยอีเมล OTP</p>
         <div id="t4mGoogleButton" class="t4m-google-button"></div>
-        <p id="t4mAuthMessage" role="status">กำลังเตรียม Google Sign-In…</p>
+        <p id="t4mAuthMessage" role="status">กำลังเชื่อมต่อ Apps Script…</p>
         <small>สำหรับแอดมินและผู้ดูแลเท่านั้น · ผู้สูงอายุไม่ต้องใช้เว็บไซต์</small>
       </div>
     </section>
@@ -223,7 +223,7 @@
             <div id="mqttConnectButton" class="wifi-status" role="button" tabindex="0"
                  title="รอ Backend Gateway ที่ตรวจสิทธิ์">
                 <span class="status-dot"></span>
-                <span id="mqttConnectionLabel">อุปกรณ์: รอ Gateway</span>
+                <span id="mqttConnectionLabel">อุปกรณ์: รอ Apps Script</span>
             </div>
             <div class="user-profile">
                 <span class="user-avatar">A</span>
@@ -1177,119 +1177,7 @@
     </footer>
 
 
-    <dialog
-        id="mqttCredentialDialog"
-        aria-labelledby="mqttDialogTitle"
-        style="max-width: 420px; width: calc(100% - 32px); border: 0; border-radius: 18px; padding: 24px; box-shadow: 0 24px 70px rgba(0, 40, 100, 0.28);"
-    >
-        <form id="mqttCredentialForm">
-            <h2 id="mqttDialogTitle" style="margin-top: 0; color: #073b82;">
-                เชื่อมต่อ Time4Med MQTT
-            </h2>
-
-            <p style="color: #526581; line-height: 1.6;">
-                การเชื่อม MQTT โดยตรงจากเว็บไซต์ถูกระงับใน v0.18 เพื่อความปลอดภัย
-            </p>
-
-            <label for="mqttPasswordInput" style="display: block; margin-bottom: 8px; font-weight: 700;">
-                รหัสผ่าน MQTT
-            </label>
-
-            <input
-                id="mqttPasswordInput"
-                type="password"
-                autocomplete="current-password"
-                required
-                style="box-sizing: border-box; width: 100%; padding: 12px; border: 1px solid #b9c9df; border-radius: 10px;"
-            >
-
-            <p id="mqttDialogMessage" role="alert" style="min-height: 24px; color: #c71920;"></p>
-
-            <div style="display: flex; justify-content: flex-end; gap: 10px;">
-                <button id="mqttCancelButton" type="button" style="padding: 10px 16px;">
-                    ยกเลิก
-                </button>
-                <button type="submit" style="padding: 10px 16px; color: white; background: #0755c9; border: 0; border-radius: 8px;">
-                    เชื่อมต่อ
-                </button>
-            </div>
-        </form>
-    </dialog>
-
-<section id="t4mAdminSection" class="t4m-admin-section" hidden>
-  <h2>🔐 จัดการบัญชี Time4Med (แอดมิน)</h2>
-  <p>เฉพาะแอดมินเพิ่มบัญชีและกำหนดสิทธิ์ใน Google Sheets / Users ได้ บัญชีใหม่ต้องใช้ Google ลงชื่อเข้าใช้ของตัวเอง</p>
-  <div class="t4m-admin-grid">
-    <label>Gmail ของบัญชีใหม่<input id="t4mInviteEmail" type="email" autocomplete="off" placeholder="example@gmail.com"></label>
-    <label>ชื่อที่แสดง<input id="t4mInviteName" type="text" maxlength="100" placeholder="ชื่อผู้ดูแล"></label>
-    <label>บทบาท<select id="t4mInviteRole"><option value="CAREGIVER">ผู้ดูแล</option><option value="ADMIN">แอดมิน</option></select></label>
-    <fieldset id="t4mInvitePatientGroup" class="t4m-patient-fieldset">
-      <legend>ผู้ป่วยที่รับผิดชอบ (เลือกได้หลายคน)</legend>
-      <div id="t4mInvitePatients" class="t4m-patient-checklist"></div>
-      <small>ตัวอย่าง พ่อ P001 และแม่ P002 — ไม่ต้องสร้างบัญชีใหม่</small>
-    </fieldset>
-    <button type="button" id="t4mInviteButton">เพิ่มบัญชี</button>
-    <button type="button" id="t4mCancelEditUser" hidden>ยกเลิกแก้ไข</button>
-  </div>
-  <div class="t4m-patient-create">
-    <h3>👨‍👩‍👧‍👦 จัดการผู้สูงอายุในครอบครัว</h3>
-    <p>แอดมินเพิ่มผู้ป่วยใหม่ได้ โดยแต่ละคนมีรหัสเฉพาะและประวัติแยกกัน</p>
-    <div class="t4m-admin-grid">
-      <label>รหัสผู้ป่วย<input id="t4mNewPatientId" maxlength="7" placeholder="P002" autocomplete="off"></label>
-      <label>ชื่อที่แสดง<input id="t4mNewPatientName" maxlength="100" placeholder="เช่น คุณแม่ (ทดสอบ)" autocomplete="off"></label>
-      <label>หมายเหตุ (ไม่จำเป็น)<input id="t4mNewPatientNotes" maxlength="250" placeholder="ข้อความที่ไม่เปิดเผยข้อมูลอ่อนไหว" autocomplete="off"></label>
-      <button type="button" id="t4mAddPatientButton">+ เพิ่มผู้ป่วย</button>
+    <script defer src="gas-only.js"></script>
     </div>
-    <p id="t4mPatientMessage" role="status"></p>
-  </div>
-  <p id="t4mAdminMessage" role="status"></p>
-  <div id="t4mAdminAccounts"></div>
-</section>
-    <script src="https://cdn.jsdelivr.net/npm/mqtt@5.14.1/dist/mqtt.min.js"></script>
-    <script src="../test-v020/script.js"></script>
-    <script src="caregiver-center.js"></script>
-    <script src="mqtt-live-status.js"></script>
-
-    <script src="schedule-contract.js"></script>
-    <script src="schedule-review.js?v=20261021-fix1"></script>
-    <script src="../test-v019/inventory.js"></script>
-    <script src="https://accounts.google.com/gsi/client" async defer></script>
-    <script src="../test-v019/auth-config.js"></script>
-    <script src="../test-v019/auth.js"></script>
-    <script src="gateway-control.js"></script>
-    <script src="../test-v019/sheets-sync.js"></script>
-    <script src="schedule-send.js?v=20261021-fix1"></script>
-
-    </div>
-
-
-    <script>
-        const sidebarToggle = document.getElementById("sidebarToggle");
-        let savedSidebarState = null;
-        try { savedSidebarState = localStorage.getItem("time4medSidebarCollapsed"); } catch (_) {}
-
-        if (savedSidebarState === "true") {
-            document.body.classList.add("sidebar-collapsed");
-            sidebarToggle.setAttribute("aria-expanded", "false");
-        }
-
-        sidebarToggle.addEventListener("click", function () {
-            const isCollapsed = document.body.classList.toggle("sidebar-collapsed");
-
-            sidebarToggle.setAttribute(
-                "aria-expanded",
-                String(!isCollapsed)
-            );
-
-            try { localStorage.setItem("time4medSidebarCollapsed", String(isCollapsed)); } catch (_) {}
-        });
-    </script>
-
-
-    <!-- v0.21: removed the demo notification bell and its old scripted count.
-         Verified ActivityLog notifications will appear once authorized API is ready. -->
-
-
 </body>
-
 </html>
