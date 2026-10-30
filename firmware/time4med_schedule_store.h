@@ -63,7 +63,7 @@ inline bool loadSavedPlan(Plan &result) {
   if (ok) result=staged;
   return ok;
 }
-inline bool savePlan(Plan &plan) {
+inline bool savePlan(const Plan &plan) {
   if (plan.count>MAX_SCHEDULES) return false;
   StoredPlan next={};
   next.magic=STORE_MAGIC;
