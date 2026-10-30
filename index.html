@@ -1,24 +1,30 @@
 <!doctype html>
-<html lang="th"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Time4Med | เข้าสู่ระบบ</title>
-<style>
-body{margin:0;font-family:system-ui,"Noto Sans Thai",sans-serif;min-height:100vh;display:grid;place-items:center;background:#eef5fb;color:#163954}
-main{width:min(90%,520px);background:white;border:1px solid #d6e4ef;box-shadow:0 15px 40px #1b48711a;border-radius:22px;padding:38px;text-align:center}
-h1{font-size:2rem}p{line-height:1.8;color:#547087}.logo{font-size:44px;color:#1870b6}
-a{display:inline-block;background:#1769b1;color:white;text-decoration:none;border-radius:12px;padding:13px 20px;font-weight:700}
-.note{font-size:13px;margin-top:20px}
-</style></head><body>
-<main><div class="logo">✚</div><h1>Time4Med</h1>
-<p>ตู้ยาอัจฉริยะ · ระบบติดตามและแจ้งเตือนการรับประทานยา</p><p>สำหรับแอดมินและผู้ดูแลผู้สูงอายุ</p>
-<a id="enter" href="./test-v021/">เข้าสู่เว็บไซต์ Time4Med</a><p class="note" id="status">GitHub Pages + Google Apps Script + Google Sheets + LINE</p></main>
-<script>
-(function(){
-  'use strict';
-  var mobile=/Android|iPhone|iPad|iPod/i.test(navigator.userAgent) ||
-    (navigator.userAgentData && navigator.userAgentData.mobile===true) ||
-    (navigator.platform==='MacIntel' && navigator.maxTouchPoints>1);
-  // One link from LINE on iOS and Android. Open the existing GAS Web App as
-  // a top-level page, not the unreliable GitHub Pages -> GAS iframe bridge.
-  if(mobile && !new URLSearchParams(location.search).has('desktop'))
-    location.replace('https://script.google.com/macros/s/AKfycbx2-O9PDp-T0eXoP1A9_xesHk8mWcWszAbLsbsFOMpARpIIICibdKu6On0G0agGdMIEtQ/exec');
-})();
-</script></body></html>
+<html lang="th">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Time4Med | ระบบดูแลการใช้ยา</title>
+  <style>
+    body{font:16px system-ui,"Noto Sans Thai",sans-serif;margin:0;min-height:100vh;
+      display:grid;place-items:center;background:#eef5fb;color:#163954}
+    main{width:min(90%,520px);box-sizing:border-box;padding:32px;border-radius:20px;
+      background:#fff;border:1px solid #d6e4ef;text-align:center}
+    a{display:inline-block;padding:13px 20px;color:#fff;background:#1769b1;
+      border-radius:11px;text-decoration:none;font-weight:700}
+    p{color:#547087;line-height:1.7}
+  </style>
+</head>
+<body>
+  <main>
+    <h1>Time4Med</h1>
+    <p>กำลังเปิดระบบดูแลการใช้ยา...</p>
+    <p><a id="open-app" href="https://script.google.com/macros/s/AKfycbx2-O9PDp-T0eXoP1A9_xesHk8mWcWszAbLsbsFOMpARpIIICibdKu6On0G0agGdMIEtQ/exec">เปิด Time4Med</a></p>
+    <p>เว็บไซต์เดียวสำหรับคอมพิวเตอร์ iPhone และ Android</p>
+  </main>
+  <script>
+    // A single destination for all devices, including LINE in-app browsers.
+    // Google Apps Script enforces the existing caregiver/admin OTP permissions.
+    window.location.replace(document.getElementById('open-app').href);
+  </script>
+</body>
+</html>
