@@ -53,8 +53,10 @@ function installBridge(){
   function tryNext(){
     if(state.ready)return;
     if(next>=AUTHUSER_ATTEMPTS.length){
-      text('gasConnectState','ตรวจโปรไฟล์ Google ที่กำลังใช้งาน');
-      message('Apps Script ไม่ตอบกลับ: หากลงชื่อเข้าใช้ Google หลายบัญชี Google อาจส่ง HTTP 404 — ลองโปรไฟล์ Chrome ที่ลงชื่อเข้าใช้บัญชีของผู้ดูแลเพียงบัญชีเดียว หรือหน้าต่างไม่ระบุตัวตน',true);
+      text('gasConnectState','Google Apps Script ไม่ตอบกลับ');
+      message('การเชื่อมต่อผ่าน GitHub Pages ไม่สำเร็จ — ลองเปิดหน้า Time4Med สำรองโดยตรง (ไม่ต้องใช้บัญชีแอดมินร่วมกัน)',true);
+      const fallback=$('gasDirectFallback');if(fallback)fallback.hidden=false;
+      const note=$('gasFallbackNote');if(note)note.hidden=false;
       return;
     }
     const hint=AUTHUSER_ATTEMPTS[next++];
@@ -84,7 +86,9 @@ function startAuth(){
   '<input id="gasOtp" type="text" maxlength="6" pattern="[0-9]{6}" inputmode="numeric" autocomplete="one-time-code" required>'+
   '<button type="submit" class="gas-btn">เข้าสู่ระบบ</button></form>'+
   '<p id="gasStatus" role="status">กำลังเชื่อมต่อ Apps Script...</p>'+
-  '<small id="gasConnectState">กำลังเชื่อมต่อ...</small></div>';
+  '<small id="gasConnectState">กำลังเชื่อมต่อ...</small>'+
+  '<a id="gasDirectFallback" class="gas-direct-fallback" href="'+WEB_APP+'" target="_blank" rel="noopener noreferrer" hidden>เปิดหน้า Time4Med สำรอง</a>'+
+  '<small id="gasFallbackNote" class="gas-fallback-note" hidden>หน้าเว็บสำรองยังใช้ OTP ของผู้ดูแลเอง หาก Google ขึ้น 404 แม้เปิดโดยตรง ให้ใช้ Chrome โปรไฟล์ที่ลงชื่อเข้าใช้บัญชีเดียว</small></div>';
   $('gasOtpRequest').addEventListener('submit',async ev=>{
     ev.preventDefault();const b=ev.submitter;if(b)b.disabled=true;
     try{message('กำลังส่ง OTP...');await call('requestOtp',$('gasEmail').value.trim());
