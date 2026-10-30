@@ -101,7 +101,7 @@ async function main(){
       return route.abort();
     });
     for(const entry of ['/Time4Med/','/Time4Med/test-v021/']){
-      await mobile.goto(GH+entry,{waitUntil:'domcontentloaded'});
+      await mobile.goto(GH+entry,{waitUntil:'commit'});
       await mobile.waitForURL(url=>url.origin===GAS&&url.pathname.endsWith('/exec'),{timeout:10000});
       assert.equal(await mobile.locator('#directApp').count(),1,device+' entry '+entry+' must land on GAS direct login');
     }
