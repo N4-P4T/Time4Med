@@ -86,14 +86,22 @@ function installBridge(){
   }
   tryNext();
 }
-async function signedIn(result,box){
+async function syncVerifiedProfile(){
+  if(!state.data||!state.data.user)return;
+  const user=state.data.user;
+  const role=user.role==='ADMIN'?'แอดมิน (ADMIN)':'ผู้ดูแล (CAREGIVER)';
+  document.querySelectorAll('.t4m-profile-role').forEach(el=>{
+    el.textContent=role;
+    el.title='สิทธิ์บัญชี Time4Med: '+user.role;
+  });
+  document.querySelectorAll('.t4m-profile-name').forEach(el=>el.textContent=user.name||user.email);
+}
+function signedIn(result,box){
   if(!result||!result.token)throw Error('ไม่พบเซสชันที่ถูกต้อง');
   state.token=result.token;state.data=await call('bootstrap',state.token);
   box.hidden=true;document.body.classList.remove('t4m-auth-locked');
   const bar=$('t4mUserbar');if(bar)bar.hidden=false;
   const user=state.data.user;
-  document.querySelectorAll('.t4m-profile-role').forEach(x=>x.textContent=user.role==='ADMIN'?'แอดมิน':'ผู้ดูแล');
-  document.querySelectorAll('.t4m-profile-name').forEach(x=>x.textContent=user.name||user.email);
   text('t4mSignedInUser',user.email);render();
 }
 function startAuth(){
@@ -280,6 +288,9 @@ function admin(){
 }
 function render(){
   if(!state.data)return;
+  // Keep both profile labels in sync with the role from the authorized backend,
+  // including after refreshes and navigation.
+  syncVerifiedProfile();
   const allowed=['dashboard','medication','devices','inventory','analytics','activity','camera','gallery','admin'];
   state.view=allowed.includes((window.location.hash||'').slice(1))?(window.location.hash||'').slice(1):'dashboard';
   if(state.view==='admin'&&state.data.user.role!=='ADMIN')state.view='dashboard';
