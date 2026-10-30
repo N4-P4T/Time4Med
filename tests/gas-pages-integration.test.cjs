@@ -73,10 +73,9 @@ async function main(){
   for(const k of ['requestOtp','verifyOtp','bootstrap','saveMedicine','testLine'])assert.ok(calls.includes(k),k);
   assert.deepEqual(errors,[]);
   assert.equal(unexpected.some(x=>/workers\.dev|hivemq|mqtt/.test(x)),false);
-  // iOS Safari/LINE and Android Chrome/LINE should follow the identical
-  // Time4Med URL to the existing top-level GAS web app automatically.
-  // Only navigations are simulated; live Android authorization still needs
-  // an on-device test.
+  // Both iPhone and Android must remain on GitHub Pages rather than being
+  // forced to Google Apps Script (the original cause of account /u/2 404).
+  // This asserts routing only, not a real OTP delivery on these devices.
   const mobileAgents=[
     ['iOS','Mozilla/5.0 (iPhone; CPU iPhone OS 18_6 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Mobile/15E148 Line/15.0.0'],
     ['Android','Mozilla/5.0 (Linux; Android 15; Pixel 8) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Mobile Safari/537.36 Line/15.0.0']
@@ -88,7 +87,7 @@ async function main(){
     await mobile.route('**/*',route=>{
       const u=new URL(route.request().url());
       if(u.origin===GAS && u.pathname.endsWith('/exec'))
-        return route.fulfill({status:200,contentType:'text/html',body:'<h1 id="directApp">Time4Med GAS Direct</h1>'});
+        return route.fulfill({status:200,contentType:'text/html',body:'<html><body>Google GAS bridge fixture</body></html>'});
       if(u.origin===GH && u.pathname.startsWith('/Time4Med/')){
         const relative=u.pathname.slice('/Time4Med/'.length);
         const local=path.resolve(root,(!relative||relative.endsWith('/'))?relative+'index.html':relative);
@@ -102,18 +101,17 @@ async function main(){
     });
     for(const entry of ['/Time4Med/','/Time4Med/test-v021/']){
       await mobile.goto(GH+entry,{waitUntil:'commit'}).catch(error=>{
-        // The immediate window.location.replace intentionally cancels the
-        // original navigation; verify the destination rather than relying
-        // on the initial page's lifecycle event.
         if(!/net::ERR_(?:ABORTED|FAILED)/.test(String(error)))throw error;
       });
-      await mobile.waitForURL(url=>url.origin===GAS&&url.pathname.endsWith('/exec'),{timeout:10000});
-      assert.equal(await mobile.locator('#directApp').count(),1,device+' entry '+entry+' must land on GAS direct login');
+      await mobile.waitForURL(url=>url.origin===GH&&url.pathname==='/Time4Med/test-v021/',{timeout:10000});
+      await mobile.locator('#gasOtpRequest').waitFor({timeout:10000});
+      assert.equal(await mobile.locator('#gasOtpRequest').count(),1,
+        device+' '+entry+' opens GitHub Pages OTP UI instead of broken GAS redirect');
     }
     assert.deepEqual(errors,[],device+' mobile route must be free of JavaScript errors');
     await mobile.close();
   }
-  console.log('PASS: simulated secure bridge, OTP, dashboard, medicine edit, LINE command; iPhone and Android one-link direct GAS navigation');
+  console.log('PASS: simulated secure bridge, OTP, dashboard, medicine edit, LINE command; iPhone and Android stay on GitHub Pages');
  }finally{await browser.close();}
 }
 main().catch(err=>{console.error(err);process.exitCode=1;});
