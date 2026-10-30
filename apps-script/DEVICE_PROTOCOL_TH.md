@@ -8,7 +8,18 @@ Endpoint = URL ของ Apps Script Web App ที่ลงท้าย `/exec`
 ```json
 {"action":"pullSchedule","deviceKey":"<DEVICE_API_KEY>"}
 ```
-Response: `{"ok":true,"timezone":"Asia/Bangkok","schedules":[{"id":"...","patientId":"P001","shelf":1,"mealType":2,"time":"08:00","days":"MON,TUE,WED,THU,FRI,SAT,SUN"}]}`
+Response: `{"ok":true,"timezone":"Asia/Bangkok","schedules":[{"id":"...","patientId":"P001","shelf":1,"mealType":2,"time":"08:00","days":"MON,TUE,WED,THU,FRI,SAT,SUN","ledSlot":1,"ledIndex":0}]}`
+
+หมายเหตุ: ฟิลด์ `ledSlot` และ `ledIndex` เป็น metadata ใหม่ที่ใช้คำนวณ LED 12 ดวง ไม่ใช่หมายเลข GPIO จริง และจะได้เฉพาะรายการยาจริงที่ตรวจรูปแบบผ่านเท่านั้น (`TEST_`/`DEMO_`/`LINECHECK_` และ PRN จะไม่ส่งไปยังอุปกรณ์)
+
+| ชั้นยา | ผู้สูงอายุ | ledSlot 1 (เช้า) | 2 (กลางวัน) | 3 (เย็น) | 4 (ก่อนนอน) |
+|---|---|---|---|---|---|
+| 1 | P001 | ledIndex 0 | 1 | 2 | 3 |
+| 2 | P002 | ledIndex 4 | 5 | 6 | 7 |
+| 3 | P003 | ledIndex 8 | 9 | 10 | 11 |
+| 4 | ยาสามัญประจำบ้าน | ไม่มี LED | ไม่มี LED | ไม่มี LED | ไม่มี LED |
+
+การแสดงไฟ: รหัสมื้อ `1–2` → ledSlot 1, `3–4` → 2, `5–6` → 3, `7` → 4. ถ้ามีรอบยาพร้อมกันหลายชั้น ให้ติดแยกกันตาม ledIndex. **ยังต้องใช้ผัง GPIO ที่ต่อจริงบน PCB** ก่อนอัปโหลดโค้ดควบคุมไฟ; ห้ามนำเลข ledIndex ไปต่อขา ESP32-S3 ตรง ๆ โดยไม่ตรวจสายและใส่ตัวต้านทานจำกัดกระแสแยกแต่ละ LED.
 
 Firmware ใช้รายการเฉพาะ `P001/P002/P003`, และเก็บตารางลงหน่วยความจำอย่างปลอดภัยเป็น snapshot ก่อนเปลี่ยนจริง (ไม่ลบตารางเดิมหากดาวน์โหลดล้มเหลว). ไฟ LED ต้องติดเฉพาะมื้อของแต่ละคน: 1–2 เช้า, 3–4 กลางวัน, 5–6 เย็น, 7 ก่อนนอน. หลายคนติดพร้อมกันได้.
 
