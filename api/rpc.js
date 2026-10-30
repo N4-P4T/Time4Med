@@ -96,6 +96,411 @@ function passwordOK(password,record){
     return crypto.timingSafeEqual(computed,hash);
   }catch(_){return false;}
 }
+function hashPassword(password){
+  if(typeof password!=='string'||password.length<12||password.length>128)throw err('รหัสผ่านต้องยาว 12–128 ตัวอักษร');
+  const salt=crypto.randomBytes(16),hash=crypto.scryptSync(password,salt,64,{N:16384,r:8,p:1,maxmem:64*1024*1024});
+  return 'scrypt$16384$8$1
+  const payload={uid:u.id,email:u.email,ph:sha(u.hash),exp:Math.floor(Date.now()/1000)+6*3600};
+  const segment=b64(JSON.stringify(payload));
+  const sig=crypto.createHmac('sha256',process.env.T4M_SESSION_SECRET).update(segment).digest('base64url');
+  return segment+'.'+sig;
+}
+async function authorize(token){
+  if(typeof token!=='string'||token.length>2000||!token.includes('.'))throw err('กรุณาเข้าสู่ระบบ',401);
+  const [segment,signature,extra]=token.split('.');
+  if(extra!==undefined)throw err('เซสชันไม่ถูกต้อง',401);
+  const expected=crypto.createHmac('sha256',process.env.T4M_SESSION_SECRET).update(segment).digest();
+  const actual=Buffer.from(signature,'base64url');
+  if(actual.length!==expected.length||!crypto.timingSafeEqual(actual,expected))throw err('เซสชันไม่ถูกต้อง',401);
+  let parsed;
+  try{parsed=JSON.parse(Buffer.from(segment,'base64url').toString('utf8'));}catch(_){throw err('เซสชันไม่ถูกต้อง',401);}
+  if(!Number.isSafeInteger(parsed.exp)||parsed.exp<=Date.now()/1000)throw err('หมดเวลาเข้าสู่ระบบ',401);
+  const g=await grid('Users'),r=g.rows.find(x=>str(x.data.user_id)===parsed.uid&&str(x.data.email).toLowerCase()===parsed.email);
+  const u=r&&identity(r);
+  if(!u||sha(u.hash)!==parsed.ph)throw err('บัญชีถูกเปลี่ยนสิทธิ์หรือรหัสผ่าน กรุณาเข้าสู่ระบบใหม่',401);
+  return u;
+}
+const failures=new Map();
+async function setup(key,username,password){
+  const configured=process.env.T4M_SETUP_KEY;
+  if(!configured||configured.length<40)throw err('ระบบตั้งค่าเริ่มต้นถูกปิดไว้',404);
+  const a=Buffer.from(sha(key)),b=Buffer.from(sha(configured));
+  if(!crypto.timingSafeEqual(a,b))throw err('รหัสตั้งค่าเริ่มต้นไม่ถูกต้อง',403);
+  const name=str(username).toLowerCase();
+  if(!/^[a-z0-9._-]{3,40}$/.test(name))throw err('ชื่อผู้ใช้ต้องเป็น a-z, 0-9, จุด ขีด หรือขีดล่าง');
+  const g=await grid('Users'),admin=g.rows.find(x=>str(x.data.email).toLowerCase()==='time4med.project@gmail.com'&&upper(x.data.role)==='ADMIN'&&upper(x.data.status)==='ACTIVE');
+  if(!admin)throw err('ไม่พบบัญชีแอดมินเดิมใน Users',404);
+  if(str(admin.data.password_hash))throw err('บัญชีแอดมินตั้งรหัสผ่านแล้ว ห้ามตั้งค่าซ้ำ',409);
+  if(!g.keys.includes('username')||!g.keys.includes('password_hash'))throw err('เพิ่มคอลัมน์ username และ password_hash ใน Users แถว 4 ก่อน',503);
+  await saveRow(g,admin.index,{username:name,password_hash:hashPassword(password),updated_at:stamp()});
+  return {ok:true,message:'ตั้งค่าแอดมินแล้ว ให้ลบ T4M_SETUP_KEY ออกจาก Vercel และเข้าสู่ระบบ'};
+}
+async function login(username,password){
+  const key=str(username).toLowerCase();
+  if(!/^[a-z0-9._@+-]{3,120}$/.test(key)||typeof password!=='string'||password.length>256)throw err('ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง',401);
+  const f=failures.get(key);
+  if(f&&f.until>Date.now()&&f.count>=5)throw err('ลองเข้าสู่ระบบหลายครั้งเกินไป กรุณารอ 15 นาที',429);
+  const g=await grid('Users'),r=g.rows.find(x=>str(x.data.username).toLowerCase()===key||str(x.data.email).toLowerCase()===key);
+  const u=r&&identity(r);
+  if(!u||!u.hash||!passwordOK(password,u.hash)){
+    const prev=f&&f.until>Date.now()?f.count:0;
+    failures.set(key,{count:prev+1,until:Date.now()+15*60000});
+    throw err('ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง',401);
+  }
+  failures.delete(key);
+  return {token:issue(u),user:publicUser(u)};
+}
+function stamp(){return new Date().toISOString();}
+function thailandTime(value){return new Date(value||Date.now()).toLocaleString('sv-SE',{timeZone:'Asia/Bangkok'});}
+function safeMedicine(d){
+  const p=upper(d.patient_id),n=Number(d.meal_type)||0;
+  const rawTime=str(d.reminder_time),time=/^\d:\d\d$/.test(rawTime)?'0'+rawTime:rawTime;
+  return {id:str(d.record_id),patientId:p,patient:str(d.patient),name:str(d.name),mealType:n,
+    meal:MEALS[n]||'—',time,days:str(d.reminder_days),instruction:str(d.instruction),stock:str(d.stock_status),
+    active:active(d.is_active),kind:str(d.kind),shelf:PATIENTS[p]||null,
+    demo:/^(TEST|DEMO|LINECHECK)[_\s-]/i.test(str(d.name))||/^(TEST|DEMO|LINECHECK)[_\s-]/i.test(str(d.record_id))};
+}
+async function bootstrap(token){
+  const u=await authorize(token);
+  const [pg,mg,ag,ig,dg]=await Promise.all(['Patients','MealMedicines','ActivityLog','ImageIndex','Devices'].map(grid));
+  const patients=pg.rows.map(x=>({id:upper(x.data.patient_id),name:x.data.display_name,status:x.data.status,shelf:PATIENTS[upper(x.data.patient_id)]||null}))
+    .filter(x=>x.shelf&&check(u,x.id));
+  const medicines=mg.rows.map(x=>safeMedicine(x.data)).filter(x=>x.shelf&&check(u,x.patientId));
+  const activity=ag.rows.map(x=>x.data).filter(x=>u.role==='ADMIN'||(upper(x.patient_id)==='ALL'&&x.event_type==='EMERGENCY')||(PATIENTS[upper(x.patient_id)]&&check(u,x.patient_id)))
+    .slice(-60).reverse().map(x=>({patientId:x.patient_id,type:x.event_type,time:str(x.occurred_at).replace('T',' ').slice(0,19),result:x.result,details:str(x.details).slice(0,240)}));
+  const images=ig.rows.map(x=>x.data).filter(x=>x.patient_id&&check(u,x.patient_id))
+    .slice(-40).reverse().map(x=>({id:x.image_id,patientId:x.patient_id,time:str(x.captured_at).replace('T',' ').slice(0,19),filename:x.filename,available:x.available,source:x.transfer_status}));
+  const devices=dg.rows.map(x=>x.data).map(x=>{
+    const seen=Date.parse(str(x.last_seen).replace(' ','T')+'+07:00');
+    const fresh=Number.isFinite(seen)&&Date.now()-seen<180000&&Date.now()>=seen;
+    return {id:x.device_id,type:x.device_type,lastSeen:x.last_seen,online:fresh?x.online_status:'UNKNOWN',lock:fresh?x.lock_status:'UNKNOWN'};
+  });
+  const users=u.role==='ADMIN'?(await grid('Users')).rows.map(x=>({id:x.data.user_id,email:x.data.email,
+    name:x.data.display_name,role:x.data.role,patients:x.data.patient_id,status:x.data.status,
+    lineConfigured:Boolean(x.data.line_user_id),username:x.data.username||''})):[];
+  return {user:publicUser(u),patients,medicines,activity,images,devices,users,serverTime:thailandTime(),
+    note:'การกดยืนยันหมายถึงหยิบยา ไม่ใช่หลักฐานว่ากลืนยาแล้ว'};
+}
+async function audit(patientId,userId,type,detail){
+  const g=await grid('ActivityLog');
+  await saveRow(g,null,{event_id:crypto.randomUUID(),device_id:'WEBSITE',patient_id:patientId||'ALL',
+    user_id:userId,event_type:type,result:'SUCCESS',details:str(detail).slice(0,400),occurred_at:thailandTime()});
+}
+function validDays(value){
+  const days=upper(value).replace(/\s/g,'').split(',').filter(Boolean);
+  const allowed=['MON','TUE','WED','THU','FRI','SAT','SUN'];
+  if(!days.length||days.some(x=>!allowed.includes(x)))throw err('วันแจ้งเตือนไม่ถูกต้อง');
+  return allowed.filter(x=>days.includes(x)).join(',');
+}
+async function saveMedicine(token,input){
+  const u=await authorize(token),p=upper(input.patientId),name=str(input.name),n=Number(input.mealType),time=str(input.time);
+  if(!PATIENTS[p]||!check(u,p))throw err('ไม่มีสิทธิ์จัดการผู้สูงอายุรายนี้',403);
+  if(name.length<2||name.length>120||!Number.isInteger(n)||n<1||n>7||!/^(?:[01]\d|2[0-3]):[0-5]\d$/.test(time))throw err('กรุณาตรวจชื่อยา มื้อยา และเวลา');
+  const days=validDays(input.days),g=await grid('MealMedicines'),id=str(input.id);
+  const found=id?g.rows.find(x=>str(x.data.record_id)===id):null;
+  if(id&&!found)throw err('ไม่พบรายการยาที่ต้องการแก้ไข',404);
+  if(found&&!check(u,found.data.patient_id))throw err('ไม่มีสิทธิ์แก้ไขรายการยานี้',403);
+  const pg=await grid('Patients'),pname=pg.rows.find(x=>upper(x.data.patient_id)===p)?.data.display_name||p;
+  const values={record_id:id||crypto.randomUUID(),patient_id:p,patient:pname,name,kind:'scheduled',
+    meal_type:n,shelf:Math.ceil(n/2),box_number:String(PATIENTS[p]).padStart(2,'0'),
+    reminder_time:time,instruction:str(input.instruction).slice(0,500),is_active:input.active===false?'FALSE':'TRUE',
+    reminder_days:days,updated_at:stamp(),source:'WEB_API'};
+  if(!found)Object.assign(values,{created_at:stamp(),stock_status:'unchecked'});
+  await saveRow(g,found?.index||null,values);
+  await audit(p,u.id,found?'MEDICINE_UPDATED':'MEDICINE_CREATED',values.record_id);
+  return {ok:true,id:values.record_id};
+}
+async function disableMedicine(token,id){
+  const u=await authorize(token),g=await grid('MealMedicines'),r=g.rows.find(x=>str(x.data.record_id)===str(id));
+  if(!r)throw err('ไม่พบรายการยา',404);
+  if(!check(u,r.data.patient_id))throw err('ไม่มีสิทธิ์ปิดรายการยา',403);
+  await saveRow(g,r.index,{is_active:'FALSE',updated_at:stamp()});await audit(r.data.patient_id,u.id,'MEDICINE_DISABLED',id);
+  return {ok:true};
+}
+async function saveUser(token,input){
+  const u=await authorize(token);adminOnly(u);
+  const email=str(input.email).toLowerCase(),role=upper(input.role),status=upper(input.status||'ACTIVE');
+  const ids=upper(input.patientIds).replace(/\s/g,'').split(',').filter(Boolean);
+  const username=str(input.username).toLowerCase();
+  if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)||!['ADMIN','CAREGIVER'].includes(role)||!['ACTIVE','INACTIVE'].includes(status)||
+     (role!=='ADMIN'&&(!ids.length||ids.some(x=>!PATIENTS[x]))))throw err('กรุณาตรวจอีเมล สิทธิ์ และผู้สูงอายุ');
+  if(username&&!/^[a-z0-9._-]{3,40}$/.test(username))throw err('ชื่อผู้ใช้ใช้ a-z, 0-9, จุด ขีด และขีดล่างเท่านั้น');
+  const g=await grid('Users'),found=g.rows.find(x=>str(x.data.email).toLowerCase()===email);
+  if(found&&email===u.email&&(role!=='ADMIN'||status!=='ACTIVE'))throw err('ไม่สามารถปิดบัญชีแอดมินของตัวเอง');
+  if(username&&g.rows.some(x=>x.index!==found?.index&&str(x.data.username).toLowerCase()===username))throw err('ชื่อผู้ใช้ซ้ำ');
+  if(!g.keys.includes('username')||!g.keys.includes('password_hash'))throw err('Users ยังไม่มีคอลัมน์ username/password_hash',503);
+  const password=str(input.newPassword);
+  if(!found&&!password)throw err('บัญชีใหม่ต้องตั้งรหัสผ่านเริ่มต้น (12 ตัวอักษรขึ้นไป)');
+  const values={user_id:found?.data.user_id||'U'+crypto.randomUUID().slice(0,8).toUpperCase(),email,
+    display_name:str(input.name).slice(0,100)||email,role,patient_id:role==='ADMIN'?'ALL':ids.join(','),
+    status,updated_at:stamp()};
+  if(!found)Object.assign(values,{created_at:stamp(),notification_enabled:'FALSE'});
+  if(username)values.username=username;
+  if(password)values.password_hash=hashPassword(password);
+  // Never store plain-text passwords in Sheets.
+  await saveRow(g,found?.index||null,values);await audit('ALL',u.id,'USER_SAVED',email);return {ok:true};
+}
+async function changePassword(token,currentPassword,newPassword){
+  const u=await authorize(token),g=await grid('Users'),row=g.rows.find(x=>str(x.data.user_id)===u.id);
+  if(!row||!passwordOK(currentPassword,u.hash))throw err('รหัสผ่านปัจจุบันไม่ถูกต้อง',401);
+  await saveRow(g,row.index,{password_hash:hashPassword(newPassword),updated_at:stamp()});
+  return {ok:true,message:'เปลี่ยนรหัสผ่านสำเร็จ กรุณาเข้าสู่ระบบใหม่'};
+}
+async function readImage(token,id){
+  const u=await authorize(token),g=await grid('ImageIndex'),r=g.rows.find(x=>str(x.data.image_id)===str(id));
+  if(!r||!check(u,r.data.patient_id))throw err('ไม่มีสิทธิ์เข้าถึงภาพ',403);
+  const fileId=str(r.data.drive_file_id);
+  if(!/^[a-zA-Z0-9_-]{10,150}$/.test(fileId))throw err('ภาพนี้ยังไม่ได้อัปโหลดขึ้น Google Drive');
+  const meta=await google('https://www.googleapis.com/drive/v3/files/'+encodeURIComponent(fileId)+'?fields=size,mimeType');
+  if(!['image/jpeg','image/png','image/webp'].includes(meta.mimeType)||Number(meta.size)>1250000)throw err('ภาพใหญ่เกินไปหรือไม่ใช่ไฟล์ภาพ');
+  const data=await google('https://www.googleapis.com/drive/v3/files/'+encodeURIComponent(fileId)+'?alt=media',{raw:true});
+  if(data.byteLength>1250000)throw err('ภาพใหญ่เกินไป');
+  return 'data:'+meta.mimeType+';base64,'+data.toString('base64');
+}
+async function testLine(token){
+  const u=await authorize(token);adminOnly(u);
+  const key=process.env.LINE_CHANNEL_ACCESS_TOKEN;
+  if(!key)throw err('API นี้ยังไม่ได้ตั้ง LINE_CHANNEL_ACCESS_TOKEN: ทดสอบ LINE ผ่าน Apps Script เดิมได้',503);
+  if(!u.lineId)throw err('ยังไม่ได้ตั้ง LINE User ID ของแอดมิน');
+  const response=await fetch('https://api.line.me/v2/bot/message/push',{method:'POST',
+    headers:{'Content-Type':'application/json',Authorization:'Bearer '+key},
+    body:JSON.stringify({to:u.lineId,messages:[{type:'text',text:'Time4Med: ทดสอบ LINE จากเว็บไซต์สำเร็จ\nhttps://n4-p4t.github.io/Time4Med/'}]})});
+  if(!response.ok)throw err('LINE ไม่สำเร็จ (HTTP '+response.status+')',502);
+  await audit('ALL',u.id,'LINE_TEST','test via Vercel API');return {ok:true};
+}
+async function dispatch(method,args){
+  if(!Array.isArray(args)||args.length>3)throw err('รูปแบบคำขอไม่ถูกต้อง');
+  switch(method){
+    case 'setup':return setup(args[0],args[1],args[2]);
+    case 'login':return login(args[0],args[1]);
+    case 'changePassword':return changePassword(args[0],args[1],args[2]);
+    case 'bootstrap':return bootstrap(args[0]);
+    case 'saveMedicine':return saveMedicine(args[0],args[1]||{});
+    case 'disableMedicine':return disableMedicine(args[0],args[1]);
+    case 'saveUser':return saveUser(args[0],args[1]||{});
+    case 'readImage':return readImage(args[0],args[1]);
+    case 'testLine':return testLine(args[0]);
+    case 'logout':return true; // Client discards short-lived signed token, expires after 6 hours.
+    default:throw err('คำสั่งไม่รองรับ',404);
+  }
+}
+module.exports=async function handler(req,res){
+  // Browser origin is not authorization; every protected action verifies token+sheet assignments.
+  const origin=req.headers.origin;
+  if(origin===SITE){
+    res.setHeader('Access-Control-Allow-Origin',SITE);
+    res.setHeader('Vary','Origin');
+    res.setHeader('Access-Control-Allow-Methods','POST, OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers','Content-Type');
+  }
+  res.setHeader('Cache-Control','no-store');
+  res.setHeader('X-Content-Type-Options','nosniff');
+  if(req.method==='OPTIONS')return res.status(origin===SITE?204:403).end();
+  if(req.method!=='POST'||origin!==SITE)return res.status(403).json({ok:false,error:'Not allowed'});
+  try{
+    ready();
+    const body=typeof req.body==='string'?JSON.parse(req.body):req.body;
+    if(!body||!['setup','login','changePassword','bootstrap','saveMedicine','disableMedicine','saveUser','readImage','testLine','logout'].includes(body.method)||
+       !Array.isArray(body.args)||JSON.stringify(body).length>25000)throw err('รูปแบบคำขอไม่ถูกต้อง');
+    const result=await dispatch(body.method,body.args);
+    return res.status(200).json({ok:true,value:result});
+  }catch(e){
+    const status=Number.isInteger(e.status)?e.status:500;
+    if(status===500)console.error('Time4Med API request failed',e?.message);
+    return res.status(status).json({ok:false,error:status===500?'ระบบขัดข้อง โปรดลองอีกครั้ง':String(e.message).slice(0,240)});
+  }
+};
+// Pure helpers for isolated tests; never expose service-account credentials.
+module.exports._test={passwordOK,hashPassword,identity,issue,validDays,safeMedicine};
++salt.toString('base64url')+'
+  const payload={uid:u.id,email:u.email,ph:sha(u.hash),exp:Math.floor(Date.now()/1000)+6*3600};
+  const segment=b64(JSON.stringify(payload));
+  const sig=crypto.createHmac('sha256',process.env.T4M_SESSION_SECRET).update(segment).digest('base64url');
+  return segment+'.'+sig;
+}
+async function authorize(token){
+  if(typeof token!=='string'||token.length>2000||!token.includes('.'))throw err('กรุณาเข้าสู่ระบบ',401);
+  const [segment,signature,extra]=token.split('.');
+  if(extra!==undefined)throw err('เซสชันไม่ถูกต้อง',401);
+  const expected=crypto.createHmac('sha256',process.env.T4M_SESSION_SECRET).update(segment).digest();
+  const actual=Buffer.from(signature,'base64url');
+  if(actual.length!==expected.length||!crypto.timingSafeEqual(actual,expected))throw err('เซสชันไม่ถูกต้อง',401);
+  let parsed;
+  try{parsed=JSON.parse(Buffer.from(segment,'base64url').toString('utf8'));}catch(_){throw err('เซสชันไม่ถูกต้อง',401);}
+  if(!Number.isSafeInteger(parsed.exp)||parsed.exp<=Date.now()/1000)throw err('หมดเวลาเข้าสู่ระบบ',401);
+  const g=await grid('Users'),r=g.rows.find(x=>str(x.data.user_id)===parsed.uid&&str(x.data.email).toLowerCase()===parsed.email);
+  const u=r&&identity(r);
+  if(!u||sha(u.hash)!==parsed.ph)throw err('บัญชีถูกเปลี่ยนสิทธิ์หรือรหัสผ่าน กรุณาเข้าสู่ระบบใหม่',401);
+  return u;
+}
+const failures=new Map();
+async function login(username,password){
+  const key=str(username).toLowerCase();
+  if(!/^[a-z0-9._@+-]{3,120}$/.test(key)||typeof password!=='string'||password.length>256)throw err('ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง',401);
+  const f=failures.get(key);
+  if(f&&f.until>Date.now()&&f.count>=5)throw err('ลองเข้าสู่ระบบหลายครั้งเกินไป กรุณารอ 15 นาที',429);
+  const g=await grid('Users'),r=g.rows.find(x=>str(x.data.username).toLowerCase()===key||str(x.data.email).toLowerCase()===key);
+  const u=r&&identity(r);
+  if(!u||!u.hash||!passwordOK(password,u.hash)){
+    const prev=f&&f.until>Date.now()?f.count:0;
+    failures.set(key,{count:prev+1,until:Date.now()+15*60000});
+    throw err('ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง',401);
+  }
+  failures.delete(key);
+  return {token:issue(u),user:publicUser(u)};
+}
+function stamp(){return new Date().toISOString();}
+function thailandTime(value){return new Date(value||Date.now()).toLocaleString('sv-SE',{timeZone:'Asia/Bangkok'});}
+function safeMedicine(d){
+  const p=upper(d.patient_id),n=Number(d.meal_type)||0;
+  const rawTime=str(d.reminder_time),time=/^\d:\d\d$/.test(rawTime)?'0'+rawTime:rawTime;
+  return {id:str(d.record_id),patientId:p,patient:str(d.patient),name:str(d.name),mealType:n,
+    meal:MEALS[n]||'—',time,days:str(d.reminder_days),instruction:str(d.instruction),stock:str(d.stock_status),
+    active:active(d.is_active),kind:str(d.kind),shelf:PATIENTS[p]||null,
+    demo:/^(TEST|DEMO|LINECHECK)[_\s-]/i.test(str(d.name))||/^(TEST|DEMO|LINECHECK)[_\s-]/i.test(str(d.record_id))};
+}
+async function bootstrap(token){
+  const u=await authorize(token);
+  const [pg,mg,ag,ig,dg]=await Promise.all(['Patients','MealMedicines','ActivityLog','ImageIndex','Devices'].map(grid));
+  const patients=pg.rows.map(x=>({id:upper(x.data.patient_id),name:x.data.display_name,status:x.data.status,shelf:PATIENTS[upper(x.data.patient_id)]||null}))
+    .filter(x=>x.shelf&&check(u,x.id));
+  const medicines=mg.rows.map(x=>safeMedicine(x.data)).filter(x=>x.shelf&&check(u,x.patientId));
+  const activity=ag.rows.map(x=>x.data).filter(x=>u.role==='ADMIN'||(upper(x.patient_id)==='ALL'&&x.event_type==='EMERGENCY')||(PATIENTS[upper(x.patient_id)]&&check(u,x.patient_id)))
+    .slice(-60).reverse().map(x=>({patientId:x.patient_id,type:x.event_type,time:str(x.occurred_at).replace('T',' ').slice(0,19),result:x.result,details:str(x.details).slice(0,240)}));
+  const images=ig.rows.map(x=>x.data).filter(x=>x.patient_id&&check(u,x.patient_id))
+    .slice(-40).reverse().map(x=>({id:x.image_id,patientId:x.patient_id,time:str(x.captured_at).replace('T',' ').slice(0,19),filename:x.filename,available:x.available,source:x.transfer_status}));
+  const devices=dg.rows.map(x=>x.data).map(x=>{
+    const seen=Date.parse(str(x.last_seen).replace(' ','T')+'+07:00');
+    const fresh=Number.isFinite(seen)&&Date.now()-seen<180000&&Date.now()>=seen;
+    return {id:x.device_id,type:x.device_type,lastSeen:x.last_seen,online:fresh?x.online_status:'UNKNOWN',lock:fresh?x.lock_status:'UNKNOWN'};
+  });
+  const users=u.role==='ADMIN'?(await grid('Users')).rows.map(x=>({id:x.data.user_id,email:x.data.email,
+    name:x.data.display_name,role:x.data.role,patients:x.data.patient_id,status:x.data.status,
+    lineConfigured:Boolean(x.data.line_user_id),username:x.data.username||''})):[];
+  return {user:publicUser(u),patients,medicines,activity,images,devices,users,serverTime:thailandTime(),
+    note:'การกดยืนยันหมายถึงหยิบยา ไม่ใช่หลักฐานว่ากลืนยาแล้ว'};
+}
+async function audit(patientId,userId,type,detail){
+  const g=await grid('ActivityLog');
+  await saveRow(g,null,{event_id:crypto.randomUUID(),device_id:'WEBSITE',patient_id:patientId||'ALL',
+    user_id:userId,event_type:type,result:'SUCCESS',details:str(detail).slice(0,400),occurred_at:thailandTime()});
+}
+function validDays(value){
+  const days=upper(value).replace(/\s/g,'').split(',').filter(Boolean);
+  const allowed=['MON','TUE','WED','THU','FRI','SAT','SUN'];
+  if(!days.length||days.some(x=>!allowed.includes(x)))throw err('วันแจ้งเตือนไม่ถูกต้อง');
+  return allowed.filter(x=>days.includes(x)).join(',');
+}
+async function saveMedicine(token,input){
+  const u=await authorize(token),p=upper(input.patientId),name=str(input.name),n=Number(input.mealType),time=str(input.time);
+  if(!PATIENTS[p]||!check(u,p))throw err('ไม่มีสิทธิ์จัดการผู้สูงอายุรายนี้',403);
+  if(name.length<2||name.length>120||!Number.isInteger(n)||n<1||n>7||!/^(?:[01]\d|2[0-3]):[0-5]\d$/.test(time))throw err('กรุณาตรวจชื่อยา มื้อยา และเวลา');
+  const days=validDays(input.days),g=await grid('MealMedicines'),id=str(input.id);
+  const found=id?g.rows.find(x=>str(x.data.record_id)===id):null;
+  if(id&&!found)throw err('ไม่พบรายการยาที่ต้องการแก้ไข',404);
+  if(found&&!check(u,found.data.patient_id))throw err('ไม่มีสิทธิ์แก้ไขรายการยานี้',403);
+  const pg=await grid('Patients'),pname=pg.rows.find(x=>upper(x.data.patient_id)===p)?.data.display_name||p;
+  const values={record_id:id||crypto.randomUUID(),patient_id:p,patient:pname,name,kind:'scheduled',
+    meal_type:n,shelf:Math.ceil(n/2),box_number:String(PATIENTS[p]).padStart(2,'0'),
+    reminder_time:time,instruction:str(input.instruction).slice(0,500),is_active:input.active===false?'FALSE':'TRUE',
+    reminder_days:days,updated_at:stamp(),source:'WEB_API'};
+  if(!found)Object.assign(values,{created_at:stamp(),stock_status:'unchecked'});
+  await saveRow(g,found?.index||null,values);
+  await audit(p,u.id,found?'MEDICINE_UPDATED':'MEDICINE_CREATED',values.record_id);
+  return {ok:true,id:values.record_id};
+}
+async function disableMedicine(token,id){
+  const u=await authorize(token),g=await grid('MealMedicines'),r=g.rows.find(x=>str(x.data.record_id)===str(id));
+  if(!r)throw err('ไม่พบรายการยา',404);
+  if(!check(u,r.data.patient_id))throw err('ไม่มีสิทธิ์ปิดรายการยา',403);
+  await saveRow(g,r.index,{is_active:'FALSE',updated_at:stamp()});await audit(r.data.patient_id,u.id,'MEDICINE_DISABLED',id);
+  return {ok:true};
+}
+async function saveUser(token,input){
+  const u=await authorize(token);adminOnly(u);
+  const email=str(input.email).toLowerCase(),role=upper(input.role),status=upper(input.status||'ACTIVE');
+  const ids=upper(input.patientIds).replace(/\s/g,'').split(',').filter(Boolean);
+  const username=str(input.username).toLowerCase();
+  if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)||!['ADMIN','CAREGIVER'].includes(role)||!['ACTIVE','INACTIVE'].includes(status)||
+     (role!=='ADMIN'&&(!ids.length||ids.some(x=>!PATIENTS[x]))))throw err('กรุณาตรวจอีเมล สิทธิ์ และผู้สูงอายุ');
+  if(username&&!/^[a-z0-9._-]{3,40}$/.test(username))throw err('ชื่อผู้ใช้ใช้ a-z, 0-9, จุด ขีด และขีดล่างเท่านั้น');
+  const g=await grid('Users'),found=g.rows.find(x=>str(x.data.email).toLowerCase()===email);
+  if(found&&email===u.email&&(role!=='ADMIN'||status!=='ACTIVE'))throw err('ไม่สามารถปิดบัญชีแอดมินของตัวเอง');
+  if(username&&g.rows.some(x=>x.index!==found?.index&&str(x.data.username).toLowerCase()===username))throw err('ชื่อผู้ใช้ซ้ำ');
+  const values={user_id:found?.data.user_id||'U'+crypto.randomUUID().slice(0,8).toUpperCase(),email,
+    display_name:str(input.name).slice(0,100)||email,role,patient_id:role==='ADMIN'?'ALL':ids.join(','),
+    status,updated_at:stamp()};
+  if(!found)Object.assign(values,{created_at:stamp(),notification_enabled:'FALSE'});
+  if(username)values.username=username;
+  // Never accept unhashed passwords through this administrative update method.
+  await saveRow(g,found?.index||null,values);await audit('ALL',u.id,'USER_SAVED',email);return {ok:true};
+}
+async function readImage(token,id){
+  const u=await authorize(token),g=await grid('ImageIndex'),r=g.rows.find(x=>str(x.data.image_id)===str(id));
+  if(!r||!check(u,r.data.patient_id))throw err('ไม่มีสิทธิ์เข้าถึงภาพ',403);
+  const fileId=str(r.data.drive_file_id);
+  if(!/^[a-zA-Z0-9_-]{10,150}$/.test(fileId))throw err('ภาพนี้ยังไม่ได้อัปโหลดขึ้น Google Drive');
+  const meta=await google('https://www.googleapis.com/drive/v3/files/'+encodeURIComponent(fileId)+'?fields=size,mimeType');
+  if(!['image/jpeg','image/png','image/webp'].includes(meta.mimeType)||Number(meta.size)>1250000)throw err('ภาพใหญ่เกินไปหรือไม่ใช่ไฟล์ภาพ');
+  const data=await google('https://www.googleapis.com/drive/v3/files/'+encodeURIComponent(fileId)+'?alt=media',{raw:true});
+  if(data.byteLength>1250000)throw err('ภาพใหญ่เกินไป');
+  return 'data:'+meta.mimeType+';base64,'+data.toString('base64');
+}
+async function testLine(token){
+  const u=await authorize(token);adminOnly(u);
+  const key=process.env.LINE_CHANNEL_ACCESS_TOKEN;
+  if(!key)throw err('API นี้ยังไม่ได้ตั้ง LINE_CHANNEL_ACCESS_TOKEN: ทดสอบ LINE ผ่าน Apps Script เดิมได้',503);
+  if(!u.lineId)throw err('ยังไม่ได้ตั้ง LINE User ID ของแอดมิน');
+  const response=await fetch('https://api.line.me/v2/bot/message/push',{method:'POST',
+    headers:{'Content-Type':'application/json',Authorization:'Bearer '+key},
+    body:JSON.stringify({to:u.lineId,messages:[{type:'text',text:'Time4Med: ทดสอบ LINE จากเว็บไซต์สำเร็จ\nhttps://n4-p4t.github.io/Time4Med/'}]})});
+  if(!response.ok)throw err('LINE ไม่สำเร็จ (HTTP '+response.status+')',502);
+  await audit('ALL',u.id,'LINE_TEST','test via Vercel API');return {ok:true};
+}
+async function dispatch(method,args){
+  if(!Array.isArray(args)||args.length>3)throw err('รูปแบบคำขอไม่ถูกต้อง');
+  switch(method){
+    case 'login':return login(args[0],args[1]);
+    case 'bootstrap':return bootstrap(args[0]);
+    case 'saveMedicine':return saveMedicine(args[0],args[1]||{});
+    case 'disableMedicine':return disableMedicine(args[0],args[1]);
+    case 'saveUser':return saveUser(args[0],args[1]||{});
+    case 'readImage':return readImage(args[0],args[1]);
+    case 'testLine':return testLine(args[0]);
+    case 'logout':return true; // Client discards short-lived signed token, expires after 6 hours.
+    default:throw err('คำสั่งไม่รองรับ',404);
+  }
+}
+module.exports=async function handler(req,res){
+  // Browser origin is not authorization; every protected action verifies token+sheet assignments.
+  const origin=req.headers.origin;
+  if(origin===SITE){
+    res.setHeader('Access-Control-Allow-Origin',SITE);
+    res.setHeader('Vary','Origin');
+    res.setHeader('Access-Control-Allow-Methods','POST, OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers','Content-Type');
+  }
+  res.setHeader('Cache-Control','no-store');
+  res.setHeader('X-Content-Type-Options','nosniff');
+  if(req.method==='OPTIONS')return res.status(origin===SITE?204:403).end();
+  if(req.method!=='POST'||origin!==SITE)return res.status(403).json({ok:false,error:'Not allowed'});
+  try{
+    ready();
+    const body=typeof req.body==='string'?JSON.parse(req.body):req.body;
+    if(!body||!['login','bootstrap','saveMedicine','disableMedicine','saveUser','readImage','testLine','logout'].includes(body.method)||
+       !Array.isArray(body.args)||JSON.stringify(body).length>25000)throw err('รูปแบบคำขอไม่ถูกต้อง');
+    const result=await dispatch(body.method,body.args);
+    return res.status(200).json({ok:true,value:result});
+  }catch(e){
+    const status=Number.isInteger(e.status)?e.status:500;
+    if(status===500)console.error('Time4Med API request failed',e?.message);
+    return res.status(status).json({ok:false,error:status===500?'ระบบขัดข้อง โปรดลองอีกครั้ง':String(e.message).slice(0,240)});
+  }
+};
+// Pure helpers for isolated tests; never expose service-account credentials.
+module.exports._test={passwordOK,identity,issue,validDays,safeMedicine};
++hash.toString('base64url');
+}
 function issue(u){
   const payload={uid:u.id,email:u.email,ph:sha(u.hash),exp:Math.floor(Date.now()/1000)+6*3600};
   const segment=b64(JSON.stringify(payload));
