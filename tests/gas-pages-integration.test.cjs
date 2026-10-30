@@ -101,7 +101,12 @@ async function main(){
       return route.abort();
     });
     for(const entry of ['/Time4Med/','/Time4Med/test-v021/']){
-      await mobile.goto(GH+entry,{waitUntil:'commit'});
+      await mobile.goto(GH+entry,{waitUntil:'commit'}).catch(error=>{
+        // The immediate window.location.replace intentionally cancels the
+        // original navigation; verify the destination rather than relying
+        // on the initial page's lifecycle event.
+        if(!/net::ERR_(?:ABORTED|FAILED)/.test(String(error)))throw error;
+      });
       await mobile.waitForURL(url=>url.origin===GAS&&url.pathname.endsWith('/exec'),{timeout:10000});
       assert.equal(await mobile.locator('#directApp').count(),1,device+' entry '+entry+' must land on GAS direct login');
     }
