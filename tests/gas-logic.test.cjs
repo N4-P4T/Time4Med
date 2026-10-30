@@ -130,6 +130,33 @@ call(`
   })}});
 `);
 equal(call('sent.length'),1);
+// Apps Script time-driven triggers may run one or two minutes late.
+// Use the scheduled Bangkok minute/day, not the trigger's current weekday.
+// Unit-test both a normal time and the Friday -> Saturday midnight rollover.
+context.Utilities={
+  formatDate:(instant,timezone,pattern)=>{
+    assert.equal(timezone,'Asia/Bangkok');
+    const bangkok=new Date(instant.getTime()+7*60*60*1000);
+    if(pattern==='yyyy-MM-dd HH:mm')return bangkok.toISOString().slice(0,16).replace('T',' ');
+    if(pattern==='u')return String(((bangkok.getUTCDay()+6)%7)+1);
+    throw Error('Unexpected Apps Script date format: '+pattern);
+  }
+};
+const minutes=JSON.parse(JSON.stringify(call("recentReminderSlots_(new Date('2026-10-30T01:02:19Z'))")));
+assert.deepEqual(minutes,[
+  {date:'2026-10-30',time:'08:02',day:'FRI'},
+  {date:'2026-10-30',time:'08:01',day:'FRI'},
+  {date:'2026-10-30',time:'08:00',day:'FRI'}
+]);
+const midnight=JSON.parse(JSON.stringify(call("recentReminderSlots_(new Date('2026-10-30T17:01:45Z'))")));
+assert.deepEqual(midnight,[
+  {date:'2026-10-31',time:'00:01',day:'SAT'},
+  {date:'2026-10-31',time:'00:00',day:'SAT'},
+  {date:'2026-10-30',time:'23:59',day:'FRI'}
+]);
+assert.equal(midnight.some(x=>x.time==='23:58'),false,'no late catch-up beyond two minutes');
+console.log('OK: LINE reminder grace window and Bangkok midnight rollover');
+
 console.log('OK: valid S3 schedule snapshot, 12 LED indices and duplicate-free emergency LINE');
 
 console.log('OK: shelf mapping, meal LEDs, Sheets time normalization, days, date parsing, caregiver permissions, cabinet-wide emergency, intake validation');

@@ -338,23 +338,36 @@ function validDaysForSchedule_(value,day) {
   try {return days_(value).split(',').includes(day);}
   catch(err){console.error('Invalid reminder_days',String(err));return false;}
 }
+// A one-minute Apps Script trigger is not guaranteed to fire at exactly
+// HH:mm:00. Examine this minute and the previous two, using the scheduled
+// minute's Bangkok date/weekday (important around midnight).
+function recentReminderSlots_(now) {
+  const slots=[];
+  for(let minutesAgo=0;minutesAgo<3;minutesAgo++) {
+    const instant=new Date(now.getTime()-minutesAgo*60000);
+    const local=Utilities.formatDate(instant,T4M.tz,'yyyy-MM-dd HH:mm');
+    const weekday=['MON','TUE','WED','THU','FRI','SAT','SUN'][
+      Number(Utilities.formatDate(instant,T4M.tz,'u'))-1];
+    if(weekday)slots.push({date:local.slice(0,10),time:local.slice(-5),day:weekday});
+  }
+  return slots;
+}
 function scheduledLineReminders_() {
   // Fail closed: enabling a trigger alone must not start sending medication reminders.
   if(upper_(props_().getProperty('LINE_REMINDERS_ENABLED'))!=='TRUE') return;
   const lock=LockService.getScriptLock();if(!lock.tryLock(500))return;
   try{
-    const now=Utilities.formatDate(new Date(),T4M.tz,'yyyy-MM-dd HH:mm');
-    const today=Utilities.formatDate(new Date(),T4M.tz,'yyyy-MM-dd');
-    const hm=now.slice(-5),dow=['MON','TUE','WED','THU','FRI','SAT','SUN'][Number(Utilities.formatDate(new Date(),T4M.tz,'u'))-1];
+    const dueMinutes=recentReminderSlots_(new Date());
     const items=grid_('MealMedicines').rows.map(x=>safeMedicine_(x.data))
-      .filter(x=>schedulableMedicine_(x)&&x.time===hm
-        && validDaysForSchedule_(x.days,dow));
+      .filter(m=>schedulableMedicine_(m) && dueMinutes.some(slot=>
+        m.time===slot.time && validDaysForSchedule_(m.days,slot.day)));
     if(!items.length)return;
     const users=grid_('Users').rows.map(x=>userForEmail_(x.data.email)).filter(x=>x&&x.lineEnabled&&x.lineId);
     const notificationGrid=grid_('NotificationLog');
     const seen=new Set(notificationGrid.rows.map(x=>str_(x.data.notification_id)));
     items.forEach(m=>uniqueLineRecipients_(users.filter(u=>can_(u,m.patientId))).forEach(u=>{
-      const key='T4M-'+today+'-'+sha_(m.id+':'+u.id).slice(0,14);
+      const scheduled=dueMinutes.find(slot=>m.time===slot.time && validDaysForSchedule_(m.days,slot.day));
+      const key='T4M-'+scheduled.date+'-'+sha_(m.id+':'+u.id).slice(0,14);
       if(seen.has(key))return;
       // Record the attempt before sending, then record the actual provider outcome.
       // A failed attempt is not falsely displayed as SENT.
