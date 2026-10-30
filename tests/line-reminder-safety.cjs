@@ -24,4 +24,18 @@ assert.ok(inspectStart>=0&&inspectEnd>inspectStart);
 const inspect=src.slice(inspectStart,inspectEnd);
 for(const forbidden of ['lineTo_(', 'writeRow_(', 'notificationLog_(', 'setProperty('])
  assert.equal(inspect.includes(forbidden),false,'read-only diagnostic cannot call '+forbidden);
-console.log('PASS: one LINE message per authorized destination and no writes/sends in readiness inspection');
+const entryStart=src.indexOf('function inspectLineReminderReadiness()');
+const entryEnd=src.indexOf('function inspectLineReminderReadiness_()',entryStart);
+assert.ok(entryStart>=0&&entryEnd>entryStart,'must have editor-selectable entry point');
+const ctx={
+  Session:{getActiveUser:()=>({getEmail:()=>''})},
+  inspectLineReminderReadiness_:()=>({enabled:false}),
+  Error
+};
+vm.runInNewContext(src.slice(entryStart,entryEnd)+'\nthis.run=inspectLineReminderReadiness;',ctx);
+assert.throws(()=>ctx.run(),/Only the Time4Med owner/,'anonymous webapp request denied');
+ctx.Session={getActiveUser:()=>({getEmail:()=> 'stranger@example.com'})};
+assert.throws(()=>ctx.run(),/Only the Time4Med owner/,'nonowner denied');
+ctx.Session={getActiveUser:()=>({getEmail:()=> 'time4med.project@gmail.com'})};
+assert.equal(ctx.run().enabled,false,'owner can run read-only diagnostic');
+console.log('PASS: LINE recipient dedupe, read-only diagnostic and owner-only editor entry point');
