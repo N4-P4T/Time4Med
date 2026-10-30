@@ -65,8 +65,7 @@ function installBridge(){
     if(next>=AUTHUSER_ATTEMPTS.length){
       text('gasConnectState','Google Apps Script ไม่ตอบกลับ');
       message('การเชื่อมต่อผ่าน GitHub Pages ไม่สำเร็จ — ลองเปิดหน้า Time4Med สำรองโดยตรง (ไม่ต้องใช้บัญชีแอดมินร่วมกัน)',true);
-      const fallback=$('gasDirectFallback');if(fallback)fallback.hidden=false;
-      const note=$('gasFallbackNote');if(note)note.hidden=false;
+      showDirectFallback('ลองเปิดหน้า Apps Script โดยตรงในเบราว์เซอร์ของโทรศัพท์ โดยใช้บัญชีและรหัส OTP ของตัวเอง ไม่ต้องใช้บัญชีแอดมินร่วมกัน');
       return;
     }
     const hint=AUTHUSER_ATTEMPTS[next++];
@@ -104,6 +103,26 @@ async function signedIn(result,box){
   const user=state.data.user;
   text('t4mSignedInUser',user.email);render();
 }
+// The bridge iframe may load correctly even when google.script.run cannot
+// complete a call in iOS Safari / in-app browsers. A top-level Apps Script
+// page is a same-backend fallback; it is not an alternate login or service.
+function showDirectFallback(noteText){
+  const link=$('gasDirectFallback'),note=$('gasFallbackNote');
+  if(link)link.hidden=false;
+  if(note){note.hidden=false;if(noteText)note.textContent=noteText;}
+}
+function handleOtpTransportError(err,operation){
+  if(!/Apps Script ตอบสนองช้าเกินไป/.test(String(err.message||err))){
+    message(err.message||String(err),true);return;
+  }
+  // A timeout does NOT prove no email was sent. Avoid blindly sending again:
+  // allow the 6-digit code to be entered if it has already arrived.
+  const form=$('gasOtpVerify');if(form)form.hidden=false;
+  message(operation==='request'
+    ? 'ไม่ได้รับผลตอบกลับจาก Apps Script — OTP อาจส่งแล้ว กรุณาตรวจอีเมลก่อนขอใหม่ หากยังใช้ไม่ได้ให้เปิดหน้า Apps Script โดยตรงด้านล่าง'
+    : 'การตรวจ OTP ไม่ตอบกลับ ลองเปิดหน้า Apps Script โดยตรงด้านล่างแล้วเข้าสู่ระบบด้วยอีเมลของคุณ',true);
+  showDirectFallback('สำหรับ Safari หรือเบราว์เซอร์ใน LINE: ลองเปิดหน้า Apps Script โดยตรงใน Safari หากได้รับ OTP แล้วให้ลองใช้รหัสเดิมก่อนหมดอายุ (10 นาที) และอย่ากดขอรหัสซ้ำหลายครั้ง');
+}
 function startAuth(){
   const box=$('t4mAuthScreen');
   if(API_URL){
@@ -137,21 +156,25 @@ function startAuth(){
   '<button type="submit" class="gas-btn">เข้าสู่ระบบ</button></form>'+
   '<p id="gasStatus" role="status">กำลังเชื่อมต่อ Apps Script...</p>'+
   '<small id="gasConnectState">กำลังเชื่อมต่อ...</small>'+
-  '<a id="gasDirectFallback" class="gas-direct-fallback" href="'+WEB_APP+'" target="_blank" rel="noopener noreferrer" hidden>เปิดหน้า Time4Med สำรอง</a>'+
-  '<small id="gasFallbackNote" class="gas-fallback-note" hidden>หน้าเว็บสำรองยังใช้ OTP ของผู้ดูแลเอง หาก Google ขึ้น 404 แม้เปิดโดยตรง ให้ใช้ Chrome โปรไฟล์ที่ลงชื่อเข้าใช้บัญชีเดียว</small></div>';
+  '<a id="gasDirectFallback" class="gas-direct-fallback" href="'+WEB_APP+'" target="_blank" rel="noopener noreferrer" hidden>เปิด Time4Med โดยตรง (สำหรับ Safari / LINE)</a>'+
+  '<small id="gasFallbackNote" class="gas-fallback-note" hidden>ใช้หน้า Apps Script เดิมและ OTP ของผู้ดูแลเอง ไม่ต้องใช้บัญชีแอดมินร่วมกัน</small></div>';
   $('gasOtpRequest').addEventListener('submit',async ev=>{
     ev.preventDefault();const b=ev.submitter;if(b)b.disabled=true;
     try{message('กำลังส่ง OTP...');await call('requestOtp',$('gasEmail').value.trim());
       $('gasOtpVerify').hidden=false;message('หากบัญชีมีสิทธิ์ ระบบจะส่ง OTP ไปยังอีเมล');$('gasOtp').focus();}
-    catch(e){message(e.message,true);}finally{if(b)b.disabled=false;}
+    catch(e){handleOtpTransportError(e,'request');}finally{if(b)b.disabled=false;}
   });
   $('gasOtpVerify').addEventListener('submit',async ev=>{
     ev.preventDefault();const b=ev.submitter;if(b)b.disabled=true;
     try{
       message('กำลังตรวจรหัส...');const result=await call('verifyOtp',$('gasEmail').value.trim(),$('gasOtp').value.trim());
       await signedIn(result,box);
-    }catch(e){message(e.message,true);}finally{if(b)b.disabled=false;}
+    }catch(e){handleOtpTransportError(e,'verify');}finally{if(b)b.disabled=false;}
   });
+  // Make the direct Google-hosted version accessible without a 45s wait on
+  // iPhones, where the cross-site embedded Apps Script transport is fragile.
+  if(/iPhone|iPad|iPod/i.test(navigator.userAgent))
+    showDirectFallback('บน iPhone หากส่ง OTP ไม่สำเร็จ สามารถเปิดหน้า Apps Script โดยตรงใน Safari ได้ (ยังใช้ OTP และสิทธิ์เดิม)');
   const out=$('t4mSignOut');if(out)out.addEventListener('click',async()=>{
     const token=state.token;state.token=null;state.data=null;
     try{await call('logout',token);}catch(_){}
