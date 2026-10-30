@@ -37,7 +37,7 @@ async function main(){
      return route.fulfill({status:200,contentType:'text/html',body:mockBridge(u.searchParams.get('channel'))});
    if(u.origin===GH&&u.pathname.startsWith('/Time4Med/')){
     const relative=u.pathname.slice('/Time4Med/'.length);
-    const local=path.resolve(root,relative.endsWith('/')?relative+'index.html':relative);
+    const local=path.resolve(root,(!relative||relative.endsWith('/'))?relative+'index.html':relative);
     if(!local.startsWith(root+path.sep))return route.abort();
     try{
      const body=fs.readFileSync(local);
@@ -91,7 +91,7 @@ async function main(){
         return route.fulfill({status:200,contentType:'text/html',body:'<h1 id="directApp">Time4Med GAS Direct</h1>'});
       if(u.origin===GH && u.pathname.startsWith('/Time4Med/')){
         const relative=u.pathname.slice('/Time4Med/'.length);
-        const local=path.resolve(root,relative.endsWith('/')?relative+'index.html':relative);
+        const local=path.resolve(root,(!relative||relative.endsWith('/'))?relative+'index.html':relative);
         if(!local.startsWith(root+path.sep))return route.abort();
         try{
           const body=fs.readFileSync(local);
