@@ -163,6 +163,34 @@ function days_(s) {
   return valid.filter(x=>set.has(x)).join(',');
 }
 function mealShelf_(n) { return n<=2?'morning':n<=4?'midday':n<=6?'evening':'bedtime'; }
+/**
+ * Shared definition of a REAL medicine schedule, for the S3 pull response,
+ * LINE due-time sender and read-only editor diagnostic. Never turn a
+ * TEST/DEMO/PRN row into a scheduled LED or send it as a real LINE reminder.
+ * Do not allow a malformed row to break an otherwise valid device snapshot.
+ */
+function schedulableMedicine_(m) {
+  if(!m || !m.active || m.demo || upper_(m.kind)==='PRN' || !str_(m.id))return false;
+  if(!fixedShelf_(m.patientId) || fixedShelf_(m.patientId)!==m.shelf)return false;
+  if(!Number.isInteger(m.mealType) || m.mealType<1 || m.mealType>7)return false;
+  if(!/^(?:[01]\\d|2[0-3]):[0-5]\\d$/.test(m.time))return false;
+  try { days_(m.days);return true; } catch(_) { return false; }
+}
+// 4 LEDs per shelf; meal types 1-2 morning, 3-4 midday,
+// 5-6 evening, 7 bedtime. Shelf 4 has NO dedicated LEDs.
+function mealLedSlot_(mealType) {
+  if(!Number.isInteger(mealType)||mealType<1||mealType>7)return 0;
+  return mealType<=2?1:mealType<=4?2:mealType<=6?3:4;
+}
+function deviceScheduleSnapshot_(rows) {
+  return rows.filter(schedulableMedicine_).map(m=>{
+    const ledSlot=mealLedSlot_(m.mealType);
+    return {id:m.id,patientId:m.patientId,shelf:m.shelf,mealType:m.mealType,
+      time:m.time,days:days_(m.days),
+      // Optional metadata for new S3 firmware; existing fields unchanged.
+      ledSlot,ledIndex:(m.shelf-1)*4+ledSlot-1};
+  });
+}
 function writeRow_(g,rowIndex,data) {
   const current=rowIndex?g.sheet.getRange(rowIndex,1,1,g.keys.length).getValues()[0]:Array(g.keys.length).fill('');
   g.keys.forEach((key,i)=>{if(Object.prototype.hasOwnProperty.call(data,key))current[i]=data[key];});
@@ -280,7 +308,7 @@ function inspectLineReminderReadiness_() {
   const allUsers=grid_('Users').rows.map(x=>userForEmail_(x.data)).filter(Boolean);
   const lineUsers=allUsers.filter(u=>u.lineEnabled&&u.lineId);
   const active=medicines.filter(m=>m.active);
-  const schedulable=active.filter(m=>!m.demo&&upper_(m.kind)!=='PRN'&&m.shelf);
+  const schedulable=active.filter(schedulableMedicine_);
   const jobs=ScriptApp.getProjectTriggers().filter(t=>t.getHandlerFunction()==='scheduledLineReminders_');
   const candidates=schedulable.map(m=>({
     patientId:m.patientId,mealType:m.mealType,time:m.time,days:m.days,
@@ -319,7 +347,7 @@ function scheduledLineReminders_() {
     const today=Utilities.formatDate(new Date(),T4M.tz,'yyyy-MM-dd');
     const hm=now.slice(-5),dow=['MON','TUE','WED','THU','FRI','SAT','SUN'][Number(Utilities.formatDate(new Date(),T4M.tz,'u'))-1];
     const items=grid_('MealMedicines').rows.map(x=>safeMedicine_(x.data))
-      .filter(x=>x.active&&!x.demo&&upper_(x.kind)!=='PRN'&&x.time===hm
+      .filter(x=>schedulableMedicine_(x)&&x.time===hm
         && validDaysForSchedule_(x.days,dow));
     if(!items.length)return;
     const users=grid_('Users').rows.map(x=>userForEmail_(x.data.email)).filter(x=>x&&x.lineEnabled&&x.lineId);
@@ -537,9 +565,8 @@ function postDevice_(e) {
   if(p.action==='demoEvent')return demoDeviceEvent_(p);
   if(p.action==='demoPhoto')return demoDevicePhoto_(p);
   if(p.action==='pullSchedule'){
-    const schedules=grid_('MealMedicines').rows.map(x=>safeMedicine_(x.data))
-      .filter(x=>x.active&&!x.demo&&upper_(x.kind)!=='PRN'&&x.shelf)
-      .map(x=>({id:x.id,patientId:x.patientId,shelf:x.shelf,mealType:x.mealType,time:x.time,days:days_(x.days)}));
+    const schedules=deviceScheduleSnapshot_(
+      grid_('MealMedicines').rows.map(x=>safeMedicine_(x.data)));
     return {ok:true,timezone:T4M.tz,schedules};
   }
   const patientId=upper_(p.patientId||''),event=String(p.action),deviceId=str_(p.deviceId||'S3-001');
@@ -552,8 +579,8 @@ function postDevice_(e) {
   // cabinet-wide emergency and must not be misattributed to P001.
   if(p.action==='emergency' && (!patientId || patientId==='ALL')) {
     logActivity_('ALL',deviceId,'EMERGENCY','กดปุ่มฉุกเฉินส่วนกลางที่ตู้ยา');
-    const recipients=grid_('Users').rows.map(x=>userForEmail_(x.data.email))
-      .filter(x=>x&&x.lineEnabled&&x.lineId);
+    const recipients=uniqueLineRecipients_(grid_('Users').rows.map(x=>userForEmail_(x.data.email))
+      .filter(x=>x&&x.lineEnabled&&x.lineId));
     recipients.forEach(u=>{try{lineTo_(u.lineId,'Time4Med ฉุกเฉิน! กดปุ่มฉุกเฉินส่วนกลางที่ตู้ยา กรุณาตรวจสอบทันที\n\nเปิดเว็บไซต์ Time4Med:\n'+time4medWebsiteUrl_());}
       catch(err){console.error('Emergency LINE failed',String(err));}});
     return {ok:true,receivedAt:tzNow_(),patientId:'ALL'};
@@ -579,7 +606,7 @@ function postDevice_(e) {
       scheduled_at:tzNow_(),confirmed_at:tzNow_(),status:'CONFIRMED',confirmation_source:'BUTTON',created_at:tzNow_()});
   }
   if(p.action==='emergency'){
-    grid_('Users').rows.map(x=>userForEmail_(x.data.email)).filter(x=>x&&x.lineEnabled&&x.lineId&&can_(x,patientId))
+    uniqueLineRecipients_(grid_('Users').rows.map(x=>userForEmail_(x.data.email)).filter(x=>x&&x.lineEnabled&&x.lineId&&can_(x,patientId)))
       .forEach(u=>{try{lineTo_(u.lineId,'Time4Med ฉุกเฉิน! มีการกดปุ่มฉุกเฉินที่ตู้ยา ชั้น '+fixedShelf_(patientId)+' ('+patientId+') กรุณาตรวจสอบทันที\n\nเปิดเว็บไซต์ Time4Med:\n'+time4medWebsiteUrl_());}
       catch(err){console.error('Emergency line failed',err);}});
   }
