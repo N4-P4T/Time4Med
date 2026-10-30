@@ -5,7 +5,17 @@
 (() => {
 'use strict';
 const WEB_APP = 'https://script.google.com/macros/s/AKfycbx2-O9PDp-T0eXoP1A9_xesHk8mWcWszAbLsbsFOMpARpIIICibdKu6On0G0agGdMIEtQ/exec';
-const configuredApi=String(window.TIME4MED_API_URL||'').trim();
+// Mobile visitors arrive from the same LINE URL as desktop users.
+ // Use the existing Google-hosted HTML app as a first-party destination
+ // on iOS/Android, bypassing the cross-site iframe transport entirely.
+ const mobileDevice=/Android|iPhone|iPad|iPod/i.test(navigator.userAgent) ||
+   (navigator.userAgentData && navigator.userAgentData.mobile===true) ||
+   (navigator.platform==='MacIntel' && navigator.maxTouchPoints>1);
+ if(mobileDevice && !new URLSearchParams(location.search).has('desktop')) {
+   window.location.replace(WEB_APP);
+   return;
+ }
+ const configuredApi=String(window.TIME4MED_API_URL||'').trim();
 const API_URL=/^https:\/\/[a-z0-9.-]+\/api\/rpc\/?$/i.test(configuredApi)?configuredApi:'';
 function makeChannel(){return Array.from(crypto.getRandomValues(new Uint8Array(24)),x=>x.toString(16).padStart(2,'0')).join('');}
 // Google Apps Script documents unsupported multi-Google-account routing. An explicit
