@@ -28,3 +28,7 @@
 #gasPageMessage{margin:0 0 12px;font-weight:650;color:#0b8057;white-space:pre-wrap}
 #gasPageMessage.bad,.bad{color:#b11d34!important}
 @media(max-width:700px){.gas-meta{align-items:flex-start}.gas-panel-body{padding:14px}.t21-kpis{grid-template-columns:repeat(2,minmax(0,1fr))}}
+
+.gas-direct-fallback{display:block;margin:16px auto 8px;padding:12px 14px;border-radius:10px;background:#e9f2fd;color:#15548b;font-weight:700;text-decoration:none;max-width:100%}
+.gas-direct-fallback:hover{text-decoration:underline}
+.gas-fallback-note{display:block;line-height:1.6;color:#607a96}
