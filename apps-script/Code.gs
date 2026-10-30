@@ -264,6 +264,17 @@ function uniqueLineRecipients_(users) {
  * Read-only editor diagnostic. Does not send LINE, create triggers, mutate
  * medicine records, or write NotificationLog.
  */
+/**
+ * Run this function manually from the Apps Script editor (Time4Med owner).
+ * Never expose the reminder candidates through the public Web App.
+ * In "execute as me" web apps getActiveUser().getEmail() is generally blank.
+ */
+function inspectLineReminderReadiness() {
+  const caller=String(Session.getActiveUser().getEmail()||'').toLowerCase();
+  if(caller!=='time4med.project@gmail.com')
+    throw new Error('Only the Time4Med owner may run this diagnostic from the editor.');
+  return inspectLineReminderReadiness_();
+}
 function inspectLineReminderReadiness_() {
   const medicines=grid_('MealMedicines').rows.map(x=>safeMedicine_(x.data));
   const allUsers=grid_('Users').rows.map(x=>userForEmail_(x.data)).filter(Boolean);
