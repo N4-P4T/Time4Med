@@ -73,7 +73,42 @@ async function main(){
   for(const k of ['requestOtp','verifyOtp','bootstrap','saveMedicine','testLine'])assert.ok(calls.includes(k),k);
   assert.deepEqual(errors,[]);
   assert.equal(unexpected.some(x=>/workers\.dev|hivemq|mqtt/.test(x)),false);
-  console.log('PASS: simulated secure bridge, OTP, dashboard, medicine edit, LINE command; no old backend');
+  // iOS Safari/LINE and Android Chrome/LINE should follow the identical
+  // Time4Med URL to the existing top-level GAS web app automatically.
+  // Only navigations are simulated; live Android authorization still needs
+  // an on-device test.
+  const mobileAgents=[
+    ['iOS','Mozilla/5.0 (iPhone; CPU iPhone OS 18_6 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Mobile/15E148 Line/15.0.0'],
+    ['Android','Mozilla/5.0 (Linux; Android 15; Pixel 8) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Mobile Safari/537.36 Line/15.0.0']
+  ];
+  for(const [device,userAgent] of mobileAgents){
+    const mobile=await browser.newPage({userAgent,viewport:{width:390,height:844}});
+    const errors=[];
+    mobile.on('pageerror',e=>errors.push(String(e)));
+    await mobile.route('**/*',route=>{
+      const u=new URL(route.request().url());
+      if(u.origin===GAS && u.pathname.endsWith('/exec'))
+        return route.fulfill({status:200,contentType:'text/html',body:'<h1 id="directApp">Time4Med GAS Direct</h1>'});
+      if(u.origin===GH && u.pathname.startsWith('/Time4Med/')){
+        const relative=u.pathname.slice('/Time4Med/'.length);
+        const local=path.resolve(root,relative.endsWith('/')?relative+'index.html':relative);
+        if(!local.startsWith(root+path.sep))return route.abort();
+        try{
+          const body=fs.readFileSync(local);
+          return route.fulfill({status:200,body,contentType:local.endsWith('.js')?'application/javascript':local.endsWith('.css')?'text/css':'text/html'});
+        }catch(_){return route.fulfill({status:404,body:'missing fixture'});}
+      }
+      return route.abort();
+    });
+    for(const entry of ['/Time4Med/','/Time4Med/test-v021/']){
+      await mobile.goto(GH+entry,{waitUntil:'domcontentloaded'});
+      await mobile.waitForURL(url=>url.origin===GAS&&url.pathname.endsWith('/exec'),{timeout:10000});
+      assert.equal(await mobile.locator('#directApp').count(),1,device+' entry '+entry+' must land on GAS direct login');
+    }
+    assert.deepEqual(errors,[],device+' mobile route must be free of JavaScript errors');
+    await mobile.close();
+  }
+  console.log('PASS: simulated secure bridge, OTP, dashboard, medicine edit, LINE command; iPhone and Android one-link direct GAS navigation');
  }finally{await browser.close();}
 }
 main().catch(err=>{console.error(err);process.exitCode=1;});
