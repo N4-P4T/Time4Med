@@ -1,7 +1,4 @@
-/* Time4Med — GitHub Pages caregiver UI.
-   Default: legacy Google Apps Script OTP iframe. Optional: independent
-   username/password API (only after deployment, public URL in api-config.js).
-   Never put passwords or service account keys in this code. */
+/* Legacy Pages interface. The canonical Time4Med link uses Apps Script directly; no external login API. */
 (() => {
 'use strict';
 const WEB_APP = 'https://script.google.com/macros/s/AKfycbx2-O9PDp-T0eXoP1A9_xesHk8mWcWszAbLsbsFOMpARpIIICibdKu6On0G0agGdMIEtQ/exec';
@@ -15,8 +12,8 @@ const WEB_APP = 'https://script.google.com/macros/s/AKfycbx2-O9PDp-T0eXoP1A9_xes
    window.location.replace(WEB_APP);
    return;
  }
- const configuredApi=String(window.TIME4MED_API_URL||'').trim();
-const API_URL=/^https:\/\/[a-z0-9.-]+\/api\/rpc\/?$/i.test(configuredApi)?configuredApi:'';
+// External login API removed; historical Pages view retains OTP only.
+const API_URL='';
 function makeChannel(){return Array.from(crypto.getRandomValues(new Uint8Array(24)),x=>x.toString(16).padStart(2,'0')).join('');}
 // Google Apps Script documents unsupported multi-Google-account routing. An explicit
 // authuser hint sometimes helps; it cannot be guaranteed to work on all accounts.
