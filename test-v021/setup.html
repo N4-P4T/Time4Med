@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="th"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Time4Med — ตั้งค่าบัญชีแอดมินครั้งแรก</title>
+<style>body{font:16px system-ui,sans-serif;background:#eef5fc;color:#193b61;padding:24px}main{max-width:440px;margin:8vh auto;background:#fff;border:1px solid #d9e4ef;border-radius:16px;padding:28px}input,button{font:inherit;width:100%;padding:12px;border-radius:9px;box-sizing:border-box;margin:7px 0 17px}input{border:1px solid #abc3d9}button{background:#1769b3;color:#fff;border:0;cursor:pointer}p{line-height:1.6}#status{overflow-wrap:anywhere}</style></head>
+<body><main><h1>Time4Med</h1><p>ตั้งค่าบัญชีแอดมินครั้งแรกเท่านั้น เมื่อสำเร็จให้ปิดค่า T4M_SETUP_KEY บนเซิร์ฟเวอร์</p>
+<form id="setupForm">
+<label>Setup Key (กำหนดเฉพาะใน Vercel)<input type="password" id="setupKey" required autocomplete="off"></label>
+<label>ชื่อผู้ใช้แอดมิน<input id="username" required minlength="3" maxlength="40" pattern="[a-z0-9._-]+" value="admin01" autocomplete="username"></label>
+<label>รหัสผ่านใหม่ (อย่างน้อย 12 ตัวอักษร)<input type="password" id="password" required minlength="12" autocomplete="new-password"></label>
+<button type="submit">ตั้งค่าบัญชีแอดมิน</button></form><p id="status" role="status"></p>
+<p><a href="./">กลับหน้าเข้าสู่ระบบ</a></p></main>
+<script src="api-config.js"></script>
+<script>
+'use strict';
+document.getElementById('setupForm').addEventListener('submit',async e=>{
+ e.preventDefault();const btn=e.submitter,area=document.getElementById('status');btn.disabled=true;
+ try{
+  const endpoint=String(window.TIME4MED_API_URL||'');
+  if(!/^https:\/\/[a-z0-9.-]+\/api\/rpc\/?$/i.test(endpoint))throw Error('ยังไม่ได้ตั้ง URL ของ API ใน api-config.js');
+  const res=await fetch(endpoint,{method:'POST',credentials:'omit',headers:{'Content-Type':'application/json'},
+   body:JSON.stringify({method:'setup',args:[document.getElementById('setupKey').value,
+     document.getElementById('username').value,document.getElementById('password').value]})});
+  const data=await res.json();if(!res.ok||!data.ok)throw Error(data.error||'ตั้งค่าไม่สำเร็จ');
+  document.getElementById('setupForm').reset();
+  area.textContent='สำเร็จ! ลบ T4M_SETUP_KEY ใน Vercel แล้ว Deploy ใหม่เพื่อปิดช่องทางตั้งค่าครั้งแรก';
+ }catch(error){area.textContent=error.message;}finally{btn.disabled=false;}
+});
+</script></body></html>

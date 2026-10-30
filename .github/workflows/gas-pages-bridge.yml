@@ -5,6 +5,11 @@ on:
       - 'test-v021/gas-only.js'
       - 'test-v021/gas-only.css'
       - 'test-v021/index.html'
+      - 'test-v021/api-config.js'
+      - 'test-v021/setup.html'
+      - 'api/rpc.js'
+      - 'tests/independent-api.test.cjs'
+      - 'tests/independent-api-ui.test.cjs'
       - 'apps-script/Bridge.html'
       - 'apps-script/Code.gs'
       - 'tests/gas-pages-integration.test.cjs'
@@ -21,12 +26,16 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
+      - name: Test independent API (offline Google Sheets simulation)
+        run: node --test tests/independent-api.test.cjs
       - name: Install Playwright without changing project dependencies
         run: npm install --no-save playwright@1.56.1
       - name: Install Chromium on supported Ubuntu
         run: npx playwright install --with-deps chromium
       - name: Test GitHub Pages OTP, dashboard and GAS iframe bridge (mock API)
         run: node tests/gas-pages-integration.test.cjs
+      - name: Test username and password login through API with no GAS iframe
+        run: node tests/independent-api-ui.test.cjs
       - name: Simulate multiple Google accounts and 404 route recovery
         run: node tests/gas-multilogin-fallback.test.cjs
       - name: Offer direct GAS HTML app when all account routes fail

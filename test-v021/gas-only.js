@@ -1,10 +1,12 @@
-/* Time4Med — GitHub Pages UI, Google Apps Script backend only.
-   No Cloudflare, MQTT, client-side secrets, or cross-origin fetch().
-   The public Apps Script bridge validates caller origin and server functions
-   enforce OTP sessions, roles and patient assignment. */
+/* Time4Med — GitHub Pages caregiver UI.
+   Default: legacy Google Apps Script OTP iframe. Optional: independent
+   username/password API (only after deployment, public URL in api-config.js).
+   Never put passwords or service account keys in this code. */
 (() => {
 'use strict';
 const WEB_APP = 'https://script.google.com/macros/s/AKfycbx2-O9PDp-T0eXoP1A9_xesHk8mWcWszAbLsbsFOMpARpIIICibdKu6On0G0agGdMIEtQ/exec';
+const configuredApi=String(window.TIME4MED_API_URL||'').trim();
+const API_URL=/^https:\/\/[a-z0-9.-]+\/api\/rpc\/?$/i.test(configuredApi)?configuredApi:'';
 function makeChannel(){return Array.from(crypto.getRandomValues(new Uint8Array(24)),x=>x.toString(16).padStart(2,'0')).join('');}
 // Google Apps Script documents unsupported multi-Google-account routing. An explicit
 // authuser hint sometimes helps; it cannot be guaranteed to work on all accounts.
@@ -22,7 +24,15 @@ const asTime=x=>/^\d\d:\d\d$/.test(x)?x:'—';
 function bridgeOrigin(origin) {
   try {const u=new URL(origin);return u.protocol==='https:' && (u.hostname==='script.google.com'||u.hostname==='script.googleusercontent.com'||u.hostname.endsWith('.googleusercontent.com'));}catch(_){return origin==='null';}
 }
-function call(method,...args) {
+async function call(method,...args) {
+  if(API_URL){
+    const response=await fetch(API_URL,{method:'POST',mode:'cors',credentials:'omit',cache:'no-store',
+      headers:{'Content-Type':'application/json'},body:JSON.stringify({method,args})});
+    let result;
+    try{result=await response.json();}catch(_){throw Error('API ตอบกลับไม่ถูกต้อง (HTTP '+response.status+')');}
+    if(!response.ok||!result.ok)throw Error(result.error||'API ไม่สำเร็จ (HTTP '+response.status+')');
+    return result.value;
+  }
   if(!state.ready) return Promise.reject(Error('ยังเชื่อมต่อ Apps Script ไม่ได้ ตรวจโปรไฟล์ Google หรือเลือกเปิดในหน้าต่างส่วนตัว'));
   return new Promise((resolve,reject)=>{
     const id=++state.seq;
@@ -76,8 +86,40 @@ function installBridge(){
   }
   tryNext();
 }
+async function signedIn(result,box){
+  if(!result||!result.token)throw Error('ไม่พบเซสชันที่ถูกต้อง');
+  state.token=result.token;state.data=await call('bootstrap',state.token);
+  box.hidden=true;document.body.classList.remove('t4m-auth-locked');
+  const bar=$('t4mUserbar');if(bar)bar.hidden=false;
+  const user=state.data.user;
+  document.querySelectorAll('.t4m-profile-role').forEach(x=>x.textContent=user.role==='ADMIN'?'แอดมิน':'ผู้ดูแล');
+  document.querySelectorAll('.t4m-profile-name').forEach(x=>x.textContent=user.name||user.email);
+  text('t4mSignedInUser',user.email);render();
+}
 function startAuth(){
   const box=$('t4mAuthScreen');
+  if(API_URL){
+    box.innerHTML='<div class="t4m-auth-card gas-login"><img src="../test-v019/logo.png" class="t4m-auth-logo" alt="Time4Med">'+
+      '<h1>Time4Med</h1><p>เข้าสู่ระบบด้วยชื่อผู้ใช้และรหัสผ่าน</p>'+
+      '<form id="gasPasswordLogin"><label for="gasUsername">ชื่อผู้ใช้งาน</label><input id="gasUsername" autocomplete="username" required maxlength="120">'+
+      '<label for="gasPassword">รหัสผ่าน</label><input id="gasPassword" type="password" autocomplete="current-password" required>'+
+      '<button class="gas-btn" type="submit">เข้าสู่ระบบ</button></form>'+
+      '<p id="gasStatus" role="status">API พร้อมให้เข้าสู่ระบบ</p><small id="gasConnectState">Google Sheets · ไม่ต้องเปิดบัญชี Google</small></div>';
+    $('gasPasswordLogin').addEventListener('submit',async ev=>{
+      ev.preventDefault();const btn=ev.submitter;if(btn)btn.disabled=true;
+      try{
+        message('กำลังตรวจบัญชี...');
+        const result=await call('login',$('gasUsername').value.trim(),$('gasPassword').value);
+        $('gasPassword').value='';
+        await signedIn(result,box);
+      }catch(e){message(e.message,true);}finally{if(btn)btn.disabled=false;}
+    });
+    const signout=$('t4mSignOut');if(signout)signout.addEventListener('click',async()=>{
+      const token=state.token;state.token=null;state.data=null;
+      try{await call('logout',token);}catch(_){}window.location.reload();
+    });
+    return;
+  }
   box.innerHTML='<div class="t4m-auth-card gas-login"><img src="../test-v019/logo.png" class="t4m-auth-logo" alt="Time4Med">'+
   '<h1>Time4Med</h1><p>เข้าสู่ระบบผู้ดูแลด้วยอีเมล OTP</p>'+
   '<form id="gasOtpRequest"><label for="gasEmail">อีเมลที่ได้รับสิทธิ์</label><input id="gasEmail" type="email" autocomplete="email" required placeholder="name@example.com">'+
@@ -99,15 +141,7 @@ function startAuth(){
     ev.preventDefault();const b=ev.submitter;if(b)b.disabled=true;
     try{
       message('กำลังตรวจรหัส...');const result=await call('verifyOtp',$('gasEmail').value.trim(),$('gasOtp').value.trim());
-      if(!result||!result.token)throw Error('ไม่พบเซสชันที่ถูกต้อง');
-      state.token=result.token;state.data=await call('bootstrap',state.token);
-      box.hidden=true;document.body.classList.remove('t4m-auth-locked');
-      const bar=$('t4mUserbar');if(bar)bar.hidden=false;
-      const user=state.data.user;
-      document.querySelectorAll('.t4m-profile-role').forEach(x=>x.textContent=user.role==='ADMIN'?'แอดมิน':'ผู้ดูแล');
-      document.querySelectorAll('.t4m-profile-name').forEach(x=>x.textContent=user.name||user.email);
-      text('t4mSignedInUser',user.email);
-      render();
+      await signedIn(result,box);
     }catch(e){message(e.message,true);}finally{if(b)b.disabled=false;}
   });
   const out=$('t4mSignOut');if(out)out.addEventListener('click',async()=>{
@@ -145,15 +179,19 @@ function dashboard(){
   const rows=d.patients.map(p=>tr([html(p.id),html(p.name),html('ชั้น '+p.shelf),
     html(active.filter(x=>x.patientId===p.id).length+' รายการ')]));
   return '<div class="t21-heading"><div class="t21-heading-main"><p class="t21-eyebrow">TIME4MED / CAREGIVER CENTER</p>'+
-    '<h1>ภาพรวมการดูแลวันนี้</h1><p class="t21-heading-description">ข้อมูลจาก Google Sheets ผ่าน Google Apps Script</p></div></div>'+
+    '<h1>ภาพรวมการดูแลวันนี้</h1><p class="t21-heading-description">ข้อมูลจาก Google Sheets ผ่าน '+(API_URL?'API':'Google Apps Script')+'</p></div></div>'+
     '<div class="t21-kpis">'+kpi('ผู้สูงอายุในสิทธิ์',d.patients.length,'P001–P003','👥')+
     kpi('รายการยาที่ใช้งาน',active.length,'ไม่รวมรายการทดสอบ','💊')+
     kpi('มื้อยาถัดไปวันนี้',next?next.time:'—',next?next.patientId+' '+next.meal:'ไม่พบรอบที่เหลือในวันนี้','◷')+
     kpi('อุปกรณ์ออนไลน์',d.devices.filter(x=>x.online==='ONLINE').length,'นับเฉพาะสถานะที่ยังไม่หมดอายุ','📶')+'</div>'+
     panel('ผู้สูงอายุและชั้นยา',tbl(['รหัส','ชื่อ','ชั้น','จำนวนรายการยา'],rows))+
-    panel('สถานะการเชื่อมต่อ','<p>เว็บไซต์ GitHub Pages → Apps Script → Google Sheets</p>'+
+    panel('สถานะการเชื่อมต่อ','<p>เว็บไซต์ GitHub Pages → '+(API_URL?'API':'Apps Script')+' → Google Sheets</p>'+
       '<p class="gas-muted">LINE ส่งจาก Apps Script ตามรอบยาโดยอิสระจากการเปิดหน้าเว็บ การกดยืนยันไม่ใช่หลักฐานว่ากลืนยาแล้ว</p>'+
-      '<button class="gas-btn" data-action="refresh">โหลดข้อมูลล่าสุด</button>');
+      '<button class="gas-btn" data-action="refresh">โหลดข้อมูลล่าสุด</button>')+
+    (API_URL?panel('เปลี่ยนรหัสผ่านบัญชีของฉัน','<form id="gasPasswordChange" class="gas-form">'+
+      '<label>รหัสผ่านปัจจุบัน<input id="oldPassword" type="password" autocomplete="current-password" required></label>'+
+      '<label>รหัสผ่านใหม่ (อย่างน้อย 12 ตัว)<input id="newPassword" type="password" autocomplete="new-password" minlength="12" required></label>'+
+      '<button type="submit" class="gas-btn">เปลี่ยนรหัสผ่าน</button></form>'):'');
 }
 function medication(){
   const d=state.data,items=d.medicines.filter(x=>!x.demo);
@@ -230,6 +268,8 @@ function admin(){
   panel('บัญชีผู้ใช้',tbl(['อีเมล','บทบาท','ดูแลผู้สูงอายุ','สถานะ','LINE User ID'],rows))+
   panel('เพิ่มหรือแก้ไขสิทธิ์ผู้ใช้','<form id="gasUserForm" class="gas-form">'+
     '<label>อีเมล<input id="userEmail" type="email" required></label>'+
+    (API_URL?'<label>ชื่อผู้ใช้ (a-z, 0-9)<input id="userUsername" autocomplete="off" required minlength="3" maxlength="40" placeholder="caregiver01"></label>'+
+      '<label>รหัสผ่านเริ่มต้น (เฉพาะบัญชีใหม่หรือเมื่อต้องการเปลี่ยน)<input id="userNewPassword" type="password" autocomplete="new-password" minlength="12" placeholder="อย่างน้อย 12 ตัวอักษร"></label>':'')+
     '<label>ชื่อแสดง<input id="userName" required></label>'+
     '<label>บทบาท<select id="userRole"><option value="CAREGIVER">CAREGIVER — ผู้ดูแล</option><option value="ADMIN">ADMIN — แอดมิน</option></select></label>'+
     '<label>ผู้สูงอายุที่ดูแล (คั่นด้วย ,)<input id="userPatients" placeholder="P001,P002,P003"></label>'+
@@ -245,7 +285,7 @@ function render(){
   if(state.view==='admin'&&state.data.user.role!=='ADMIN')state.view='dashboard';
   const pages={dashboard,medication,devices,inventory,analytics,activity,camera,gallery,admin};
   const main=$('dashboard');
-  main.innerHTML='<div class="gas-meta"><span id="gasPageStatus">เชื่อมต่อ Apps Script · '+html(state.data.serverTime)+'</span>'+
+  main.innerHTML='<div class="gas-meta"><span id="gasPageStatus">เชื่อมต่อ '+(API_URL?'API':'Apps Script')+' · '+html(state.data.serverTime)+'</span>'+
     '<button type="button" class="gas-btn light" data-action="refresh">↻ โหลดล่าสุด</button></div>'+
     '<div id="gasPageMessage" role="status"></div>'+pages[state.view]();
   document.querySelectorAll('.sidebar-navigation a').forEach(a=>a.classList.toggle('active',a.getAttribute('href')==='#'+state.view));
@@ -254,9 +294,16 @@ function render(){
     a.innerHTML='<span class="sidebar-link-icon">⚙</span><span class="sidebar-link-text"><strong>จัดการระบบ</strong><small>ADMIN</small></span>';
     document.querySelector('.sidebar-navigation').appendChild(a);
   }
-  text('mqttConnectionLabel','ข้อมูลจาก Apps Script · ไม่ใช้ MQTT');
+  text('mqttConnectionLabel','ข้อมูลจาก '+(API_URL?'API':'Apps Script')+' · ไม่ใช้ MQTT');
   const f=$('gasMedicineForm');if(f)f.addEventListener('submit',saveMedicine);
   const uf=$('gasUserForm');if(uf)uf.addEventListener('submit',saveUser);
+  const cp=$('gasPasswordChange');if(cp)cp.addEventListener('submit',async ev=>{
+    ev.preventDefault();const btn=ev.submitter;if(btn)btn.disabled=true;
+    try{
+      await call('changePassword',state.token,$('oldPassword').value,$('newPassword').value);
+      window.alert('เปลี่ยนรหัสผ่านแล้ว กรุณาเข้าสู่ระบบใหม่');state.token=null;state.data=null;window.location.reload();
+    }catch(e){pageMessage(e.message,true);}finally{if(btn)btn.disabled=false;}
+  });
 }
 function pageMessage(s,bad=false){const el=$('gasPageMessage');if(el){el.textContent=s;el.className=bad?'bad':'';}}
 async function saveMedicine(ev){
@@ -274,6 +321,7 @@ async function saveUser(ev){
   ev.preventDefault();
   const value={email:$('userEmail').value,name:$('userName').value,role:$('userRole').value,
     patientIds:$('userPatients').value,status:$('userStatus').value};
+  if(API_URL){value.username=$('userUsername').value.trim();value.newPassword=$('userNewPassword').value;}
   try{await call('saveUser',state.token,value);await reload();pageMessage('บันทึกบัญชีแล้ว');}
   catch(e){pageMessage(e.message,true);}
 }
@@ -309,7 +357,7 @@ document.addEventListener('click',async e=>{
 });
 window.addEventListener('hashchange',()=>{if(state.data)render();});
 document.addEventListener('DOMContentLoaded',()=>{
-  startAuth();installBridge();
+  startAuth();if(!API_URL)installBridge();
   const toggle=$('sidebarToggle');if(toggle)toggle.addEventListener('click',()=>document.body.classList.toggle('sidebar-collapsed'));
   const time=()=>{
     const now=new Date();
