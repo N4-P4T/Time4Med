@@ -86,7 +86,7 @@ function installBridge(){
   }
   tryNext();
 }
-async function syncVerifiedProfile(){
+function syncVerifiedProfile(){
   if(!state.data||!state.data.user)return;
   const user=state.data.user;
   const role=user.role==='ADMIN'?'แอดมิน (ADMIN)':'ผู้ดูแล (CAREGIVER)';
@@ -96,7 +96,7 @@ async function syncVerifiedProfile(){
   });
   document.querySelectorAll('.t4m-profile-name').forEach(el=>el.textContent=user.name||user.email);
 }
-function signedIn(result,box){
+async function signedIn(result,box){
   if(!result||!result.token)throw Error('ไม่พบเซสชันที่ถูกต้อง');
   state.token=result.token;state.data=await call('bootstrap',state.token);
   box.hidden=true;document.body.classList.remove('t4m-auth-locked');
