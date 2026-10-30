@@ -6,23 +6,26 @@
 
 - `time4med_schedule_core.h`: ตรวจ `P001–P003`, ชั้น 1–3, มื้อยา 1–7, เวลา `HH:mm`, วันจันทร์–อาทิตย์, และ `ledSlot` / `ledIndex` จาก Apps Script; รวมยาในรอบเดียวกันไม่ให้เล่นเสียงซ้ำ; คำนวณการถึงกำหนดจาก RTC แบบออฟไลน์; รองรับไฟหลายชั้นพร้อมกัน (bitmap 12 ตำแหน่ง)
 - `time4med_gas_adapter.h`: ส่ง HTTPS POST `{"action":"pullSchedule","deviceKey":"..."}` ไป Apps Script `/exec` ผ่าน CA bundle และตรวจคำตอบ `ok:true`; ถ้าเน็ตหลุด/ข้อมูลผิด/เป็นรายการว่างโดยไม่ตั้งใจ **ไม่แก้ตารางในหน่วยความจำเดิม**
-- `tests/s3-schedule-core.test.cpp`: ชุดทดสอบออฟไลน์บน g++ โดยไม่เรียก Google หรือเปิดรีเลย์
+- `time4med_schedule_store.h`: บันทึกตารางที่ตรวจแล้วลง ESP32 Preferences/NVS แบบ 2 ชุด มี checksum และกู้สำเนาเดิมได้เมื่อการเขียน/ข้อมูลเสีย
+- `tests/s3-schedule-core.test.cpp` และ `tests/s3-schedule-store.test.cpp`: ชุดทดสอบออฟไลน์บน g++ โดยไม่เรียก Google หรือเปิดรีเลย์
 
 ## จุดเชื่อมกับเฟิร์มแวร์เดิม
 
 1. ใช้ GPIO เดิมของ PCB เฉพาะหลังตรวจของจริงก่อน รวมถึง 4=Relay, 5=Confirm, 6=Reed, 7=Emergency, 8/9=I2C, 10=Status LED, 17/18=DFPlayer ตาม **ซอร์สเก่าที่เคยแนบ** (ไม่ใช่ข้อยืนยัน GPIO ของบอร์ดที่แฟลชอยู่)
 2. ใช้ `WiFiClientSecure` + root bundle ที่ตรวจ TLS ผ่านแล้ว และ `ArduinoJson` (ต้องติดตั้งไลบรารี) ไม่ใช้ MQTT/Cloudflare
-3. เรียก `pullScheduleHttps` จากรอบ sync เมื่อ Wi-Fi ใช้งานได้ **นอก** จังหวะเตือนยา และตรวจ `Plan candidate` ก่อนเขียนสำเนาที่ผ่าน validation ทั้งชุดลง NVS (ยังต้องเขียนส่วนคงทนนี้ในงานรวมเฟิร์มแวร์)
+3. เรียก `pullScheduleHttps` จากรอบ sync เมื่อ Wi-Fi ใช้งานได้ **นอก** จังหวะเตือนยา และตรวจ `Plan candidate` ก่อนเรียก `savePlan(candidate)` เพื่อเขียนสำเนาที่ตรวจแล้วทั้งชุดลง NVS
 4. ถ้าบันทึก NVS สำเร็จจึงเรียก `applyPlan(current, candidate)` — ฟังก์ชันนี้รักษาวันที่เพิ่งแจ้งเตือนของรอบเดิม เพื่อไม่ให้เสียงดังซ้ำเพราะ sync
-5. หลังรีบูต ต้องโหลด NVS ฉบับที่ผ่านการตรวจ checksum ก่อนใช้งาน; ห้ามกลับไปใช้ hardcoded ตัวอย่าง 08:30 หรือรีเซ็ตตารางยาเพราะ Apps Script ชั่วคราวล่ม
+5. หลังรีบูต ใช้ `loadSavedPlan` โหลด NVS ฉบับที่ผ่านการตรวจ checksum ก่อนใช้งาน; ห้ามกลับไปใช้ hardcoded ตัวอย่าง 08:30 หรือรีเซ็ตตารางยาเพราะ Apps Script ชั่วคราวล่ม
 6. ต่อสาย LED 12 GPIO เฉพาะหลังตรวจแผงจริง, ใส่ตัวต้านทานดวงละตัว, และทดสอบไฟทีละดวง; `ledIndex` **ไม่ใช่ GPIO**
 7. ปุ่มยืนยันที่เป็นปุ่มรวมไม่สามารถพิสูจน์ได้ว่า P001/P002/P003 คนไหนกดโดยตรง; ต้องใช้บริบทการแจ้งเตือนอย่างชัดเจนก่อนส่ง event `intake`
 
-**ยังไม่ผ่าน**: การคอมไพล์สำหรับ ESP32-S3 บน Arduino IDE จริง, การอ่าน/บันทึก NVS ด้วยเฟิร์มแวร์เต็ม, การทดสอบ TLS/redirect `/exec` จริง, การติด LED จริง, DFPlayer/ปุ่ม/กลอนจริง และภาพ ESP32-CAM→Drive. ห้ามนำ adapter นี้ไปแทนเฟิร์มแวร์หลักจนกว่างานรวมและทดสอบครบ
+**ยังไม่ผ่าน**: การคอมไพล์สำหรับ ESP32-S3 บน Arduino IDE จริง, การอ่าน/บันทึก NVS บนฮาร์ดแวร์จริง (ทดสอบบน mock แล้ว), การทดสอบ TLS/redirect `/exec` จริง, การติด LED จริง, DFPlayer/ปุ่ม/กลอนจริง และภาพ ESP32-CAM→Drive. ห้ามนำ adapter นี้ไปแทนเฟิร์มแวร์หลักจนกว่างานรวมและทดสอบครบ
 
 ### รันทดสอบออฟไลน์
 
 ```bash
 g++ -std=c++11 -Wall -Wextra -Werror -pedantic tests/s3-schedule-core.test.cpp -o /tmp/time4med_schedule_test
 /tmp/time4med_schedule_test
+g++ -std=c++11 -Wall -Wextra -Werror -pedantic -Itests/mocks tests/s3-schedule-store.test.cpp -o /tmp/time4med_store_test
+/tmp/time4med_store_test
 ```
