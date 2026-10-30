@@ -90,10 +90,10 @@ assert.match(webClient,/crypto\.getRandomValues/);
 assert.match(bridgeHtml,/event\.origin !== allowedOrigin/);
 assert.match(bridgeHtml,/requestOtp: true, verifyOtp: true, bootstrap: true/);
 assert.match(fs.readFileSync(file,'utf8'),/setXFrameOptionsMode\(HtmlService\.XFrameOptionsMode\.ALLOWALL\)/);
-assert.match(rootIndex,/window\.location\.replace\(document\.getElementById\('open-app'\)\.href\)/);
-assert.match(rootIndex,/script\.google\.com\/macros\/s\/[^\s"]+\/exec/);
-assert.doesNotMatch(rootIndex,/mobile\s*=/);
-assert.doesNotMatch(rootIndex,/test-v021\//);
+assert.match(rootIndex,/window\.location\.replace\(document\.getElementById\('enter'\)\.href\)/);
+assert.match(rootIndex,/href="\.\/test-v021\/"/);
+assert.doesNotMatch(rootIndex,/script\.google\.com\/macros\/s\//);
+assert.doesNotMatch(webClient,/window\.location\.replace\(WEB_APP\)/);
 equal(call('time4medWebsiteUrl_()'),'https://n4-p4t.github.io/Time4Med/');
 
 /* iPhone/Safari: when the embedded google.script.run callback times out, the
