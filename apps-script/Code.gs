@@ -247,6 +247,47 @@ function testLine(token) {
   lineTo_(u.lineId,'Time4Med: ทดสอบการเชื่อมต่อ LINE จาก Google Apps Script สำเร็จ\n\nเปิดเว็บไซต์ Time4Med:\n'+time4medWebsiteUrl_());
   logActivity_('ALL',u.id,'LINE_TEST','ทดสอบการส่ง LINE');return {ok:true};
 }
+/**
+ * One LINE destination may be registered to more than one Users row.
+ * For each medicine due event notify that destination only once, after
+ * checking the recipient's patient permissions. Never expose LINE IDs.
+ */
+function uniqueLineRecipients_(users) {
+  const seen=new Set();
+  return users.filter(u=>{
+    if(!u.lineId||seen.has(u.lineId))return false;
+    seen.add(u.lineId);
+    return true;
+  });
+}
+/**
+ * Read-only editor diagnostic. Does not send LINE, create triggers, mutate
+ * medicine records, or write NotificationLog.
+ */
+function inspectLineReminderReadiness_() {
+  const medicines=grid_('MealMedicines').rows.map(x=>safeMedicine_(x.data));
+  const allUsers=grid_('Users').rows.map(x=>userForEmail_(x.data)).filter(Boolean);
+  const lineUsers=allUsers.filter(u=>u.lineEnabled&&u.lineId);
+  const active=medicines.filter(m=>m.active);
+  const schedulable=active.filter(m=>!m.demo&&upper_(m.kind)!=='PRN'&&m.shelf);
+  const jobs=ScriptApp.getProjectTriggers().filter(t=>t.getHandlerFunction()==='scheduledLineReminders_');
+  const candidates=schedulable.map(m=>({
+    patientId:m.patientId,mealType:m.mealType,time:m.time,days:m.days,
+    recipientCount:uniqueLineRecipients_(lineUsers.filter(u=>can_(u,m.patientId))).length
+  }));
+  const summary={
+    enabled:upper_(props_().getProperty('LINE_REMINDERS_ENABLED'))==='TRUE',
+    triggerCount:jobs.length,
+    medicineActiveCount:active.length,
+    medicineExcludedDemoCount:active.filter(m=>m.demo).length,
+    medicineEligibleCount:schedulable.length,
+    lineEnabledUserRows:lineUsers.length,
+    uniqueLineDestinations:uniqueLineRecipients_(lineUsers).length,
+    dueCandidates:candidates
+  };
+  Logger.log(JSON.stringify(summary));
+  return summary;
+}
 function notificationLog_(key,p,recipient,type,status,error) {
   const g=grid_('NotificationLog');const row=g.sheet.getLastRow()+1;
   writeRow_(g,null,{notification_id:key,event_id:key,patient_id:p,recipient_user_id:recipient,
@@ -273,7 +314,7 @@ function scheduledLineReminders_() {
     const users=grid_('Users').rows.map(x=>userForEmail_(x.data.email)).filter(x=>x&&x.lineEnabled&&x.lineId);
     const notificationGrid=grid_('NotificationLog');
     const seen=new Set(notificationGrid.rows.map(x=>str_(x.data.notification_id)));
-    items.forEach(m=>users.filter(u=>can_(u,m.patientId)).forEach(u=>{
+    items.forEach(m=>uniqueLineRecipients_(users.filter(u=>can_(u,m.patientId))).forEach(u=>{
       const key='T4M-'+today+'-'+sha_(m.id+':'+u.id).slice(0,14);
       if(seen.has(key))return;
       // Record the attempt before sending, then record the actual provider outcome.

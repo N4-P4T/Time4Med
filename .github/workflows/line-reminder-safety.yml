@@ -1,0 +1,20 @@
+name: Time4Med LINE reminder safety
+on:
+  pull_request:
+    paths:
+      - 'apps-script/Code.gs'
+      - 'tests/line-reminder-safety.cjs'
+      - '.github/workflows/line-reminder-safety.yml'
+  workflow_dispatch:
+jobs:
+  reminder-safety:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Check Apps Script syntax
+        run: node --check < apps-script/Code.gs
+      - name: Verify LINE reminder deduplication without contacting LINE
+        run: node tests/line-reminder-safety.cjs
