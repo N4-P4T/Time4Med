@@ -71,6 +71,67 @@ equal(incident.ok,true);equal(incident.patientId,'ALL');
 assert.deepEqual(JSON.parse(JSON.stringify(call('events'))).map(x=>x.p),['ALL']);
 equal(call('sent.length'),1);
 assert.throws(()=>call('postDevice_({postData:{contents:JSON.stringify({action:"intake",deviceKey:"valid-for-test",patientId:"ALL"})}})'),/INVALID_PATIENT_ID/);
+// A single S3 pull must provide only real, valid schedules and explicit
+// 12-LED mapping (no guessed physical GPIO, no shelf-4 lights).
+for(let n=1;n<=7;n++){
+  equal(call('mealLedSlot_('+n+')'),n<=2?1:n<=4?2:n<=6?3:4);
+}
+equal(call('mealLedSlot_(0)'),0);
+equal(call('mealLedSlot_(8)'),0);
+const samples=[];
+for(let shelf=1;shelf<=3;shelf++)for(let meal=1;meal<=7;meal++)samples.push({
+  id:'P'+shelf+'-meal-'+meal,
+  patientId:'P00'+shelf,
+  shelf,
+  mealType:meal,
+  time:'08:30',
+  days:'MON,FRI',
+  kind:'scheduled',
+  active:true,
+  demo:false
+});
+samples.push(
+  {...samples[0],id:'',mealType:3},
+  {...samples[0],id:'bad-demo',demo:true},
+  {...samples[0],id:'bad-prn',kind:'PRN'},
+  {...samples[0],id:'bad-time',time:'25:00'},
+  {...samples[0],id:'bad-days',days:'FUNDAY'},
+  {...samples[0],id:'bad-meal',mealType:8},
+  {...samples[0],id:'bad-shelf',shelf:4},
+  {...samples[0],id:'bad-inactive',active:false}
+);
+context.snapshotFixture=samples;
+const snapshot=JSON.parse(JSON.stringify(call('deviceScheduleSnapshot_(snapshotFixture)')));
+equal(snapshot.length,21);
+assert.deepEqual(snapshot.filter(x=>x.patientId==='P001').map(x=>x.ledSlot),[1,1,2,2,3,3,4]);
+assert.deepEqual(snapshot.filter(x=>x.patientId==='P002').map(x=>x.ledIndex),[4,4,5,5,6,6,7]);
+assert.deepEqual(snapshot.filter(x=>x.patientId==='P003').map(x=>x.ledIndex),[8,8,9,9,10,10,11]);
+assert.ok(snapshot.every(x=>x.days==='MON,FRI'));
+assert.ok(snapshot.every(x=>x.shelf<=3 && x.ledIndex>=0 && x.ledIndex<=11));
+const tooBad=JSON.parse(JSON.stringify(call('deviceScheduleSnapshot_([snapshotFixture[21],snapshotFixture[22],snapshotFixture[23]])')));
+equal(tooBad.length,0);
+// Users sheet currently has duplicate LINE destination for two ADMIN rows.
+// Both emergency modes should alert each destination once per button event.
+call(`
+  sent=[];
+  grid_=(name)=>name==='Users'?{rows:[
+    {data:{email:'admin-one@example.org'}},
+    {data:{email:'admin-two@example.org'}}
+  ]}:{rows:[]};
+  postDevice_({postData:{contents:JSON.stringify({
+    action:'emergency',deviceKey:'valid-for-test',deviceId:'S3-001',patientId:'ALL'
+  })}});
+`);
+equal(call('sent.length'),1);
+call(`
+  sent=[];
+  postDevice_({postData:{contents:JSON.stringify({
+    action:'emergency',deviceKey:'valid-for-test',deviceId:'S3-001',patientId:'P001'
+  })}});
+`);
+equal(call('sent.length'),1);
+console.log('OK: valid S3 schedule snapshot, 12 LED indices and duplicate-free emergency LINE');
+
 console.log('OK: shelf mapping, meal LEDs, Sheets time normalization, days, date parsing, caregiver permissions, cabinet-wide emergency, intake validation');
 
 /* GitHub Pages → Apps Script migration static/parse smoke checks. */
