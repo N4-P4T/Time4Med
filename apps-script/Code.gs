@@ -173,7 +173,7 @@ function schedulableMedicine_(m) {
   if(!m || !m.active || m.demo || upper_(m.kind)==='PRN' || !str_(m.id))return false;
   if(!fixedShelf_(m.patientId) || fixedShelf_(m.patientId)!==m.shelf)return false;
   if(!Number.isInteger(m.mealType) || m.mealType<1 || m.mealType>7)return false;
-  if(!/^(?:[01]\\d|2[0-3]):[0-5]\\d$/.test(m.time))return false;
+  if(!/^(?:[01]\d|2[0-3]):[0-5]\d$/.test(m.time))return false;
   try { days_(m.days);return true; } catch(_) { return false; }
 }
 // 4 LEDs per shelf; meal types 1-2 morning, 3-4 midday,
