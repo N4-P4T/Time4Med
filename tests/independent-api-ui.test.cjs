@@ -11,6 +11,10 @@ async function main(){
   await page.route('**/*',async route=>{
    const u=new URL(route.request().url());
    if(u.href===API){
+    if(route.request().method()==='OPTIONS')return route.fulfill({status:204,headers:{
+      'Access-Control-Allow-Origin':GH,'Access-Control-Allow-Methods':'POST, OPTIONS',
+      'Access-Control-Allow-Headers':'Content-Type'
+    },body:''});
     const b=JSON.parse(route.request().postData()||'{}');apiCalls.push(b);
     if(b.method==='login')return route.fulfill({status:200,contentType:'application/json',headers:{'Access-Control-Allow-Origin':GH},body:JSON.stringify({ok:true,value:{token:'test-token',user:{email:'caregiver@example.com',name:'Demo',role:'CAREGIVER',patientIds:['P001']}}})});
     if(b.method==='bootstrap')return route.fulfill({status:200,contentType:'application/json',headers:{'Access-Control-Allow-Origin':GH},body:JSON.stringify({ok:true,value:{
