@@ -8,6 +8,7 @@ on:
       - 'apps-script/Bridge.html'
       - 'apps-script/Code.gs'
       - 'tests/gas-pages-integration.test.cjs'
+      - 'tests/otp-transport.test.cjs'
       - 'tests/gas-multilogin-fallback.test.cjs'
       - 'tests/gas-direct-fallback.test.cjs'
       - '.github/workflows/gas-pages-bridge.yml'
@@ -21,6 +22,8 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
+      - name: Verify backend RPC before requesting OTP (offline)
+        run: node tests/otp-transport.test.cjs
       - name: Install Playwright without changing project dependencies
         run: npm install --no-save playwright@1.56.1
       - name: Install Chromium on supported Ubuntu
