@@ -112,7 +112,7 @@ assert.equal(fallbackElements.gasFallbackNote.hidden,false);
 assert.equal(fallbackElements.gasOtpVerify.hidden,false,'code field available when OTP may have been sent');
 assert.ok(reported.some(x=>x.bad && x.s.includes('OTP อาจส่งแล้ว')));
 assert.match(webClient,/if\(\/iPhone\|iPad\|iPod\/i\.test\(navigator\.userAgent\)\)/);
-assert.match(webClient,/href="'+WEB_APP+'"/);
+assert.match(webClient,/id="gasDirectFallback"[^\n]*WEB_APP/);
 assert.doesNotMatch(webClient,/showDirectFallback[\s\S]{0,300}requestOtp\(/);
 console.log('OK: iPhone Apps Script fallback exposed after timeout; OTP not retried automatically');
 
