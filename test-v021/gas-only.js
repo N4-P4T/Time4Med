@@ -187,7 +187,11 @@ function dashboard(){
     panel('ผู้สูงอายุและชั้นยา',tbl(['รหัส','ชื่อ','ชั้น','จำนวนรายการยา'],rows))+
     panel('สถานะการเชื่อมต่อ','<p>เว็บไซต์ GitHub Pages → '+(API_URL?'API':'Apps Script')+' → Google Sheets</p>'+
       '<p class="gas-muted">LINE ส่งจาก Apps Script ตามรอบยาโดยอิสระจากการเปิดหน้าเว็บ การกดยืนยันไม่ใช่หลักฐานว่ากลืนยาแล้ว</p>'+
-      '<button class="gas-btn" data-action="refresh">โหลดข้อมูลล่าสุด</button>');
+      '<button class="gas-btn" data-action="refresh">โหลดข้อมูลล่าสุด</button>')+
+    (API_URL?panel('เปลี่ยนรหัสผ่านบัญชีของฉัน','<form id="gasPasswordChange" class="gas-form">'+
+      '<label>รหัสผ่านปัจจุบัน<input id="oldPassword" type="password" autocomplete="current-password" required></label>'+
+      '<label>รหัสผ่านใหม่ (อย่างน้อย 12 ตัว)<input id="newPassword" type="password" autocomplete="new-password" minlength="12" required></label>'+
+      '<button type="submit" class="gas-btn">เปลี่ยนรหัสผ่าน</button></form>'):'');
 }
 function medication(){
   const d=state.data,items=d.medicines.filter(x=>!x.demo);
@@ -293,6 +297,13 @@ function render(){
   text('mqttConnectionLabel','ข้อมูลจาก '+(API_URL?'API':'Apps Script')+' · ไม่ใช้ MQTT');
   const f=$('gasMedicineForm');if(f)f.addEventListener('submit',saveMedicine);
   const uf=$('gasUserForm');if(uf)uf.addEventListener('submit',saveUser);
+  const cp=$('gasPasswordChange');if(cp)cp.addEventListener('submit',async ev=>{
+    ev.preventDefault();const btn=ev.submitter;if(btn)btn.disabled=true;
+    try{
+      await call('changePassword',state.token,$('oldPassword').value,$('newPassword').value);
+      window.alert('เปลี่ยนรหัสผ่านแล้ว กรุณาเข้าสู่ระบบใหม่');state.token=null;state.data=null;window.location.reload();
+    }catch(e){pageMessage(e.message,true);}finally{if(btn)btn.disabled=false;}
+  });
 }
 function pageMessage(s,bad=false){const el=$('gasPageMessage');if(el){el.textContent=s;el.className=bad?'bad':'';}}
 async function saveMedicine(ev){
