@@ -11,7 +11,7 @@ function makeChannel(){return Array.from(crypto.getRandomValues(new Uint8Array(2
 const AUTHUSER_ATTEMPTS = [null, 0, 1, 2, 3];
 const MEALS = ['','ก่อนอาหารเช้า','หลังอาหารเช้า','ก่อนอาหารกลางวัน','หลังอาหารกลางวัน','ก่อนอาหารเย็น','หลังอาหารเย็น','ก่อนนอน'];
 const DAYS = [['MON','จ'],['TUE','อ'],['WED','พ'],['THU','พฤ'],['FRI','ศ'],['SAT','ส'],['SUN','อา']];
-const state={peer:null,origin:null,channel:null,frames:new Map(),seq:0,pending:new Map(),token:null,data:null,ready:false,view:'dashboard'};
+const state={peer:null,origin:null,channel:null,frames:new Map(),seq:0,pending:new Map(),token:null,data:null,ready:false,rpcVerified:false,view:'dashboard'};
 const $=id=>document.getElementById(id);
 const html=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const text=(id,s)=>{const e=$(id);if(e)e.textContent=s;};
@@ -34,10 +34,31 @@ async function call(method,...args) {
   if(!state.ready) return Promise.reject(Error('ยังเชื่อมต่อ Apps Script ไม่ได้ ตรวจโปรไฟล์ Google หรือเลือกเปิดในหน้าต่างส่วนตัว'));
   return new Promise((resolve,reject)=>{
     const id=++state.seq;
-    const timer=setTimeout(()=>{state.pending.delete(id);reject(Error('Apps Script ตอบสนองช้าเกินไป กรุณาลองใหม่'));},45000);
+    const timer=setTimeout(()=>{state.pending.delete(id);reject(Error('Apps Script ตอบสนองช้าเกินไป กรุณาลองใหม่'));},method==='logout'&&args[0]===null?18000:45000);
     state.pending.set(id,{resolve,reject,timer});
     state.peer.postMessage({app:'time4med-gas-bridge',type:'call',channel:state.channel,id,method,args},state.origin==='null'?'*':state.origin);
   });
+}
+// iframe "ready" proves only HTML loaded, not that google.script.run works.
+ // A harmless logout(null) RPC validates the actual Google backend channel
+ // without reading patient data, requesting OTP or invalidating a session.
+async function verifyRpcBeforeLogin(){
+  const send=$('gasOtpRequest')?.querySelector('button[type="submit"]');
+  if(send)send.disabled=true;
+  text('gasConnectState','กำลังทดสอบการเชื่อมต่อ Apps Script…');
+  try{
+    const ok=await call('logout',null);
+    if(ok!==true)throw Error('Apps Script ไม่ตอบกลับตามที่คาด');
+    state.rpcVerified=true;
+    if(send)send.disabled=false;
+    text('gasConnectState','เชื่อมต่อ Apps Script แล้ว');
+    message('เชื่อมต่อระบบสำเร็จ กรุณากรอกอีเมลเพื่อขอ OTP');
+  }catch(err){
+    state.rpcVerified=false;
+    text('gasConnectState','Apps Script ยังตอบคำสั่งไม่ได้');
+    message('หน้าเว็บเชื่อมต่อ Google ได้ แต่คำสั่งเข้าระบบยังไม่ตอบกลับ จึงยังไม่ส่ง OTP เพื่อป้องกันการขอรหัสซ้ำ',true);
+    showDirectFallback('เบราว์เซอร์นี้ยังส่งคำสั่ง Apps Script ไม่ได้ ลองใช้เบราว์เซอร์ที่เคยเข้าได้ โดยไม่ต้องใช้บัญชีแอดมินร่วมกัน');
+  }
 }
 window.addEventListener('message',event=>{
   const d=event.data;
@@ -46,9 +67,8 @@ window.addEventListener('message',event=>{
     state.peer=event.source;state.origin=event.origin;state.channel=d.channel;state.ready=true;
     // Keep only the iframe that completed the handshake. Do not disturb live GAS RPC.
     for(const [key,frame] of state.frames)if(key!==d.channel){frame.remove();state.frames.delete(key);}
-    text('gasConnectState','เชื่อมต่อ Apps Script แล้ว');
     state.peer.postMessage({app:'time4med-gas-bridge',type:'hello',channel:state.channel},event.origin==='null'?'*':event.origin);
-    message('เชื่อมต่อแล้ว กรุณากรอกอีเมลเข้าสู่ระบบ');
+    void verifyRpcBeforeLogin();
   }
   if(d.type==='reply'&&state.ready&&d.channel===state.channel&&event.source===state.peer&&event.origin===state.origin){
     const p=state.pending.get(d.id);if(!p)return;
@@ -156,8 +176,12 @@ function startAuth(){
   '<small id="gasConnectState">กำลังเชื่อมต่อ...</small>'+
   '<a id="gasDirectFallback" class="gas-direct-fallback" href="'+WEB_APP+'" target="_blank" rel="noopener noreferrer" hidden>เปิด Time4Med โดยตรง (สำหรับ Safari / LINE)</a>'+
   '<small id="gasFallbackNote" class="gas-fallback-note" hidden>ใช้หน้า Apps Script เดิมและ OTP ของผู้ดูแลเอง ไม่ต้องใช้บัญชีแอดมินร่วมกัน</small></div>';
+  // Only enable "send code" once the backend responds to the harmless probe.
+  $('gasOtpRequest').querySelector('button[type="submit"]').disabled=true;
   $('gasOtpRequest').addEventListener('submit',async ev=>{
-    ev.preventDefault();const b=ev.submitter;if(b)b.disabled=true;
+    ev.preventDefault();
+    if(!state.rpcVerified){message('ยังตรวจสอบการเชื่อมต่อ Apps Script ไม่สำเร็จ จึงยังไม่ส่ง OTP',true);return;}
+    const b=ev.submitter;if(b)b.disabled=true;
     try{message('กำลังส่ง OTP...');await call('requestOtp',$('gasEmail').value.trim());
       $('gasOtpVerify').hidden=false;message('หากบัญชีมีสิทธิ์ ระบบจะส่ง OTP ไปยังอีเมล');$('gasOtp').focus();}
     catch(e){handleOtpTransportError(e,'request');}finally{if(b)b.disabled=false;}
@@ -169,10 +193,6 @@ function startAuth(){
       await signedIn(result,box);
     }catch(e){handleOtpTransportError(e,'verify');}finally{if(b)b.disabled=false;}
   });
-  // Make the direct Google-hosted version accessible without a 45s wait on
-  // iPhones, where the cross-site embedded Apps Script transport is fragile.
-  if(/iPhone|iPad|iPod/i.test(navigator.userAgent))
-    showDirectFallback('บน iPhone หากส่ง OTP ไม่สำเร็จ สามารถเปิดหน้า Apps Script โดยตรงใน Safari ได้ (ยังใช้ OTP และสิทธิ์เดิม)');
   const out=$('t4mSignOut');if(out)out.addEventListener('click',async()=>{
     const token=state.token;state.token=null;state.data=null;
     try{await call('logout',token);}catch(_){}

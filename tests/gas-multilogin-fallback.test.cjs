@@ -7,7 +7,14 @@ const calls=[];
 function mockBridge(ch) {
   return fs.readFileSync(path.join(root,'apps-script','Bridge.html'),'utf8')
     .replace("'<?= channel ?>'",JSON.stringify(ch))
-    .replace('<script>','<script>window.google={script:{run:{}}};</script><script>');
+    .replace('<script>',`<script>
+      function run(ok,fail){return {
+        withSuccessHandler:f=>run(f,fail),
+        withFailureHandler:f=>run(ok,f),
+        logout:()=>setTimeout(()=>ok(true),0)
+      }}
+      window.google={script:{run:run(()=>{},()=>{})}};
+    </script><script>`);
 }
 async function main(){
  const browser=await chromium.launch({headless:true,args:['--no-sandbox']});
@@ -35,7 +42,7 @@ async function main(){
   await page.goto(GH+'/Time4Med/test-v021/',{waitUntil:'domcontentloaded'});
   await page.waitForFunction(()=>document.querySelector('#gasConnectState')?.textContent==='เชื่อมต่อ Apps Script แล้ว',{timeout:18000});
   assert.deepEqual(calls,[null,'0'],'should only try default and authuser=0');
-  assert.match(await page.locator('#gasStatus').innerText(),/เชื่อมต่อแล้ว/);
+  assert.match(await page.locator('#gasStatus').innerText(),/เชื่อมต่อระบบสำเร็จ/);
   assert.equal(await page.locator('#time4medSecureBridge2').count(),1);
   assert.deepEqual(errors,[]);
   console.log('PASS: 404 default GAS route → automatic authuser=0 recovery with origin/nonce bridge');
