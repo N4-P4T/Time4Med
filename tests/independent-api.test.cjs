@@ -33,17 +33,6 @@ function response(obj,code=200){return {ok:code>=200&&code<300,status:code,json:
 global.fetch=async (url,options={})=>{
  const u=new URL(url);
  if(u.hostname==='oauth2.googleapis.com')return response({access_token:'mock-ya29',expires_in:3600});
- if(u.hostname==='sheets.googleapis.com'){
-  const after=decodeURIComponent(u.pathname.split('/values/')[1]||'');
-  const sheet=sheetFromEncoded(after),method=options.method||'GET';
-  if(method==='GET')return response({values:data[sheet]});
-  if(after.endsWith(':append')){
-   const values=JSON.parse(options.body).values;
-   for(const row of values)data[sheet].push(row);
-   return response({updates:{updatedRows:values.length}});
-  }
-  throw Error('Unexpected sheets request: '+method+' '+u.pathname);
- }
  if(u.pathname.endsWith('/values:batchUpdate')){
   const value=JSON.parse(options.body);
   for(const item of value.data){
@@ -54,6 +43,17 @@ global.fetch=async (url,options={})=>{
    data[sh][y][x]=item.values[0][0];
   }
   return response({});
+ }
+ if(u.hostname==='sheets.googleapis.com'){
+  const after=decodeURIComponent(u.pathname.split('/values/')[1]||'');
+  const sheet=sheetFromEncoded(after),method=options.method||'GET';
+  if(method==='GET')return response({values:data[sheet]});
+  if(after.endsWith(':append')){
+   const values=JSON.parse(options.body).values;
+   for(const row of values)data[sheet].push(row);
+   return response({updates:{updatedRows:values.length}});
+  }
+  throw Error('Unexpected sheets request: '+method+' '+u.pathname);
  }
  throw Error('No fake response '+url);
 };
