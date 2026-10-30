@@ -193,10 +193,6 @@ function startAuth(){
       await signedIn(result,box);
     }catch(e){handleOtpTransportError(e,'verify');}finally{if(b)b.disabled=false;}
   });
-  // Make the direct Google-hosted version accessible without a 45s wait on
-  // iPhones, where the cross-site embedded Apps Script transport is fragile.
-  if(/iPhone|iPad|iPod/i.test(navigator.userAgent))
-    showDirectFallback('บน iPhone หากส่ง OTP ไม่สำเร็จ สามารถเปิดหน้า Apps Script โดยตรงใน Safari ได้ (ยังใช้ OTP และสิทธิ์เดิม)');
   const out=$('t4mSignOut');if(out)out.addEventListener('click',async()=>{
     const token=state.token;state.token=null;state.data=null;
     try{await call('logout',token);}catch(_){}
