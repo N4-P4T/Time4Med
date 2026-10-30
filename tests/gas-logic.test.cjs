@@ -92,4 +92,28 @@ assert.match(bridgeHtml,/requestOtp: true, verifyOtp: true, bootstrap: true/);
 assert.match(fs.readFileSync(file,'utf8'),/setXFrameOptionsMode\(HtmlService\.XFrameOptionsMode\.ALLOWALL\)/);
 assert.match(rootIndex,/test-v021\//);
 equal(call('time4medWebsiteUrl_()'),'https://n4-p4t.github.io/Time4Med/');
+
+/* iPhone/Safari: when the embedded google.script.run callback times out, the
+   frontend offers the already-deployed Google Apps Script page without
+   automatically requesting OTP again. Never expose the OTP in a URL. */
+const fallbackStart=webClient.indexOf('function showDirectFallback(');
+const fallbackEnd=webClient.indexOf('function startAuth()',fallbackStart);
+assert.ok(fallbackStart>=0&&fallbackEnd>fallbackStart,'mobile fallback helper exists');
+const fallbackElements={
+  gasDirectFallback:{hidden:true},gasFallbackNote:{hidden:true,textContent:''},
+  gasOtpVerify:{hidden:true}
+};
+const reported=[];
+const fallbackSandbox={Error,$:id=>fallbackElements[id],message:(s,bad)=>reported.push({s,bad})};
+vm.runInNewContext(webClient.slice(fallbackStart,fallbackEnd)+'\nthis.onError=handleOtpTransportError;',fallbackSandbox);
+fallbackSandbox.onError(new Error('Apps Script ตอบสนองช้าเกินไป กรุณาลองใหม่'),'request');
+assert.equal(fallbackElements.gasDirectFallback.hidden,false);
+assert.equal(fallbackElements.gasFallbackNote.hidden,false);
+assert.equal(fallbackElements.gasOtpVerify.hidden,false,'code field available when OTP may have been sent');
+assert.ok(reported.some(x=>x.bad && x.s.includes('OTP อาจส่งแล้ว')));
+assert.match(webClient,/if\(\/iPhone\|iPad\|iPod\/i\.test\(navigator\.userAgent\)\)/);
+assert.match(webClient,/id="gasDirectFallback"[^\n]*WEB_APP/);
+assert.doesNotMatch(webClient,/showDirectFallback[\s\S]{0,300}requestOtp\(/);
+console.log('OK: iPhone Apps Script fallback exposed after timeout; OTP not retried automatically');
+
 console.log('OK: GitHub frontend syntax, iframe bridge whitelist/origin and legacy client isolation');
