@@ -40,6 +40,8 @@ async function main(){
   await page.locator('#gasPassword').fill('some-password');
   await page.locator('#gasPasswordLogin button').click();
   await page.waitForSelector('.t21-kpi-value',{timeout:10000});
+  assert.deepEqual(await page.locator('.t4m-profile-role').allTextContents(),['ผู้ดูแล (CAREGIVER)','ผู้ดูแล (CAREGIVER)']);
+  assert.equal(await page.locator('.sidebar-navigation a[href="#admin"]').count(),0,'caregiver must not see ADMIN menu');
   assert.match(await page.locator('#dashboard').innerText(),/ผู้สูงอายุในสิทธิ์/);
   assert.match(await page.locator('#dashboard').innerText(),/Patient Test/);
   assert.equal(apiCalls.length,2);

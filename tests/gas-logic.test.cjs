@@ -82,7 +82,7 @@ new vm.Script(webClient,{filename:'gas-only.js'});
 const bridgeSource = bridgeHtml.match(/<script>([\s\S]*?)<\/script>/);
 assert.ok(bridgeSource,'Bridge.html includes client script');
 new vm.Script(bridgeSource[1].replace('<?= channel ?>','unit-test-channel'),{filename:'Bridge.html'});
-assert.match(webIndex,/src="gas-only\.js"/);
+assert.match(webIndex,/src="gas-only\.js(?:\?v=[a-zA-Z0-9-]+)?"/);
 assert.doesNotMatch(webIndex,/src="\.\.\/test-v019\/auth-config\.js"/);
 assert.doesNotMatch(webIndex,/src="mqtt-live-status\.js"/);
 assert.doesNotMatch(webIndex,/src="gateway-control\.js"/);
