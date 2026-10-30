@@ -9,6 +9,7 @@ on:
       - 'apps-script/Code.gs'
       - 'tests/gas-pages-integration.test.cjs'
       - 'tests/gas-multilogin-fallback.test.cjs'
+      - 'tests/gas-direct-fallback.test.cjs'
       - '.github/workflows/gas-pages-bridge.yml'
   workflow_dispatch:
 jobs:
@@ -28,3 +29,5 @@ jobs:
         run: node tests/gas-pages-integration.test.cjs
       - name: Simulate multiple Google accounts and 404 route recovery
         run: node tests/gas-multilogin-fallback.test.cjs
+      - name: Offer direct GAS HTML app when all account routes fail
+        run: node tests/gas-direct-fallback.test.cjs
