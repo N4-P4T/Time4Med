@@ -54,6 +54,8 @@ async function main(){
   await page.locator('#gasOtp').fill('123456');
   await page.locator('#gasOtpVerify button').click();
   await page.waitForSelector('.t21-kpi-value');
+  assert.deepEqual(await page.locator('.t4m-profile-role').allTextContents(),['แอดมิน (ADMIN)','แอดมิน (ADMIN)']);
+  assert.equal(await page.locator('.sidebar-navigation a[href="#admin"]').count(),1,'ADMIN menu is present only for verified admin');
   assert.match(await page.locator('#dashboard').innerText(),/ผู้สูงอายุในสิทธิ์/);
   await page.locator('a[href="#medication"]').click();
   await page.waitForSelector('#gasMedicineForm');
