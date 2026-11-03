@@ -16,9 +16,18 @@ https://n4-p4t.github.io/Time4Med/test-v021/
 2. สำรองเวอร์ชันล่าสุดของ `Code.gs` และ `Bridge.html` ใน Apps Script ปัจจุบัน
 3. นำ **เนื้อหาเต็ม** ของ `apps-script/Code.gs` และ `apps-script/Bridge.html` จาก commit ที่ผ่านการทดสอบแล้วไปอัปเดตในไฟล์ชื่อเดิม อย่าลบ Script Properties หรือ Triggers
 4. ใน Apps Script ใช้ **Deploy → Manage deployments → Edit → New version → Deploy** เพื่อรักษา Web App URL เดิม (และให้สิทธิ์อนุญาตตามที่ Apps Script ถาม ถ้ามี)
-5. กลับไปหน้า GitHub Pages กดรีเฟรชแล้วเข้า ADMIN; ควรเห็น `Apps Script: 2026-11-03-schedule-ack-1` และเมนู LINE ที่รองรับ
-6. กด **ตรวจความพร้อม LINE** ซึ่งเป็นการอ่านข้อมูลอย่างเดียว ไม่ส่งข้อความ ไม่เปิดทริกเกอร์
+5. กลับไปหน้า GitHub Pages กดรีเฟรชแล้วเข้า ADMIN; ควรเห็น `Apps Script: 2026-11-03-readiness-1` และเมนู LINE ที่รองรับ
+6. กด **ตรวจความพร้อมล่าสุด** ในหน้า ADMIN เพื่อดูตารางยาจริง, ESP32-S3, การยืนยันซิงก์, กล้อง, LINE และโฟลเดอร์ Drive (แบบอ่านอย่างเดียว) จากนั้นกด **ตรวจความพร้อม LINE** เพื่อดูรายละเอียดผู้รับ ไม่มีการส่งข้อความหรือเปิด Trigger
 7. ถ้าต้องทดสอบ LINE จริง ให้ใช้ปุ่มทดสอบข้อความเดิมและตรวจการรับข้อความที่โทรศัพท์ปลายทางอีกครั้ง
+
+## ตรวจความพร้อมซอฟต์แวร์ (ADMIN)
+
+- ฟังก์ชันใหม่ `getSystemReadiness(token)` เป็นแบบอ่านอย่างเดียวและใช้ `session_` + `needAdmin_` ตรวจสิทธิ์ฝั่ง Apps Script จริง
+- หน้า ADMIN จะแสดงปุ่มเฉพาะเมื่อ backend ตอบ `capabilities.systemReadiness=true` เท่านั้น
+- รายงานแยกสถานะ **ยาตารางจริง** ออกจากรายการ `TEST_/DEMO_/LINECHECK_` เพื่อไม่เปิดระบบด้วยข้อมูลจำลอง
+- นำสถานะการเชื่อมต่ออุปกรณ์จาก Heartbeat ใหม่และการยืนยันตาราง (schedule hash + boot ID) มาแสดง แต่ไม่รับรอง LED/เสียง/กลอนว่าผ่าน
+- รายงานว่าได้ตั้งค่า LINE token/trigger/recipient/IMAGE_FOLDER_ID แล้วหรือยัง โดยไม่แสดง token, LINE ID หรือ Drive folder ID จริง
+- หากยังมีแต่ข้อมูลทดสอบหรืออุปกรณ์ยังไม่ตอบ `scheduleApplied` รายงาน **ไม่พร้อม** ตามจริงและไม่แตะข้อมูลใน Google Sheets
 
 ## การตั้งค่า LINE
 
