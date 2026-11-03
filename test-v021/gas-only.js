@@ -432,11 +432,33 @@ function inventory(){
       (details.length?tbl(['ชั้น','ผู้สูงอายุ','ชื่อยา','มื้อยา','เวลา','วัน','สถานะสต็อก'],details):
         empty('ยังไม่มีรายการยาจริงที่เปิดใช้งาน')) );
 }
+function mealLedSlot(mealType){
+  if(!Number.isInteger(mealType)||mealType<1||mealType>7)return 0;
+  return mealType<=2?1:mealType<=4?2:mealType<=6?3:4;
+}
+function ledScheduleRows(patients,medicines,date=new Date()){
+  const today=todaySchedule(medicines,date);
+  return patients.filter(p=>[1,2,3].includes(Number(p.shelf))).map(p=>{
+    const id=String(p.id||'');
+    const cells=[1,2,3,4].map(slot=>today.filter(m=>m.patientId===id&&mealLedSlot(m.mealType)===slot));
+    return {id,shelf:Number(p.shelf),cells};
+  });
+}
 function devices(){
   const rows=state.data.devices.map(x=>tr([html(x.id),html(x.type),html(visibleDeviceStatus(x)),html(x.lastSeen||'—'),
     html(isLiveDevice(x)?(x.lock||'—'):'ไม่ยืนยัน')]));
+  const ledRows=ledScheduleRows(state.data.patients,activeMedicines()).map(x=>{
+    const slotHtml=slot=>slot.length?slot.map(m=>html(m.time)+' — '+html(m.name)).join(' / '):
+      '<span class="gas-muted">ไม่มีรอบยา</span>';
+    return tr([html(x.id+' — ชั้น '+x.shelf),...x.cells.map(slotHtml)]);
+  });
   return '<div class="gas-heading"><h1>สถานะอุปกรณ์</h1><p>สถานะจาก heartbeat จริง ไม่แสดง ONLINE หากข้อมูลหมดอายุ</p></div>'+
     panel('ESP32-S3 / ESP32-CAM',rows.length?tbl(['อุปกรณ์','ชนิด','สถานะ','รับข้อมูลล่าสุด','กลอน'],rows):empty('อุปกรณ์ยังไม่ส่ง heartbeat เข้าระบบ'))+
+    panel('แผน LED จากตารางยาวันนี้ (ไม่ใช่สถานะไฟจริง)',
+      '<p class="gas-muted">1 ชั้นมี 4 LED ตามมื้อ เช้า กลางวัน เย็น และก่อนนอน แสดงเฉพาะข้อมูลที่บัญชีนี้มีสิทธิ์ดู รวมยาหลายรายการในมื้อเดียวได้ โดยไม่รวมข้อมูล TEST_</p>'+
+      (ledRows.length?tbl(['ผู้สูงอายุ','LED 1 · เช้า','LED 2 · กลางวัน','LED 3 · เย็น','LED 4 · ก่อนนอน'],ledRows):
+        empty('ไม่มีข้อมูลชั้นยาที่บัญชีนี้มีสิทธิ์ดู'))+
+      '<p class="gas-muted">ตารางนี้คำนวณจากข้อมูลเว็บไซต์ ไม่ยืนยันว่า ESP32-S3 ได้ซิงก์แล้ว และไม่ใช่คำสั่งให้ LED ติดหรือปลดล็อกกลอน</p>')+
     panel('การซิงก์ตารางยา','<p class="gas-muted">เว็บไซต์ยังไม่มีหลักฐานยืนยันจาก ESP32-S3 ว่าได้รับและนำตารางยารุ่นล่าสุดไปใช้แล้ว จึงไม่แสดงสถานะ SYNC สำเร็จ การมี Heartbeat หรือ HTTP 200 เพียงอย่างเดียวไม่ถือว่าอัปเดตตารางยาครบถ้วน</p>')+
     panel('ข้อจำกัด','<p class="gas-muted">ระบบตรวจ heartbeat ใหม่ทุกครั้งที่แสดงข้อมูล และโหลดสถานะล่าสุดอัตโนมัติเมื่อเปิดหน้านี้ทิ้งไว้ หากข้อมูลเกิน 3 นาทีจะไม่ยืนยันว่าอุปกรณ์ออนไลน์หรือกลอนอยู่ในสถานะใด เว็บนี้ไม่ส่งคำสั่งปลดล็อกผ่านอินเทอร์เน็ต</p>');
 }
