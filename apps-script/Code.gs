@@ -143,6 +143,7 @@ function bootstrap(token) {
   const users=user.role==='ADMIN'?grid_('Users').rows.map(x=>({id:x.data.user_id,email:x.data.email,name:x.data.display_name,
     role:x.data.role,patients:x.data.patient_id,status:x.data.status,lineConfigured:Boolean(x.data.line_user_id)})):[];
   return {user:publicUser_(user),patients,medicines,activity,images,devices,users,serverTime:tzNow_(),
+    capabilities:{lineAdmin:user.role==='ADMIN'},backendVersion:'2026-11-03-line-admin-1',
     note:'สถานะการกดยืนยันไม่ใช่หลักฐานว่ากลืนยาแล้ว และสถานะอุปกรณ์ต้องมาจากข้อมูลใหม่เท่านั้น'};
 }
 function parseDateTime_(value) {
@@ -252,6 +253,62 @@ function saveUser(token,input) {
   try{writeRow_(g,found?.index||null,next);logActivity_('ALL',u.id,'USER_SAVED',email);}finally{lock.releaseLock();}
   return {ok:true};
 }
+/**
+ * ADMIN-only LINE readiness: returns aggregate flags and masked recipient
+ * configuration. The provider token and full LINE User IDs are never returned.
+ * This call is read-only and cannot send messages or create triggers.
+ */
+function getLineReadiness(token) {
+  const u=session_(token);needAdmin_(u);
+  const summary=inspectLineReminderReadiness_();
+  const recipients=grid_('Users').rows.map(r=>({
+    email:email_(r.data.email),
+    role:upper_(r.data.role),
+    status:upper_(r.data.status),
+    patients:str_(r.data.patient_id),
+    lineConfigured:Boolean(str_(r.data.line_user_id)),
+    notificationEnabled:active_(r.data.notification_enabled)
+  })).filter(r=>r.email);
+  return {...summary,recipients};
+}
+/**
+ * Update a single existing recipient; never expose or overwrite the LINE ID
+ * unless ADMIN explicitly provides a new ID or requests clearing it.
+ * This does not enable global scheduled LINE reminders.
+ */
+function saveLineRecipient(token,input) {
+  const admin=session_(token);needAdmin_(admin);
+  assert_(input && typeof input==='object','ไม่มีข้อมูลผู้รับ LINE');
+  const target=email_(input.email),mode=upper_(input.enabled||'KEEP');
+  const newId=str_(input.lineUserId),clearId=input.clearLineId===true;
+  assert_(/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(target),'อีเมลผู้รับไม่ถูกต้อง');
+  assert_(['KEEP','TRUE','FALSE'].includes(mode),'รูปแบบเปิด/ปิด LINE ไม่ถูกต้อง');
+  assert_(!newId||/^U[0-9a-fA-F]{32}$/.test(newId),'LINE User ID ต้องเป็น U ตามด้วยเลขฐานสิบหก 32 หลัก');
+  assert_(!(newId&&clearId),'ห้ามใส่ LINE User ID ใหม่พร้อมคำสั่งลบ');
+  assert_(newId||clearId||mode!=='KEEP','ไม่ได้เลือกเปลี่ยนค่าใด ๆ');
+  const lock=LockService.getScriptLock();lock.waitLock(12000);
+  try {
+    const g=grid_('Users'),found=g.rows.find(r=>email_(r.data.email)===target);
+    assert_(found,'ไม่พบบัญชีผู้รับ LINE ใน Users');
+    const role=upper_(found.data.role);
+    assert_(['ADMIN','CAREGIVER','USER'].includes(role),'บทบาทบัญชีไม่รองรับ LINE');
+    const finalId=clearId?'':newId||str_(found.data.line_user_id);
+    const finalEnabled=mode==='KEEP'?active_(found.data.notification_enabled):mode==='TRUE';
+    assert_(!finalEnabled||Boolean(finalId),'ต้องตั้ง LINE User ID ก่อนเปิดรับแจ้งเตือน');
+    assert_(!finalEnabled||upper_(found.data.status)==='ACTIVE','เปิดแจ้งเตือนได้เฉพาะบัญชี ACTIVE');
+    if(finalEnabled&&role!=='ADMIN')
+      assert_(str_(found.data.patient_id).toUpperCase().split(/[,;\s]+/).some(p=>Boolean(fixedShelf_(p))),
+        'CAREGIVER ต้องมีสิทธิ์ผู้สูงอายุจึงเปิดรับแจ้งเตือนได้');
+    writeRow_(g,found.index,{
+      line_user_id:finalId,notification_enabled:finalEnabled?'TRUE':'FALSE',
+      updated_at:stamp_()
+    });
+    logActivity_('ALL',admin.id,'LINE_RECIPIENT_UPDATED',
+      target+'; notifications '+(finalEnabled?'ON':'OFF'));
+    return {ok:true,email:target,lineConfigured:Boolean(finalId),
+      notificationEnabled:finalEnabled};
+  } finally {lock.releaseLock();}
+}
 function readImage(token,id) {
   const u=session_(token),g=grid_('ImageIndex'),r=g.rows.find(x=>str_(x.data.image_id)===str_(id));
   assert_(r&&can_(u,r.data.patient_id),'ไม่มีสิทธิ์เข้าถึงภาพ');
@@ -305,7 +362,7 @@ function inspectLineReminderReadiness() {
 }
 function inspectLineReminderReadiness_() {
   const medicines=grid_('MealMedicines').rows.map(x=>safeMedicine_(x.data));
-  const allUsers=grid_('Users').rows.map(x=>userForEmail_(x.data)).filter(Boolean);
+  const allUsers=grid_('Users').rows.map(x=>userForEmail_(x.data.email)).filter(Boolean);
   const lineUsers=allUsers.filter(u=>u.lineEnabled&&u.lineId);
   const active=medicines.filter(m=>m.active);
   const schedulable=active.filter(schedulableMedicine_);
@@ -317,6 +374,7 @@ function inspectLineReminderReadiness_() {
   const summary={
     enabled:upper_(props_().getProperty('LINE_REMINDERS_ENABLED'))==='TRUE',
     triggerCount:jobs.length,
+    tokenConfigured:Boolean(props_().getProperty('LINE_CHANNEL_ACCESS_TOKEN')),
     medicineActiveCount:active.length,
     medicineExcludedDemoCount:active.filter(m=>m.demo).length,
     medicineEligibleCount:schedulable.length,
