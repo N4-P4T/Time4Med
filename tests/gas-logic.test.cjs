@@ -4,9 +4,16 @@
 const fs = require('node:fs');
 const path = require('node:path');
 const vm = require('node:vm');
+const crypto = require('node:crypto');
 const assert = require('node:assert/strict');
 const file = path.join(__dirname, '..', 'apps-script', 'Code.gs');
-const context = vm.createContext({console,Date,JSON,Set,Map,Math,Number,String,Boolean,Array,RegExp,Error,Object,parseInt,isNaN});
+const context = vm.createContext({console,Date,JSON,Set,Map,Math,Number,String,Boolean,Array,RegExp,Error,Object,parseInt,isNaN,
+  Utilities:{
+    DigestAlgorithm:{SHA_256:'SHA_256'},
+    computeDigest:(_,value)=>Array.from(crypto.createHash('sha256').update(String(value)).digest(),
+      v=>v>127?v-256:v)
+  }
+});
 vm.runInContext(fs.readFileSync(file, 'utf8'), context, {filename: 'Code.gs'});
 const call = (code) => vm.runInContext(code,context);
 const equal=(a,b)=>assert.equal(a,b);
