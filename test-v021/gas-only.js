@@ -330,6 +330,7 @@ function medication(){
       '<label>ชื่อยา<input id="medName" minlength="2" maxlength="120" required placeholder="ระบุชื่อยา"></label>'+
       '<label>มื้อยา<select id="medMeal" required>'+mealOptions+'</select></label>'+
       '<label>เวลาแจ้งเตือน<input id="medTime" type="time" required value="08:00"></label>'+
+      '<p class="gas-muted">ระบบนี้รองรับเวลาแจ้งเตือนคงที่เท่านั้น การแจ้งเตือนทุก 8 ชั่วโมงนับจากการกดยืนยันครั้งแรกยังไม่พร้อมใช้งาน และไม่ควรใช้สามเวลาคงที่แทนโดยอ้างว่าเป็นระบบดังกล่าว</p>'+
       '<div><strong>วันแจ้งเตือน</strong><div class="gas-days">'+choices+'</div></div>'+
       '<label>คำแนะนำ<textarea id="medInstruction" maxlength="500" rows="2"></textarea></label>'+
       '<label class="gas-inline"><input id="medActive" type="checkbox" checked> เปิดใช้งาน</label>'+
@@ -476,7 +477,7 @@ function camera(){
 function admin(){
   if(state.data.user.role!=='ADMIN')return empty('เฉพาะแอดมิน');
   const rows=state.data.users.map(x=>tr([html(x.email),html(x.role),html(x.patients),html(x.status),
-    x.lineConfigured?'เชื่อมแล้ว':'ยังไม่เชื่อม',
+    x.lineConfigured?'มี LINE User ID':'ยังไม่มี LINE User ID',
     '<button type="button" class="gas-btn light" data-action="edit-user" data-email="'+html(x.email)+'">แก้ไขสิทธิ์</button>']));
   return '<div class="gas-heading"><h1>จัดการระบบ</h1><p>เฉพาะผู้ดูแลระบบ ADMIN</p></div>'+
   panel('บัญชีผู้ใช้',tbl(['อีเมล','บทบาท','ดูแลผู้สูงอายุ','สถานะ','LINE User ID','จัดการ'],rows))+
@@ -492,7 +493,7 @@ function admin(){
     '<div class="gas-actions"><button class="gas-btn" type="submit">บันทึกบัญชี</button>'+
     '<button type="button" class="gas-btn light" data-action="new-user">ล้างแบบฟอร์ม / เพิ่มบัญชีใหม่</button></div></form>')+
   panel('ทดสอบ LINE','<button data-action="line" class="gas-btn">ส่งข้อความทดสอบไป LINE ของแอดมิน</button>'+
-    '<p class="gas-muted">ต้องตั้ง LINE User ID ของ ADMIN ในชีต Users แล้ว การทดสอบนี้ไม่เปิดแจ้งเตือนรอบยาอัตโนมัติ</p>')+
+    '<p class="gas-muted">สถานะ “มี LINE User ID” หมายถึงพบรหัสในข้อมูลเท่านั้น ไม่ได้ยืนยันว่าเปิดรับแจ้งเตือนหรือส่งสำเร็จ การทดสอบต้องตรวจข้อความที่ได้รับจริง และไม่เปิดแจ้งเตือนยาตามเวลาโดยอัตโนมัติ</p>')+
   panel('ทดสอบระบบ (ADMIN)','<p class="gas-muted">สาธิตแยกจากตารางยาจริง ไม่เขียนบันทึกการรับยา ไม่สร้างภาพใน Google Drive และไม่ส่ง LINE โดยอัตโนมัติ กรุณาเริ่มเมื่อมีผู้ดูแลอยู่ที่ตู้เท่านั้น</p>'+
     '<div class="gas-form"><label>ผู้สูงอายุ<select id="demoPatient"><option value="P001">P001 — ชั้น 1</option><option value="P002">P002 — ชั้น 2</option><option value="P003">P003 — ชั้น 3</option></select></label>'+
     '<label>มื้อยาทดสอบ<select id="demoMeal">'+MEALS.slice(1).map((m,i)=>'<option value="'+(i+1)+'"'+(i===1?' selected':'')+'>'+html(m)+'</option>').join('')+'</select></label>'+
