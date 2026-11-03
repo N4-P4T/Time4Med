@@ -198,9 +198,15 @@ function writeRow_(g,rowIndex,data) {
   if(rowIndex) g.sheet.getRange(rowIndex,1,1,g.keys.length).setValues([current]);
   else g.sheet.appendRow(current);
 }
-function logActivity_(patientId,userId,kind,details,result) {
-  const g=grid_('ActivityLog');writeRow_(g,null,{event_id:Utilities.getUuid(),device_id:'WEBSITE',patient_id:patientId||'ALL',
-    user_id:userId,event_type:kind,result:result||'SUCCESS',details:String(details).slice(0,400),occurred_at:tzNow_()});
+function logActivity_(patientId,userId,kind,details,result,sourceDeviceId) {
+  // Return one audit-event ID so device intake rows can reference the very
+  // same event, rather than creating a second unrelated event ID.
+  const eventId=Utilities.getUuid();
+  const g=grid_('ActivityLog');writeRow_(g,null,{event_id:eventId,
+    device_id:sourceDeviceId||'WEBSITE',patient_id:patientId||'ALL',
+    user_id:userId,event_type:kind,result:result||'SUCCESS',
+    details:String(details).slice(0,400),occurred_at:tzNow_()});
+  return eventId;
 }
 function scheduleDaysIntersect_(first,second) {
   try {
@@ -686,7 +692,7 @@ function postDevice_(e) {
   // The emergency button is shared by the entire cabinet. ALL is an explicit
   // cabinet-wide emergency and must not be misattributed to P001.
   if(p.action==='emergency' && (!patientId || patientId==='ALL')) {
-    logActivity_('ALL',deviceId,'EMERGENCY','กดปุ่มฉุกเฉินส่วนกลางที่ตู้ยา');
+    logActivity_('ALL',deviceId,'EMERGENCY','กดปุ่มฉุกเฉินส่วนกลางที่ตู้ยา',undefined,deviceId);
     const recipients=uniqueLineRecipients_(grid_('Users').rows.map(x=>userForEmail_(x.data.email))
       .filter(x=>x&&x.lineEnabled&&x.lineId));
     recipients.forEach(u=>{try{lineTo_(u.lineId,'Time4Med ฉุกเฉิน! กดปุ่มฉุกเฉินส่วนกลางที่ตู้ยา กรุณาตรวจสอบทันที\n\nเปิดเว็บไซต์ Time4Med:\n'+time4medWebsiteUrl_());}
@@ -707,11 +713,18 @@ function postDevice_(e) {
       file_size_bytes:bytes.length,transfer_status:'DRIVE',available:'TRUE',drive_file_id:file.getId()});
     return {ok:true,imageId:id};
   }
-  logActivity_(patientId,deviceId,p.action==='emergency'?'EMERGENCY':'INTAKE_CONFIRMED',
-    p.action==='emergency'?'มีการกดปุ่มฉุกเฉิน':'มีการกดยืนยันที่อุปกรณ์ (ไม่ใช่หลักฐานว่ากลืนยาแล้ว)');
+  const auditEventId=logActivity_(patientId,deviceId,p.action==='emergency'?'EMERGENCY':'INTAKE_CONFIRMED',
+    p.action==='emergency'?'มีการกดปุ่มฉุกเฉิน':'มีการกดยืนยันที่อุปกรณ์ (ไม่ใช่หลักฐานว่ากลืนยาแล้ว)',
+    undefined,deviceId);
   if(p.action==='intake'){
-    const g=grid_('IntakeLog');writeRow_(g,null,{log_id:Utilities.getUuid(),event_id:Utilities.getUuid(),patient_id:patientId,
-      scheduled_at:tzNow_(),confirmed_at:tzNow_(),status:'CONFIRMED',confirmation_source:'BUTTON',created_at:tzNow_()});
+    const confirmedAt=tzNow_();
+    // The S3 currently reports a patient/button confirmation, but not an
+    // authenticated schedule occurrence. Do NOT fabricate scheduled_at as
+    // the confirmation time: that would falsely imply the dose was on time.
+    const g=grid_('IntakeLog');writeRow_(g,null,{log_id:Utilities.getUuid(),
+      event_id:auditEventId,patient_id:patientId,
+      scheduled_at:'',confirmed_at:confirmedAt,status:'CONFIRMED',
+      confirmation_source:'BUTTON',created_at:confirmedAt});
   }
   if(p.action==='emergency'){
     uniqueLineRecipients_(grid_('Users').rows.map(x=>userForEmail_(x.data.email)).filter(x=>x&&x.lineEnabled&&x.lineId&&can_(x,patientId)))
