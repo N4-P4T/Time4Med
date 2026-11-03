@@ -460,12 +460,23 @@ function activity(){
 }
 function gallery(){
   const list=state.data.images;
-  return '<div class="gas-heading"><h1>คลังรูปภาพ Google Drive</h1><p>เปิดภาพผ่านระบบตรวจสิทธิ์ Apps Script</p></div>'+
-    panel('ภาพหลักฐาน',list.length?'<div class="gas-gallery">'+list.map(x=>
-      '<div class="gas-photo"><strong>'+html(x.patientId)+'</strong><p>'+html(x.time)+'</p>'+
-      '<p>'+html(x.filename)+'</p><button type="button" class="gas-btn light" data-action="image" data-id="'+html(x.id)+'">เปิดภาพ</button>'+
-      '<div id="photo-'+html(x.id)+'"></div></div>').join('')+'</div>':empty('ยังไม่มีภาพอัปโหลดเข้า Google Drive'))+
-    panel('ข้อควรทราบ','<p class="gas-muted">ภาพที่ยังอยู่เฉพาะ SD Card ไม่สามารถเปิดผ่านอินเทอร์เน็ตได้ ต้องให้ ESP32-CAM อัปโหลดเข้าระบบก่อน</p>');
+  const ready=list.filter(x=>String(x.available).toUpperCase()==='TRUE');
+  const unavailable=list.filter(x=>String(x.available).toUpperCase()!=='TRUE');
+  const cards=ready.map(x=>
+    '<div class="gas-photo"><strong>'+html(x.patientId||'—')+'</strong><p>'+html(x.time||'—')+'</p>'+
+    '<p>'+html(x.filename||'ไม่ระบุชื่อไฟล์')+'</p>'+
+    '<button type="button" class="gas-btn light" data-action="image" data-id="'+html(x.id)+'">เปิดภาพ</button>'+
+    '<div id="photo-'+html(x.id)+'"></div></div>').join('');
+  const old=unavailable.map(x=>tr([
+    html(x.patientId||'—'),html(x.time||'—'),html(x.filename||'—'),
+    html(x.source||'ไม่ระบุ')]));
+  return '<div class="gas-heading"><h1>คลังรูปภาพ Google Drive</h1><p>เปิดภาพผ่านระบบตรวจสิทธิ์ Apps Script ตามผู้สูงอายุที่ได้รับอนุญาต</p></div>'+
+    panel('ภาพพร้อมเปิด ('+ready.length+')',
+      ready.length?'<div class="gas-gallery">'+cards+'</div>':empty('ยังไม่มีภาพที่พร้อมเปิดจาก Google Drive'))+
+    (unavailable.length?panel('ภาพที่ยังเปิดไม่ได้',
+      '<p class="gas-muted">รายการต่อไปนี้ยังไม่พร้อมใช้งานหรือหมดอายุ จึงไม่มีปุ่มเปิดภาพ</p>'+
+      tbl(['ผู้สูงอายุ','เวลา','ชื่อไฟล์','แหล่งข้อมูล/สถานะ'],old)):'')+
+    panel('ข้อควรทราบ','<p class="gas-muted">ภาพบน SD Card ที่ยังไม่ได้อัปโหลด หรือภาพที่ถูกลบตามนโยบายเก็บข้อมูล ไม่สามารถเปิดผ่านเว็บไซต์ได้ รูปภาพที่ปรากฏไม่ใช่หลักฐานว่าผู้สูงอายุกลืนยาแล้ว</p>');
 }
 function camera(){
   const files=state.data.images.filter(x=>String(x.available).toUpperCase()==='TRUE');
