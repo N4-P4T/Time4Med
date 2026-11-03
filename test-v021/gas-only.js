@@ -364,19 +364,98 @@ function devices(){
     panel('การซิงก์ตารางยา','<p class="gas-muted">เว็บไซต์ยังไม่มีหลักฐานยืนยันจาก ESP32-S3 ว่าได้รับและนำตารางยารุ่นล่าสุดไปใช้แล้ว จึงไม่แสดงสถานะ SYNC สำเร็จ การมี Heartbeat หรือ HTTP 200 เพียงอย่างเดียวไม่ถือว่าอัปเดตตารางยาครบถ้วน</p>')+
     panel('ข้อจำกัด','<p class="gas-muted">ระบบตรวจ heartbeat ใหม่ทุกครั้งที่แสดงข้อมูล และโหลดสถานะล่าสุดอัตโนมัติเมื่อเปิดหน้านี้ทิ้งไว้ หากข้อมูลเกิน 3 นาทีจะไม่ยืนยันว่าอุปกรณ์ออนไลน์หรือกลอนอยู่ในสถานะใด เว็บนี้ไม่ส่งคำสั่งปลดล็อกผ่านอินเทอร์เน็ต</p>');
 }
+// ActivityLog is an audit trail, not proof of swallowing medication.
+// Apps Script bootstrap intentionally returns at most 60 recent authorized events.
+function activityClass(e){
+  const type=String(e?.type||'').toUpperCase();
+  if(type==='INTAKE_CONFIRMED')return 'button';
+  if(type==='EMERGENCY')return 'emergency';
+  if(type==='MEDICINE_CONFIRMED'||type==='TIMELINE_TEST'||type.startsWith('TEST_')||type.startsWith('DEMO_'))return 'historical';
+  return 'system';
+}
+function activityTitle(e){
+  const type=String(e?.type||'').toUpperCase();
+  return ({
+    INTAKE_CONFIRMED:'กดยืนยันที่อุปกรณ์',
+    EMERGENCY:'กดปุ่มฉุกเฉิน',
+    MEDICINE_CREATED:'เพิ่มรายการยา',
+    MEDICINE_UPDATED:'แก้ไขรายการยา',
+    MEDICINE_DISABLED:'ปิดใช้งานยา',
+    USER_SAVED:'บันทึกบัญชีผู้ใช้',
+    LINE_SEND_ERROR:'LINE ส่งข้อความไม่สำเร็จ',
+    MEDICINE_CONFIRMED:'บันทึกการยืนยันเก่า (ไม่ใช้คำนวณ)',
+    MEDICINE_REMINDER:'ประวัติการแจ้งเตือน',
+    TIMELINE_TEST:'ข้อมูลทดสอบ Timeline',
+    IMAGE_SAVED:'บันทึกภาพในประวัติ',
+  })[type]||type||'ไม่ทราบประเภท';
+}
+function thaiDateKey(date){
+  const parts=new Intl.DateTimeFormat('en-GB',{timeZone:'Asia/Bangkok',
+    year:'numeric',month:'2-digit',day:'2-digit'}).formatToParts(date);
+  const part=key=>parts.find(x=>x.type===key)?.value||'';
+  return part('year')+'-'+part('month')+'-'+part('day');
+}
+function recentDateKeys(date=new Date()){
+  const now=thaiDateKey(date),parts=now.split('-').map(Number),days=[];
+  for(let offset=6;offset>=0;offset--){
+    days.push(new Date(Date.UTC(parts[0],parts[1]-1,parts[2]-offset)).toISOString().slice(0,10));
+  }
+  return days;
+}
+function eventDayKey(event){
+  const raw=String(event?.time||'').trim();
+  if(!/^\d{4}-\d{2}-\d{2}(?:[ T]|$)/.test(raw))return '';
+  // bootstrap() returns local Asia/Bangkok timestamps without a time-zone suffix.
+  const day=raw.slice(0,10),date=new Date(day+'T00:00:00Z');
+  return Number.isNaN(date.getTime())||date.toISOString().slice(0,10)!==day?'':day;
+}
+function recentActivitySummary(items,date=new Date()){
+  const days=recentDateKeys(date),allowed=new Set(days);
+  const events=items.filter(e=>allowed.has(eventDayKey(e)));
+  const counted=events.filter(e=>activityClass(e)==='button'&&
+    String(e.result||'SUCCESS').toUpperCase()==='SUCCESS');
+  const emergency=events.filter(e=>activityClass(e)==='emergency');
+  const daily=days.map(day=>({day,
+    confirmations:counted.filter(e=>eventDayKey(e)===day).length,
+    emergencies:emergency.filter(e=>eventDayKey(e)===day).length}));
+  return {daily,confirmations:counted.length,emergencies:emergency.length,
+    coveredEvents:events.length,hasReachedLimit:items.length>=60};
+}
 function analytics(){
-  const d=state.data,active=activeMedicines();
-  return '<div class="gas-heading"><h1>สถิติภาพรวม</h1></div><div class="t21-kpis">'+
-    kpi('ยาใช้งาน',active.length,'รายการ','💊')+
-    kpi('ผู้สูงอายุ',d.patients.length,'มีสิทธิ์ดูแล','👥')+
-    kpi('ประวัติกิจกรรม',d.activity.length,'รายการที่แสดงล่าสุด','◷')+
-    kpi('ภาพหลักฐาน',d.images.filter(x=>String(x.available).toUpperCase()==='TRUE').length,'ภาพที่ระบุว่าพร้อมใช้งาน','📷')+
-    '</div>'+panel('หมายเหตุ','<p>สถิตินี้คือจำนวนรายการที่ระบบมีข้อมูล ไม่ใช่อัตราการรับประทานยาจริง</p>');
+  const d=state.data,active=activeMedicines(),report=recentActivitySummary(d.activity);
+  const daily=report.daily.map(x=>tr([
+    html(x.day.slice(8,10)+'/'+x.day.slice(5,7)),html(x.confirmations),html(x.emergencies)]));
+  return '<div class="gas-heading"><h1>สถิติภาพรวม</h1><p>สรุปจากเหตุการณ์ที่ระบบบันทึกไว้ ไม่ใช่การประเมินว่ากลืนยาแล้ว</p></div>'+
+    '<div class="t21-kpis">'+
+    kpi('ยาใช้งาน',active.length,'รายการที่ไม่ใช่ข้อมูลทดสอบ','💊')+
+    kpi('กดยืนยันที่ตู้ 7 วัน',report.confirmations,'เหตุการณ์จากบันทึกล่าสุด','◷')+
+    kpi('กดฉุกเฉิน 7 วัน',report.emergencies,'เหตุการณ์ที่บันทึกไว้','⚑')+
+    kpi('ภาพพร้อมแสดง',d.images.filter(x=>String(x.available).toUpperCase()==='TRUE').length,'จากรายการภาพล่าสุด','📷')+
+    '</div>'+
+    panel('เหตุการณ์ในช่วง 7 วันตามเวลาไทย',tbl(['วันที่','กดยืนยันที่ตู้','กดฉุกเฉิน'],daily))+
+    panel('ขอบเขตและความหมายของตัวเลข',
+      '<p class="gas-muted">นับเฉพาะเหตุการณ์ INTAKE_CONFIRMED ที่ระบบแจ้งว่าบันทึกสำเร็จ ไม่รวมข้อมูลทดสอบหรือ MEDICINE_CONFIRMED จากระบบเก่า ไม่ใช่หลักฐานว่ากลืนยาแล้ว ไม่ใช่จำนวนโดสที่ได้รับครบ และไม่คำนวณอัตราการกินยาตรงเวลา</p>'+
+      '<p class="gas-muted">Apps Script ส่งประวัติให้หน้าเว็บเพียง 60 เหตุการณ์ล่าสุดที่บัญชีมีสิทธิ์เห็น ดังนั้นสถิติ 7 วันนี้อาจไม่ครบหากมีเหตุการณ์มากกว่านั้น'+
+      (report.hasReachedLimit?' (ตอนนี้ถึงขีดจำกัด 60 รายการแล้ว)':'')+'</p>');
 }
 function activity(){
-  const rows=state.data.activity.map(x=>tr([html(x.time),html(x.patientId),html(x.type),html(x.result),html(x.details)]));
-  return '<div class="gas-heading"><h1>พฤติกรรมและประวัติกิจกรรม</h1></div>'+
-    panel('เหตุการณ์ล่าสุด',rows.length?tbl(['เวลา','ผู้สูงอายุ','เหตุการณ์','ผล','รายละเอียด'],rows):empty('ยังไม่มีเหตุการณ์ในประวัติ'));
+  const data=state.data.activity;
+  const button=data.filter(e=>activityClass(e)==='button');
+  const emergency=data.filter(e=>activityClass(e)==='emergency');
+  const other=data.filter(e=>!['button','emergency'].includes(activityClass(e)));
+  const rows=entries=>entries.map(x=>tr([html(x.time||'—'),html(x.patientId||'—'),
+    html(activityTitle(x)),html(x.result||'—'),html(x.details||'—')]));
+  return '<div class="gas-heading"><h1>ประวัติกิจกรรม</h1><p>ข้อมูลล่าสุดจาก Apps Script แสดงเฉพาะเหตุการณ์ที่บัญชีนี้ได้รับสิทธิ์ดู</p></div>'+
+    panel('เหตุการณ์กดยืนยันที่ตู้',button.length?
+      tbl(['เวลา','ผู้สูงอายุ','เหตุการณ์','ผล','รายละเอียด'],rows(button)):
+      empty('ยังไม่มีบันทึกการกดยืนยันจากอุปกรณ์ในรายการล่าสุด'))+
+    panel('เหตุการณ์ฉุกเฉิน',emergency.length?
+      tbl(['เวลา','ผู้สูงอายุ','เหตุการณ์','ผล','รายละเอียด'],rows(emergency)):
+      empty('ยังไม่มีบันทึกฉุกเฉินในรายการล่าสุด'))+
+    panel('การจัดการข้อมูลและเหตุการณ์อื่น ๆ',other.length?
+      tbl(['เวลา','ผู้สูงอายุ','เหตุการณ์','ผล','รายละเอียด'],rows(other)):
+      empty('ไม่มีรายการกิจกรรมระบบ'))+
+    panel('หมายเหตุ','<p class="gas-muted">การกดยืนยันไม่ได้พิสูจน์ว่าผู้สูงอายุกลืนยาแล้ว ข้อมูลเก่าหรือข้อมูลทดสอบไม่ได้ถูกนับเป็นเหตุการณ์การยืนยันจริงในหน้าสถิติ และข้อมูลที่แสดงจำกัด 60 รายการล่าสุด</p>');
 }
 function gallery(){
   const list=state.data.images;
