@@ -230,7 +230,7 @@ function bangkokNowParts(date=new Date()){
 function nextTodayMedicine(items,date=new Date()){
   const clock=bangkokNowParts(date);
   return items.filter(m=>{
-    if(!/^(?:[01]\\d|2[0-3]):[0-5]\\d$/.test(String(m.time||'')))return false;
+    if(!/^(?:[01]\d|2[0-3]):[0-5]\d$/.test(String(m.time||'')))return false;
     const days=String(m.days||'').trim().toUpperCase();
     if(days&&days!=='ALL'&&days!=='EVERYDAY'&&!days.split(',').map(x=>x.trim()).includes(clock.weekday))return false;
     return Number(m.time.slice(0,2))*60+Number(m.time.slice(3,5))>=clock.minute;
