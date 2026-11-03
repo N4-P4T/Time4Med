@@ -125,6 +125,7 @@ function syncVerifiedProfile(){
 async function signedIn(result,box){
   if(!result||!result.token)throw Error('ไม่พบเซสชันที่ถูกต้อง');
   state.token=result.token;state.data=await call('bootstrap',state.token);
+  lastFetchAt=Date.now();
   box.hidden=true;document.body.classList.remove('t4m-auth-locked');
   const bar=$('t4mUserbar');if(bar)bar.hidden=false;
   const user=state.data.user;
@@ -208,9 +209,46 @@ function startAuth(){
     window.location.reload();
   });
 }
+let lastFetchAt=0;
+let refreshPromise=null;
 async function reload(){
-  state.data=await call('bootstrap',state.token);
-  render();
+  if(refreshPromise)return refreshPromise;
+  const token=state.token;
+  const request=(async()=>{
+    const updated=await call('bootstrap',token);
+    if(token!==state.token)return;
+    state.data=updated;
+    lastFetchAt=Date.now();
+    render();
+  })();
+  refreshPromise=request;
+  try{return await request;}finally{if(refreshPromise===request)refreshPromise=null;}
+}
+function liveDeviceTimeMs(value){
+  const raw=String(value||'').trim();
+  if(!raw)return NaN;
+  const iso=raw.replace(' ','T');
+  return Date.parse(/(?:Z|[+-]\\d{2}:\\d{2})$/i.test(iso)?iso:iso+'+07:00');
+}
+function isLiveDevice(device,nowMs=Date.now()){
+  const last=liveDeviceTimeMs(device.lastSeen);
+  return String(device.online).toUpperCase()==='ONLINE' && Number.isFinite(last) &&
+    last<=nowMs && nowMs-last<180000;
+}
+function visibleDeviceStatus(device){
+  if(isLiveDevice(device))return 'ONLINE';
+  return String(device.online).toUpperCase()==='OFFLINE'?'OFFLINE':'ไม่ยืนยัน (ข้อมูลเก่าหรือขาดการติดต่อ)';
+}
+function liveView(){return ['dashboard','devices','inventory','analytics','activity'].includes(state.view);}
+async function refreshLiveView(){
+  if(!state.token||!state.data||document.hidden||!liveView()||Date.now()-lastFetchAt<60000)return;
+  try{await reload();}
+  catch(err){
+    // Only these read-only pages are rerendered. Never erase an unsaved medicine/user form.
+    if(!state.data||!liveView())return;
+    render();
+    pageMessage('โหลดข้อมูลใหม่ไม่สำเร็จ ข้อมูลอาจไม่เป็นปัจจุบัน: '+(err.message||String(err)),true);
+  }
 }
 function kpi(label,value,detail,icon){
   return '<article class="t21-kpi"><div class="t21-kpi-top"><span class="t21-kpi-icon t21-blue">'+icon+
@@ -255,7 +293,7 @@ function dashboard(){
     '<div class="t21-kpis">'+kpi('ผู้สูงอายุในสิทธิ์',d.patients.length,'P001–P003','👥')+
     kpi('รายการยาที่ใช้งาน',active.length,'ไม่รวมรายการทดสอบ','💊')+
     kpi('มื้อยาถัดไปวันนี้',next?next.time:'—',next?next.patientId+' '+next.meal:'ไม่พบรอบที่เหลือในวันนี้','◷')+
-    kpi('อุปกรณ์ออนไลน์',d.devices.filter(x=>x.online==='ONLINE').length,'นับเฉพาะสถานะที่ยังไม่หมดอายุ','📶')+'</div>'+
+    kpi('อุปกรณ์ออนไลน์',d.devices.filter(isLiveDevice).length,'heartbeat ภายใน 3 นาที','📶')+'</div>'+
     panel('ผู้สูงอายุและชั้นยา',tbl(['รหัส','ชื่อ','ชั้น','จำนวนรายการยา'],rows))+
     panel('สถานะการเชื่อมต่อ','<p>เว็บไซต์ GitHub Pages → '+(API_URL?'API':'Apps Script')+' → Google Sheets</p>'+
       '<p class="gas-muted">ระบบ LINE ตามเวลาจะทำงานเมื่อผู้ดูแลระบบเปิดใช้งานใน Apps Script เท่านั้น การกดยืนยันไม่ใช่หลักฐานว่ากลืนยาแล้ว</p>'+
@@ -299,10 +337,11 @@ function inventory(){
     panel('สถานะสต็อก','<p class="gas-muted">ระบบปัจจุบันเก็บสถานะยา ไม่ได้นับจำนวนเม็ดยาจากซองยาอัตโนมัติ</p>');
 }
 function devices(){
-  const rows=state.data.devices.map(x=>tr([html(x.id),html(x.type),html(x.online),html(x.lastSeen||'—'),html(x.lock||'—')]));
+  const rows=state.data.devices.map(x=>tr([html(x.id),html(x.type),html(visibleDeviceStatus(x)),html(x.lastSeen||'—'),
+    html(isLiveDevice(x)?(x.lock||'—'):'ไม่ยืนยัน')]));
   return '<div class="gas-heading"><h1>สถานะอุปกรณ์</h1><p>สถานะจาก heartbeat จริง ไม่แสดง ONLINE หากข้อมูลหมดอายุ</p></div>'+
     panel('ESP32-S3 / ESP32-CAM',rows.length?tbl(['อุปกรณ์','ชนิด','สถานะ','รับข้อมูลล่าสุด','กลอน'],rows):empty('อุปกรณ์ยังไม่ส่ง heartbeat เข้าระบบ'))+
-    panel('ข้อจำกัด','<p class="gas-muted">เว็บนี้ไม่ส่งคำสั่งปลดล็อกผ่านอินเทอร์เน็ต การปลดล็อกใช้ปุ่มยืนยันที่ตู้ตามแบบระบบปัจจุบัน</p>');
+    panel('ข้อจำกัด','<p class="gas-muted">ระบบตรวจ heartbeat ใหม่ทุกครั้งที่แสดงข้อมูล และโหลดสถานะล่าสุดอัตโนมัติเมื่อเปิดหน้านี้ทิ้งไว้ หากข้อมูลเกิน 3 นาทีจะไม่ยืนยันว่าอุปกรณ์ออนไลน์หรือกลอนอยู่ในสถานะใด เว็บนี้ไม่ส่งคำสั่งปลดล็อกผ่านอินเทอร์เน็ต</p>');
 }
 function analytics(){
   const d=state.data,active=activeMedicines();
@@ -451,5 +490,8 @@ document.addEventListener('DOMContentLoaded',()=>{
     text('currentTime',now.toLocaleTimeString('th-TH',{hour:'2-digit',minute:'2-digit',hour12:false}));
     text('currentDate',now.toLocaleDateString('th-TH',{day:'numeric',month:'long',year:'numeric'}));
   };time();setInterval(time,30000);
+  // Read-only views refresh automatically; never interrupt the medication/admin editor.
+  setInterval(()=>{void refreshLiveView();},60000);
+  document.addEventListener('visibilitychange',()=>{if(!document.hidden)void refreshLiveView();});
 });
 })();
