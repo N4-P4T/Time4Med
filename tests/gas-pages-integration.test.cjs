@@ -8,7 +8,7 @@ const GH='https://n4-p4t.github.io', GAS='https://script.google.com';
 const data={
   user:{email:'time4med.project@gmail.com',name:'Admin Test',role:'ADMIN',patientIds:['P001','P002','P003']},
   patients:[{id:'P001',name:'บุคคลทดสอบ',shelf:1}],
-  medicines:[{id:'m1',patientId:'P001',name:'ยาทดสอบ A',mealType:2,meal:'หลังอาหารเช้า',time:'08:30',days:'MON,TUE',kind:'scheduled',active:true,demo:false}],
+  medicines:[{id:'m1',patientId:'P001',shelf:1,name:'ยาทดสอบ A',mealType:2,meal:'หลังอาหารเช้า',time:'08:30',days:'MON,TUE',kind:'scheduled',active:true,demo:false}],
   devices:[],images:[],activity:[],users:[],serverTime:'2026-10-29 21:00:00'
 };
 function mockBridge(channel) {
@@ -60,6 +60,10 @@ async function main(){
   await page.locator('a[href="#medication"]').click();
   await page.waitForSelector('#gasMedicineForm');
   assert.match(await page.locator('#dashboard').innerText(),/ยาทดสอบ A/);
+  assert.match(await page.locator('#dashboard').innerText(),/รายการที่เข้าเงื่อนไข/,
+    'medication diagnostics should use the same eligibility criteria as GAS');
+  assert.match(await page.locator('#dashboard').innerText(),/รายการที่เข้าเงื่อนไข:\s*1/,
+    'fixture with mapped shelf should count as one real eligible medicine');
   await page.locator('#medName').fill('ยาทดสอบ B');
   await page.locator('#gasMedicineForm button[type="submit"]').click();
   await page.waitForFunction(()=>document.querySelector('#gasPageMessage')?.textContent.includes('บันทึกตารางยาสำเร็จ'));
