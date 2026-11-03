@@ -12,6 +12,18 @@ on:
       - 'tests/gas-multilogin-fallback.test.cjs'
       - 'tests/gas-direct-fallback.test.cjs'
       - '.github/workflows/gas-pages-bridge.yml'
+  push:
+    paths:
+      - 'test-v021/gas-only.js'
+      - 'test-v021/gas-only.css'
+      - 'test-v021/index.html'
+      - 'apps-script/Bridge.html'
+      - 'apps-script/Code.gs'
+      - 'tests/gas-pages-integration.test.cjs'
+      - 'tests/otp-transport.test.cjs'
+      - 'tests/gas-multilogin-fallback.test.cjs'
+      - 'tests/gas-direct-fallback.test.cjs'
+      - '.github/workflows/gas-pages-bridge.yml'
   workflow_dispatch:
 jobs:
   bridge-ui:
