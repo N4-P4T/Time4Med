@@ -243,14 +243,15 @@ function dashboard(){
       '<button type="submit" class="gas-btn">เปลี่ยนรหัสผ่าน</button></form>'):'');
 }
 function medication(){
-  const d=state.data,items=d.medicines.filter(x=>!x.demo);
-  const rows=items.map(m=>tr([html(m.patientId),html(m.name),html(m.meal),html(asTime(m.time)),html(m.days),
-    m.active?'ใช้งาน':'ปิดใช้','<button class="gas-btn light" data-action="edit" data-id="'+html(m.id)+'">แก้ไข</button> '+
+  const d=state.data,items=d.medicines;
+  const rows=items.map(m=>tr([html(m.patientId),html(m.name)+(m.demo?' <span class="gas-muted">(ทดสอบ — ไม่ส่งเข้าตู้)</span>':''),html(m.meal),html(asTime(m.time)),html(m.days),
+    m.demo?(m.active?'ทดสอบ · เปิด':'ทดสอบ · ปิด'):(m.active?'ใช้งาน':'ปิดใช้'),'<button class="gas-btn light" data-action="edit" data-id="'+html(m.id)+'">แก้ไข</button> '+
     (m.active?'<button class="gas-btn danger" data-action="disable" data-id="'+html(m.id)+'">ปิดใช้</button>':'')]));
   const pOptions=d.patients.map(p=>'<option value="'+html(p.id)+'">'+html(p.id+' ชั้น '+p.shelf+' — '+p.name)+'</option>').join('');
   const mealOptions=MEALS.slice(1).map((m,i)=>'<option value="'+(i+1)+'">'+html(m)+'</option>').join('');
   const choices=DAYS.map(([key,label])=>'<label class="gas-day"><input type="checkbox" value="'+key+'" name="medDay" checked> '+label+'</label>').join('');
   return '<div class="gas-heading"><h1>รายการยาและรอบแจ้งเตือน</h1><p>บันทึกลง Google Sheets · สิทธิ์ตามผู้สูงอายุ</p></div>'+
+    '<p class="gas-muted">รายการที่ขึ้นต้น TEST_, DEMO_ หรือ LINECHECK_ เป็นข้อมูลทดสอบ: แสดงเพื่อให้แก้ไขหรือปิดใช้งานได้ แต่ไม่ถูกส่งเป็นตารางยาจริงให้ ESP32-S3 หรือ LINE</p>'+
     panel('ตารางยาปัจจุบัน',rows.length?tbl(['ผู้สูงอายุ','ชื่อยา','มื้อยา','เวลา','วัน','สถานะ','จัดการ'],rows):empty('ยังไม่มีรายการยา'))+
     panel('เพิ่มหรือแก้ไขรายการยา','<form id="gasMedicineForm" class="gas-form">'+
       '<input id="medId" type="hidden"><label>ผู้สูงอายุ<select id="medPatient" required>'+pOptions+'</select></label>'+
@@ -358,16 +359,27 @@ function render(){
   });
 }
 function pageMessage(s,bad=false){const el=$('gasPageMessage');if(el){el.textContent=s;el.className=bad?'bad':'';}}
+let medicineSaveBusy=false;
 async function saveMedicine(ev){
   ev.preventDefault();
+  if(medicineSaveBusy)return;
   const ds=[...document.querySelectorAll('[name="medDay"]:checked')].map(x=>x.value);
   if(!ds.length)return pageMessage('เลือกวันแจ้งเตือนอย่างน้อยหนึ่งวัน',true);
-  const value={id:$('medId').value,patientId:$('medPatient').value,name:$('medName').value,
+  const name=$('medName').value.trim();
+  if(name.length<2)return pageMessage('กรุณากรอกชื่อยาอย่างน้อย 2 ตัวอักษร',true);
+  const medId=$('medId').value, patientId=$('medPatient').value, mealType=Number($('medMeal').value), time=$('medTime').value;
+  const dayKey=v=>String(v||'MON,TUE,WED,THU,FRI,SAT,SUN').split(',').map(x=>x.trim()).filter(Boolean).sort().join(',');
+  const exists=state.data.medicines.some(m=>m.active&&m.id!==medId&&m.patientId===patientId&&
+    String(m.name).trim().toLocaleLowerCase()===name.toLocaleLowerCase()&&Number(m.mealType)===mealType&&
+    m.time===time&&dayKey(m.days)===dayKey(ds.join(',')));
+  if(exists)return pageMessage('มีรายการยาชื่อเดียวกัน ผู้สูงอายุ มื้อ เวลา และวันเดียวกันอยู่แล้ว กรุณาแก้ไขรายการเดิมแทนการเพิ่มซ้ำ',true);
+  const value={id:medId,patientId,name,
     mealType:Number($('medMeal').value),time:$('medTime').value,days:ds.join(','),
     instruction:$('medInstruction').value,active:$('medActive').checked};
+  medicineSaveBusy=true;
   const button=ev.submitter;if(button)button.disabled=true;
   try{await call('saveMedicine',state.token,value);await reload();pageMessage('บันทึกตารางยาสำเร็จ');}
-  catch(e){pageMessage(e.message,true);}finally{if(button)button.disabled=false;}
+  catch(e){pageMessage(e.message,true);}finally{medicineSaveBusy=false;if(button)button.disabled=false;}
 }
 async function saveUser(ev){
   ev.preventDefault();
