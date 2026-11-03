@@ -274,20 +274,25 @@ function bangkokNowParts(date=new Date()){
   const part=key=>parts.find(p=>p.type===key)?.value||'';
   return {weekday:part('weekday').toUpperCase(),minute:(Number(part('hour'))%24)*60+Number(part('minute'))};
 }
-function nextTodayMedicine(items,date=new Date()){
-  const clock=bangkokNowParts(date);
+function todaySchedule(items,date=new Date()){
+  const weekday=bangkokNowParts(date).weekday;
   return items.filter(m=>{
     if(!/^(?:[01]\d|2[0-3]):[0-5]\d$/.test(String(m.time||'')))return false;
     const days=String(m.days||'').trim().toUpperCase();
-    if(days&&days!=='ALL'&&days!=='EVERYDAY'&&!days.split(',').map(x=>x.trim()).includes(clock.weekday))return false;
-    return Number(m.time.slice(0,2))*60+Number(m.time.slice(3,5))>=clock.minute;
-  }).sort((a,b)=>a.time.localeCompare(b.time))[0];
+    return !days||days==='ALL'||days==='EVERYDAY'||days.split(',').map(x=>x.trim()).includes(weekday);
+  }).sort((a,b)=>a.time.localeCompare(b.time)||String(a.patientId).localeCompare(String(b.patientId)));
+}
+function nextTodayMedicine(items,date=new Date()){
+  const nowMinute=bangkokNowParts(date).minute;
+  return todaySchedule(items,date).find(m=>Number(m.time.slice(0,2))*60+Number(m.time.slice(3,5))>=nowMinute);
 }
 function dashboard(){
   const d=state.data,active=activeMedicines();
+  const daily=todaySchedule(active);
   const next=nextTodayMedicine(active);
   const rows=d.patients.map(p=>tr([html(p.id),html(p.name),html('ชั้น '+p.shelf),
     html(active.filter(x=>x.patientId===p.id).length+' รายการ')]));
+  const scheduleRows=daily.map(m=>tr([html(m.time),html(m.patientId),html(m.name),html(m.meal)]));
   return '<div class="t21-heading"><div class="t21-heading-main"><p class="t21-eyebrow">TIME4MED / CAREGIVER CENTER</p>'+
     '<h1>ภาพรวมการดูแลวันนี้</h1><p class="t21-heading-description">ข้อมูลจาก Google Sheets ผ่าน '+(API_URL?'API':'Google Apps Script')+'</p></div></div>'+
     '<div class="t21-kpis">'+kpi('ผู้สูงอายุในสิทธิ์',d.patients.length,'P001–P003','👥')+
@@ -295,6 +300,10 @@ function dashboard(){
     kpi('มื้อยาถัดไปวันนี้',next?next.time:'—',next?next.patientId+' '+next.meal:'ไม่พบรอบที่เหลือในวันนี้','◷')+
     kpi('อุปกรณ์ออนไลน์',d.devices.filter(isLiveDevice).length,'heartbeat ภายใน 3 นาที','📶')+'</div>'+
     panel('ผู้สูงอายุและชั้นยา',tbl(['รหัส','ชื่อ','ชั้น','จำนวนรายการยา'],rows))+
+    panel('รอบยาที่กำหนดวันนี้ (เวลาไทย)',
+      '<p class="gas-muted">แสดงตารางยาที่เปิดใช้งานในวันนี้ ไม่รวมข้อมูลทดสอบ และไม่ถือว่าได้รับยาแล้ว</p>'+
+      (scheduleRows.length?tbl(['เวลา','ผู้สูงอายุ','ชื่อยา','มื้อยา'],scheduleRows):
+        empty('ยังไม่มีรอบยาจริงในวันนี้ — รายการ TEST_ ไม่แสดงในตารางนี้')))+
     panel('สถานะการเชื่อมต่อ','<p>เว็บไซต์ GitHub Pages → '+(API_URL?'API':'Apps Script')+' → Google Sheets</p>'+
       '<p class="gas-muted">ระบบ LINE ตามเวลาจะทำงานเมื่อผู้ดูแลระบบเปิดใช้งานใน Apps Script เท่านั้น การกดยืนยันไม่ใช่หลักฐานว่ากลืนยาแล้ว</p>'+
       '<button class="gas-btn" data-action="refresh">โหลดข้อมูลล่าสุด</button>')+
