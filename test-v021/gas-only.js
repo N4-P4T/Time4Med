@@ -431,7 +431,7 @@ function analytics(){
     kpi('ยาใช้งาน',active.length,'รายการที่ไม่ใช่ข้อมูลทดสอบ','💊')+
     kpi('กดยืนยันที่ตู้ 7 วัน',report.confirmations,'เหตุการณ์จากบันทึกล่าสุด','◷')+
     kpi('กดฉุกเฉิน 7 วัน',report.emergencies,'เหตุการณ์ที่บันทึกไว้','⚑')+
-    kpi('ภาพพร้อมแสดง',d.images.filter(x=>String(x.available).toUpperCase()==='TRUE').length,'จากรายการภาพล่าสุด','📷')+
+    kpi('ภาพพร้อมแสดง',d.images.filter(isDriveImageReady).length,'เฉพาะภาพที่อยู่ใน Google Drive','📷')+
     '</div>'+
     panel('เหตุการณ์ในช่วง 7 วันตามเวลาไทย',tbl(['วันที่','กดยืนยันที่ตู้','กดฉุกเฉิน'],daily))+
     panel('ขอบเขตและความหมายของตัวเลข',
@@ -458,10 +458,14 @@ function activity(){
       empty('ไม่มีรายการกิจกรรมระบบ'))+
     panel('หมายเหตุ','<p class="gas-muted">การกดยืนยันไม่ได้พิสูจน์ว่าผู้สูงอายุกลืนยาแล้ว ข้อมูลเก่าหรือข้อมูลทดสอบไม่ได้ถูกนับเป็นเหตุการณ์การยืนยันจริงในหน้าสถิติ และข้อมูลที่แสดงจำกัด 60 รายการล่าสุด</p>');
 }
+// ImageIndex may say available=TRUE for old SD_ONLY rows that have no Drive file.
+function isDriveImageReady(x){
+  return String(x?.available).toUpperCase()==='TRUE'&&String(x?.source).toUpperCase()==='DRIVE';
+}
 function gallery(){
   const list=state.data.images;
-  const ready=list.filter(x=>String(x.available).toUpperCase()==='TRUE');
-  const unavailable=list.filter(x=>String(x.available).toUpperCase()!=='TRUE');
+  const ready=list.filter(isDriveImageReady);
+  const unavailable=list.filter(x=>!isDriveImageReady(x));
   const cards=ready.map(x=>
     '<div class="gas-photo"><strong>'+html(x.patientId||'—')+'</strong><p>'+html(x.time||'—')+'</p>'+
     '<p>'+html(x.filename||'ไม่ระบุชื่อไฟล์')+'</p>'+
@@ -474,12 +478,12 @@ function gallery(){
     panel('ภาพพร้อมเปิด ('+ready.length+')',
       ready.length?'<div class="gas-gallery">'+cards+'</div>':empty('ยังไม่มีภาพที่พร้อมเปิดจาก Google Drive'))+
     (unavailable.length?panel('ภาพที่ยังเปิดไม่ได้',
-      '<p class="gas-muted">รายการต่อไปนี้ยังไม่พร้อมใช้งานหรือหมดอายุ จึงไม่มีปุ่มเปิดภาพ</p>'+
+      '<p class="gas-muted">รายการต่อไปนี้ยังอยู่เฉพาะ SD Card, ยังไม่พร้อมใช้งาน หรือหมดอายุ จึงไม่มีปุ่มเปิดภาพ</p>'+
       tbl(['ผู้สูงอายุ','เวลา','ชื่อไฟล์','แหล่งข้อมูล/สถานะ'],old)):'')+
     panel('ข้อควรทราบ','<p class="gas-muted">ภาพบน SD Card ที่ยังไม่ได้อัปโหลด หรือภาพที่ถูกลบตามนโยบายเก็บข้อมูล ไม่สามารถเปิดผ่านเว็บไซต์ได้ รูปภาพที่ปรากฏไม่ใช่หลักฐานว่าผู้สูงอายุกลืนยาแล้ว</p>');
 }
 function camera(){
-  const files=state.data.images.filter(x=>String(x.available).toUpperCase()==='TRUE');
+  const files=state.data.images.filter(isDriveImageReady);
   const newest=files[0]||null;
   const preview=newest?
     '<p><strong>ภาพล่าสุดในรายการที่มีสิทธิ์ดู</strong> — '+html(newest.patientId)+' · '+html(newest.time||'ไม่ทราบเวลา')+'</p>'+
