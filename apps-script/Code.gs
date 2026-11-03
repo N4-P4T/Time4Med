@@ -417,35 +417,64 @@ function validDaysForSchedule_(value,day) {
   try {return days_(value).split(',').includes(day);}
   catch(err){console.error('Invalid reminder_days',String(err));return false;}
 }
+/**
+ * Apps Script time-driven triggers are approximate, not exact-minute timers.
+ * A bounded 4-minute grace window prevents missed LINE reminders when the
+ * trigger starts slightly late. The dated notification ID still guarantees
+ * one attempt per medicine and destination for that scheduled calendar date.
+ * The date/day must be evaluated at the DUE minute, not at the trigger time
+ * (important for reminders at 23:59 delayed past midnight).
+ */
+function recentLineDueSlots_(at,graceMinutes) {
+  const grace=graceMinutes===undefined?4:Number(graceMinutes);
+  assert_(Number.isInteger(grace)&&grace>=0&&grace<=5,'INVALID_LINE_GRACE_WINDOW');
+  const time=at instanceof Date?at:new Date(at);
+  assert_(!isNaN(time.getTime()),'INVALID_LINE_CLOCK');
+  const rounded=Math.floor(time.getTime()/60000)*60000;
+  const weekdays=['MON','TUE','WED','THU','FRI','SAT','SUN'];
+  return Array.from({length:grace+1},(_,offset)=>{
+    const due=new Date(rounded-offset*60000);
+    const u=Number(Utilities.formatDate(due,T4M.tz,'u'));
+    return {date:Utilities.formatDate(due,T4M.tz,'yyyy-MM-dd'),
+      time:Utilities.formatDate(due,T4M.tz,'HH:mm'),day:weekdays[u-1]||'',
+      delayMinutes:offset};
+  });
+}
 function scheduledLineReminders_() {
   // Fail closed: enabling a trigger alone must not start sending medication reminders.
-  if(upper_(props_().getProperty('LINE_REMINDERS_ENABLED'))!=='TRUE') return;
+  if(upper_(props_().getProperty('LINE_REMINDERS_ENABLED'))!=='TRUE')return;
   const lock=LockService.getScriptLock();if(!lock.tryLock(500))return;
   try{
-    const now=Utilities.formatDate(new Date(),T4M.tz,'yyyy-MM-dd HH:mm');
-    const today=Utilities.formatDate(new Date(),T4M.tz,'yyyy-MM-dd');
-    const hm=now.slice(-5),dow=['MON','TUE','WED','THU','FRI','SAT','SUN'][Number(Utilities.formatDate(new Date(),T4M.tz,'u'))-1];
+    const slots=recentLineDueSlots_(new Date(),4);
     const items=grid_('MealMedicines').rows.map(x=>safeMedicine_(x.data))
-      .filter(x=>schedulableMedicine_(x)&&x.time===hm
-        && validDaysForSchedule_(x.days,dow));
+      .filter(schedulableMedicine_)
+      .map(m=>({m,slot:slots.find(s=>s.time===m.time&&
+        validDaysForSchedule_(m.days,s.day))}))
+      .filter(x=>Boolean(x.slot));
     if(!items.length)return;
-    const users=grid_('Users').rows.map(x=>userForEmail_(x.data.email)).filter(x=>x&&x.lineEnabled&&x.lineId);
-    const notificationGrid=grid_('NotificationLog');
-    const seen=new Set(notificationGrid.rows.map(x=>str_(x.data.notification_id)));
-    items.forEach(m=>uniqueLineRecipients_(users.filter(u=>can_(u,m.patientId))).forEach(u=>{
-      const key='T4M-'+today+'-'+sha_(m.id+':'+u.id).slice(0,14);
-      if(seen.has(key))return;
-      // Record the attempt before sending, then record the actual provider outcome.
-      // A failed attempt is not falsely displayed as SENT.
-      const logRow=notificationLog_(key,m.patientId,u.id,'MEDICINE_DUE','ATTEMPTED');seen.add(key);
-      try{
-        lineTo_(u.lineId,'Time4Med แจ้งเตือน '+m.patientId+' ชั้น '+m.shelf+'\n'+m.meal+' เวลา '+m.time+'\nยา: '+m.name+'\nกรุณาตรวจสอบการรับยาตามคำแนะนำ\n\nเปิดเว็บไซต์ Time4Med:\n'+time4medWebsiteUrl_());
-        writeRow_(grid_('NotificationLog'),logRow,{delivery_status:'SENT',error_message:''});
-      } catch(err){
-        writeRow_(grid_('NotificationLog'),logRow,{delivery_status:'FAILED',error_message:String(err).slice(0,200)});
-        logActivity_(m.patientId,'SYSTEM','LINE_SEND_ERROR',String(err),'ERROR');
-      }
-    }));
+    const users=grid_('Users').rows.map(x=>userForEmail_(x.data.email))
+      .filter(x=>x&&x.lineEnabled&&x.lineId);
+    const seen=new Set(grid_('NotificationLog').rows.map(x=>str_(x.data.notification_id)));
+    items.forEach(({m,slot})=>
+      uniqueLineRecipients_(users.filter(u=>can_(u,m.patientId))).forEach(u=>{
+        // Keep the original date-specific key format for compatibility with
+        // already logged reminders, including reminders crossing midnight.
+        const key='T4M-'+slot.date+'-'+sha_(m.id+':'+u.id).slice(0,14);
+        if(seen.has(key))return;
+        const logRow=notificationLog_(key,m.patientId,u.id,'MEDICINE_DUE','ATTEMPTED');
+        seen.add(key);
+        try{
+          lineTo_(u.lineId,'Time4Med แจ้งเตือน '+m.patientId+' ชั้น '+m.shelf+
+            '\n'+m.meal+' เวลา '+m.time+'\nยา: '+m.name+
+            '\nกรุณาตรวจสอบการรับยาตามคำแนะนำ\n\nเปิดเว็บไซต์ Time4Med:\n'+time4medWebsiteUrl_());
+          writeRow_(grid_('NotificationLog'),logRow,{
+            delivery_status:'SENT',error_message:''});
+        }catch(err){
+          writeRow_(grid_('NotificationLog'),logRow,{
+            delivery_status:'FAILED',error_message:String(err).slice(0,200)});
+          logActivity_(m.patientId,'SYSTEM','LINE_SEND_ERROR',String(err),'ERROR');
+        }
+      }));
   }finally{lock.releaseLock();}
 }
 function setupTriggersFromEditor_() {
