@@ -220,11 +220,25 @@ function tr(cells){
   return '<tr>'+cells.map(x=>'<td>'+x+'</td>').join('')+'</tr>';
 }
 const empty=label=>'<p class="gas-muted">'+html(label)+'</p>';
+// The cabinet schedule runs in Thailand time, not the viewer's phone/computer time zone.
+function bangkokNowParts(date=new Date()){
+  const parts=new Intl.DateTimeFormat('en-GB',{timeZone:'Asia/Bangkok',hour:'2-digit',minute:'2-digit',weekday:'short',hourCycle:'h23'})
+    .formatToParts(date);
+  const part=key=>parts.find(p=>p.type===key)?.value||'';
+  return {weekday:part('weekday').toUpperCase(),minute:(Number(part('hour'))%24)*60+Number(part('minute'))};
+}
+function nextTodayMedicine(items,date=new Date()){
+  const clock=bangkokNowParts(date);
+  return items.filter(m=>{
+    if(!/^(?:[01]\\d|2[0-3]):[0-5]\\d$/.test(String(m.time||'')))return false;
+    const days=String(m.days||'').trim().toUpperCase();
+    if(days&&days!=='ALL'&&days!=='EVERYDAY'&&!days.split(',').map(x=>x.trim()).includes(clock.weekday))return false;
+    return Number(m.time.slice(0,2))*60+Number(m.time.slice(3,5))>=clock.minute;
+  }).sort((a,b)=>a.time.localeCompare(b.time))[0];
+}
 function dashboard(){
   const d=state.data,active=activeMedicines();
-  const today=new Date(),now=today.getHours()*60+today.getMinutes();
-  const next=active.filter(x=>/^\d\d:\d\d$/.test(x.time)).map(x=>({...x,minute:Number(x.time.slice(0,2))*60+Number(x.time.slice(3,5))}))
-    .filter(x=>x.minute>=now).sort((a,b)=>a.minute-b.minute)[0];
+  const next=nextTodayMedicine(active);
   const rows=d.patients.map(p=>tr([html(p.id),html(p.name),html('ชั้น '+p.shelf),
     html(active.filter(x=>x.patientId===p.id).length+' รายการ')]));
   return '<div class="t21-heading"><div class="t21-heading-main"><p class="t21-eyebrow">TIME4MED / CAREGIVER CENTER</p>'+
@@ -235,7 +249,7 @@ function dashboard(){
     kpi('อุปกรณ์ออนไลน์',d.devices.filter(x=>x.online==='ONLINE').length,'นับเฉพาะสถานะที่ยังไม่หมดอายุ','📶')+'</div>'+
     panel('ผู้สูงอายุและชั้นยา',tbl(['รหัส','ชื่อ','ชั้น','จำนวนรายการยา'],rows))+
     panel('สถานะการเชื่อมต่อ','<p>เว็บไซต์ GitHub Pages → '+(API_URL?'API':'Apps Script')+' → Google Sheets</p>'+
-      '<p class="gas-muted">LINE ส่งจาก Apps Script ตามรอบยาโดยอิสระจากการเปิดหน้าเว็บ การกดยืนยันไม่ใช่หลักฐานว่ากลืนยาแล้ว</p>'+
+      '<p class="gas-muted">ระบบ LINE ตามเวลาจะทำงานเมื่อผู้ดูแลระบบเปิดใช้งานใน Apps Script เท่านั้น การกดยืนยันไม่ใช่หลักฐานว่ากลืนยาแล้ว</p>'+
       '<button class="gas-btn" data-action="refresh">โหลดข้อมูลล่าสุด</button>')+
     (API_URL?panel('เปลี่ยนรหัสผ่านบัญชีของฉัน','<form id="gasPasswordChange" class="gas-form">'+
       '<label>รหัสผ่านปัจจุบัน<input id="oldPassword" type="password" autocomplete="current-password" required></label>'+
