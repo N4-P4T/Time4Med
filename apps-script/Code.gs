@@ -156,7 +156,7 @@ function bootstrap(token) {
   const users=user.role==='ADMIN'?grid_('Users').rows.map(x=>({id:x.data.user_id,email:x.data.email,name:x.data.display_name,
     role:x.data.role,patients:x.data.patient_id,status:x.data.status,lineConfigured:Boolean(x.data.line_user_id)})):[];
   return {user:publicUser_(user),patients,medicines,activity,images,devices,users,serverTime:tzNow_(),
-    capabilities:{lineAdmin:user.role==='ADMIN',demoAdmin:user.role==='ADMIN'},backendVersion:'2026-11-03-schedule-ack-1',
+    capabilities:{lineAdmin:user.role==='ADMIN',demoAdmin:user.role==='ADMIN',systemReadiness:user.role==='ADMIN'},backendVersion:'2026-11-03-readiness-1',
     note:'สถานะการกดยืนยันไม่ใช่หลักฐานว่ากลืนยาแล้ว และสถานะอุปกรณ์ต้องมาจากข้อมูลใหม่เท่านั้น'};
 }
 function parseDateTime_(value) {
@@ -371,6 +371,66 @@ function saveLineRecipient(token,input) {
     return {ok:true,email:target,lineConfigured:Boolean(finalId),
       notificationEnabled:finalEnabled};
   } finally {lock.releaseLock();}
+}
+/**
+ * ADMIN-only, read-only go-live checklist: no LINE sends, device actions,
+ * Drive access, NVS changes or Sheet writes. It observes the same server-side
+ * eligibility and boot-scoped sync status as the live website.
+ */
+function getSystemReadiness(token) {
+  const user=session_(token);needAdmin_(user);
+  const snapshot=bootstrap(token);
+  const meds=snapshot.medicines||[];
+  const eligible=meds.filter(schedulableMedicine_);
+  const excludedDemo=meds.filter(m=>m.active&&m.demo).length;
+  const devices=snapshot.devices||[];
+  const s3=devices.find(d=>str_(d.id)==='S3-001')||null;
+  const cam=devices.find(d=>str_(d.id)==='CAM-001')||null;
+  const line=inspectLineReminderReadiness_();
+  const blockedRecipients=(line.dueCandidates||[])
+    .filter(x=>Number(x.recipientCount)===0).length;
+  const imageRows=grid_('ImageIndex').rows.map(r=>r.data);
+  const imageReady=imageRows.filter(x=>active_(x.available)&&
+    Boolean(str_(x.drive_file_id))).length;
+  const checklist=[
+    {id:'realSchedules',passed:eligible.length>0,
+      detail:eligible.length+' รายการยาจริงที่เข้าเงื่อนไข (ไม่นับ TEST/DEMO/PRN)'},
+    {id:'s3Online',passed:!!s3&&upper_(s3.online)==='ONLINE',
+      detail:s3?'รับ Heartbeat ล่าสุด: '+str_(s3.lastSeen):'ไม่พบ S3-001'},
+    {id:'scheduleApplied',passed:!!s3&&s3.scheduleSync==='VERIFIED',
+      detail:s3&&s3.scheduleSync==='VERIFIED'?
+        'ESP32-S3 ยืนยันตารางปัจจุบันแล้ว':'ยังไม่มีหลักฐานว่า S3 นำตารางล่าสุดไปใช้'},
+    {id:'lineToken',passed:!!line.tokenConfigured,
+      detail:'LINE Channel Access Token: '+(line.tokenConfigured?'ตั้งค่าแล้ว':'ยังไม่ตั้งค่า')},
+    {id:'lineTrigger',passed:Number(line.triggerCount)>0,
+      detail:'Trigger แจ้งเตือนตามเวลา: '+Number(line.triggerCount)+' รายการ'},
+    {id:'lineEnabled',passed:!!line.enabled,
+      detail:'เปิดแจ้งเตือนรอบยาจริง: '+(line.enabled?'ใช่':'ยังไม่เปิด')},
+    {id:'lineRecipients',passed:eligible.length>0&&blockedRecipients===0&&
+      Number(line.uniqueLineDestinations)>0,
+      detail:'จุดหมาย LINE: '+Number(line.uniqueLineDestinations)+
+        ', ตารางยาที่ไม่มีผู้รับ: '+blockedRecipients},
+    {id:'driveFolder',passed:Boolean(props_().getProperty('IMAGE_FOLDER_ID')),
+      detail:'กำหนดโฟลเดอร์ภาพ Drive: '+
+        (Boolean(props_().getProperty('IMAGE_FOLDER_ID'))?'แล้ว':'ยังไม่ตั้งค่า')},
+    {id:'cameraOnline',passed:!!cam&&upper_(cam.online)==='ONLINE',
+      detail:cam?'รับ Heartbeat กล้องล่าสุด: '+str_(cam.lastSeen):'ไม่พบ CAM-001'}
+  ];
+  return {checkedAt:tzNow_(),backendVersion:snapshot.backendVersion,
+    schedules:{eligibleCount:eligible.length,demoExcludedCount:excludedDemo},
+    devices:{s3:{online:!!s3&&upper_(s3.online)==='ONLINE',
+      syncVerified:!!s3&&s3.scheduleSync==='VERIFIED',
+      lastSeen:s3?str_(s3.lastSeen):''},
+      camera:{online:!!cam&&upper_(cam.online)==='ONLINE',
+        lastSeen:cam?str_(cam.lastSeen):''}},
+    line:{enabled:!!line.enabled,triggerCount:Number(line.triggerCount)||0,
+      tokenConfigured:!!line.tokenConfigured,
+      destinations:Number(line.uniqueLineDestinations)||0,
+      uncoveredSchedules:blockedRecipients},
+    images:{folderConfigured:Boolean(props_().getProperty('IMAGE_FOLDER_ID')),
+      storedInDriveCount:imageReady},
+    checklist,readOnly:true,
+    warning:'สถานะนี้ใช้ข้อมูลหลังบ้านและ Heartbeat ไม่ใช่ผลทดสอบ LED/เสียง/กลอน/กล้องจริง'};
 }
 function readImage(token,id) {
   const u=session_(token),g=grid_('ImageIndex'),r=g.rows.find(x=>str_(x.data.image_id)===str_(id));
