@@ -1,0 +1,41 @@
+# Time4Med — คู่มืออัปเดต Apps Script หลังแก้ GitHub
+
+ปรับปรุง 3 พฤศจิกายน 2026 — เว็บไซต์หลักยังคงเป็น GitHub Pages:
+https://n4-p4t.github.io/Time4Med/test-v021/
+
+## ข้อเท็จจริงที่ต้องแยกให้ชัด
+
+- การ commit ไฟล์ `apps-script/Code.gs` หรือ `apps-script/Bridge.html` ลง GitHub **ไม่ได้อัปเดต Google Apps Script Web App** ที่ Deploy อยู่
+- ฝั่งหน้าเว็บมีการตรวจ `capabilities` ของ backend: ถ้ายังไม่รองรับ จะไม่เปิดปุ่มใหม่ของ ADMIN เพื่อลดข้อผิดพลาด
+- ห้ามแก้ Apps Script deployment URL ใน `test-v021/gas-only.js` โดยไม่จำเป็น
+- ห้ามนำ `DEVICE_API_KEY`, `LINE_CHANNEL_ACCESS_TOKEN`, รหัสผ่าน หรือไฟล์ Secret ไปวางใน GitHub
+
+## ขั้นตอน Deploy เมื่อพร้อมทดสอบหลังบ้าน
+
+1. เปิดโปรเจกต์ Google Apps Script ตัวที่ใช้กับ Time4Med_DB ผ่านบัญชีที่เป็นเจ้าของ deployment
+2. สำรองเวอร์ชันล่าสุดของ `Code.gs` และ `Bridge.html` ใน Apps Script ปัจจุบัน
+3. นำ **เนื้อหาเต็ม** ของ `apps-script/Code.gs` และ `apps-script/Bridge.html` จาก commit ที่ผ่านการทดสอบแล้วไปอัปเดตในไฟล์ชื่อเดิม อย่าลบ Script Properties หรือ Triggers
+4. ใน Apps Script ใช้ **Deploy → Manage deployments → Edit → New version → Deploy** เพื่อรักษา Web App URL เดิม (และให้สิทธิ์อนุญาตตามที่ Apps Script ถาม ถ้ามี)
+5. กลับไปหน้า GitHub Pages กดรีเฟรชแล้วเข้า ADMIN; ควรเห็น `Apps Script: 2026-11-03-line-admin-2` และเมนู LINE ที่รองรับ
+6. กด **ตรวจความพร้อม LINE** ซึ่งเป็นการอ่านข้อมูลอย่างเดียว ไม่ส่งข้อความ ไม่เปิดทริกเกอร์
+7. ถ้าต้องทดสอบ LINE จริง ให้ใช้ปุ่มทดสอบข้อความเดิมและตรวจการรับข้อความที่โทรศัพท์ปลายทางอีกครั้ง
+
+## การตั้งค่า LINE
+
+- ฟังก์ชันใหม่: `getLineReadiness(token)` (ADMIN อ่านสถานะ) และ `saveLineRecipient(token, input)` (ADMIN ปรับผู้รับทีละคน)
+- `saveLineRecipient` รับ LINE User ID ใหม่ได้ แต่ไม่ส่งค่าเดิมกลับไปยังเบราว์เซอร์; เก็บรหัสเดิมเมื่อเว้นช่องว่าง และลบได้เฉพาะเมื่อปิดการรับแจ้งเตือน
+- การเปิดรับข้อความของบัญชี **ไม่เปิด** `LINE_REMINDERS_ENABLED` และ **ไม่สร้าง** trigger
+- การเปิดใช้งานการแจ้งเตือนตามรอบยาจริงต้องตรวจค่า Script Properties, project trigger, ผู้รับ และรายการยาเข้าเงื่อนไขพร้อมกัน
+- ฟังก์ชัน `inspectLineReminderReadiness()` สำหรับเจ้าของโปรเจกต์ใน editor เป็นแบบอ่านอย่างเดียว; แก้ข้อผิดพลาดการอ่านอีเมลใน revision นี้แล้ว
+
+## ส่วนทดสอบ ADMIN
+
+- `Bridge.html` เวอร์ชันใหม่อนุญาต `startDemo`, `getDemoStatus`, `cancelDemo`, `getDemoPreview`
+- เมนูสาธิตบน GitHub Pages จะแสดงปุ่มจริงเฉพาะ backend ที่ตอบ `capabilities.demoAdmin`
+- การมีปุ่ม **ไม่ใช่** หลักฐานว่าตู้ ESP32-S3 รองรับ `demoPoll/demoEvent`; ต้องตรวจร่วมกับฮาร์ดแวร์ก่อนรับรองผล
+
+## ข้อจำกัดที่ยังต้องแก้ในฮาร์ดแวร์และระบบร่วมกัน
+
+- `pullSchedule` ส่งข้อมูลตามจริง ซึ่งอาจเป็น `schedules: []` เมื่อมีแต่ข้อมูล `TEST_` ใน Sheets; เฟิร์มแวร์ S3 **ต้องยอมรับตารางว่างที่ได้รับการยืนยันถูกต้อง** และลบตารางเก่าที่หมดสิทธิ์ ไม่ใช่ใช้แคชเก่าตลอดไป
+- ยาทุก 8 ชั่วโมงนับจากเวลา **กดยืนยันครั้งแรกจริง** ยังไม่พร้อมทั้ง backend และ firmware; ห้ามระบุว่าเป็นฟังก์ชันที่ใช้งานได้แล้ว
+- ต้องยืนยันการส่งข้อมูลภาพจาก ESP32-CAM ไป Google Drive จริงและตรวจสิทธิ์ของผู้ดูแล
