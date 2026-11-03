@@ -130,7 +130,9 @@ function bootstrap(token) {
   const user=session_(token);
   const patients=grid_('Patients').rows.map(x=>({id:patientIdOf_(x.data),name:x.data.display_name,
     status:x.data.status,shelf:fixedShelf_(patientIdOf_(x.data))})).filter(x=>x.shelf&&can_(user,x.id));
-  const medicines=grid_('MealMedicines').rows.map(x=>safeMedicine_(x.data)).filter(x=>x.shelf&&can_(user,x.patientId));
+  const allMedicines=grid_('MealMedicines').rows.map(x=>safeMedicine_(x.data));
+  const medicines=allMedicines.filter(x=>x.shelf&&can_(user,x.patientId));
+  const currentManifest=scheduleManifest_(allMedicines);
   // System-wide audit events (including account emails) are ADMIN-only.
   const activity=grid_('ActivityLog').rows.map(x=>x.data).filter(x=>
     user.role==='ADMIN'||(str_(x.patient_id)==='ALL'&&x.event_type==='EMERGENCY')||
@@ -138,8 +140,19 @@ function bootstrap(token) {
     .slice(-60).reverse().map(x=>({patientId:x.patient_id,type:x.event_type,time:isoLocal_(x.occurred_at),result:x.result,details:str_(x.details).slice(0,240)}));
   const images=grid_('ImageIndex').rows.map(x=>x.data).filter(x=>x.patient_id&&can_(user,x.patient_id))
     .slice(-40).reverse().map(x=>({id:x.image_id,patientId:x.patient_id,time:isoLocal_(x.captured_at),filename:x.filename,available:x.available,source:x.transfer_status}));
-  const devices=grid_('Devices').rows.map(x=>x.data).map(x=>({id:x.device_id,type:x.device_type,lastSeen:x.last_seen,
-    online:deviceFresh_(x.last_seen)?x.online_status:'UNKNOWN',lock:deviceFresh_(x.last_seen)?x.lock_status:'UNKNOWN'}));
+  const devices=grid_('Devices').rows.map(x=>x.data).map(x=>{
+    const fresh=deviceFresh_(x.last_seen);
+    const boot=str_(x.current_boot_id),ackBoot=str_(x.schedule_ack_boot_id);
+    const hash=str_(x.schedule_ack_hash),ackCount=Number(x.schedule_ack_count);
+    const syncVerified=fresh&&str_(x.device_id)==='S3-001'&&
+      boot.length>=8&&boot===ackBoot&&hash===currentManifest.scheduleHash&&
+      Number.isInteger(ackCount)&&ackCount===currentManifest.scheduleCount&&
+      !isNaN(parseDateTime_(x.schedule_ack_at).getTime());
+    return {id:x.device_id,type:x.device_type,lastSeen:x.last_seen,
+      online:fresh?x.online_status:'UNKNOWN',lock:fresh?x.lock_status:'UNKNOWN',
+      scheduleSync:syncVerified?'VERIFIED':'NOT_VERIFIED',
+      scheduleAckAt:syncVerified?isoLocal_(x.schedule_ack_at):''};
+  });
   const users=user.role==='ADMIN'?grid_('Users').rows.map(x=>({id:x.data.user_id,email:x.data.email,name:x.data.display_name,
     role:x.data.role,patients:x.data.patient_id,status:x.data.status,lineConfigured:Boolean(x.data.line_user_id)})):[];
   return {user:publicUser_(user),patients,medicines,activity,images,devices,users,serverTime:tzNow_(),
@@ -191,6 +204,28 @@ function deviceScheduleSnapshot_(rows) {
       // Optional metadata for new S3 firmware; existing fields unchanged.
       ledSlot,ledIndex:(m.shelf-1)*4+ledSlot-1};
   });
+}
+/**
+ * A canonical digest independent of Sheet row order. It is not a secret or
+ * authorization credential; deviceKey remains mandatory for device calls.
+ * An empty list has a real digest, so a cleared table can be acknowledged.
+ */
+function scheduleManifest_(rows){
+  const schedules=deviceScheduleSnapshot_(rows);
+  const canonical=schedules.slice().sort((a,b)=>a.id.localeCompare(b.id));
+  return {schedules,scheduleHash:sha_(JSON.stringify(canonical)),scheduleCount:schedules.length};
+}
+function ensureDeviceAckColumns_(g){
+  const names=['current_boot_id','schedule_ack_boot_id','schedule_ack_hash',
+    'schedule_ack_count','schedule_ack_at'];
+  for(const name of names){
+    if(!g.keys.includes(name)){
+      const col=g.keys.length+1;
+      g.sheet.getRange(T4M.cols.Devices,col).setValue(name);
+      g.keys.push(name);
+    }
+  }
+  return g;
 }
 function writeRow_(g,rowIndex,data) {
   const current=rowIndex?g.sheet.getRange(rowIndex,1,1,g.keys.length).getValues()[0]:Array(g.keys.length).fill('');
@@ -679,15 +714,47 @@ function postDevice_(e) {
   if(p.action==='demoEvent')return demoDeviceEvent_(p);
   if(p.action==='demoPhoto')return demoDevicePhoto_(p);
   if(p.action==='pullSchedule'){
-    const schedules=deviceScheduleSnapshot_(
+    const manifest=scheduleManifest_(
       grid_('MealMedicines').rows.map(x=>safeMedicine_(x.data)));
-    return {ok:true,timezone:T4M.tz,schedules};
+    return {ok:true,timezone:T4M.tz,...manifest};
   }
   const patientId=upper_(p.patientId||''),event=String(p.action),deviceId=str_(p.deviceId||'S3-001');
   if(p.action==='heartbeat'){
-    const g=grid_('Devices'),r=g.rows.find(x=>x.data.device_id===deviceId);
-    if(r)writeRow_(g,r.index,{online_status:'ONLINE',lock_status:upper_(p.lock||'UNKNOWN'),last_seen:tzNow_(),wifi_rssi_dbm:Number(p.rssi)||0});
-    return {ok:true,receivedAt:tzNow_()};
+    const bootId=str_(p.bootId),applied=p.scheduleApplied===true;
+    assert_(!bootId||/^[A-Za-z0-9_-]{8,64}$/.test(bootId),'BOOT_ID_INVALID');
+    assert_(!applied||bootId,'BOOT_ID_REQUIRED_FOR_SCHEDULE_ACK');
+    const hash=str_(p.scheduleHash),count=Number(p.scheduleCount);
+    if(applied){
+      assert_(deviceId==='S3-001','SCHEDULE_ACK_DEVICE_ID_INVALID');
+      assert_(/^[0-9a-f]{64}$/i.test(hash),'SCHEDULE_ACK_HASH_INVALID');
+      assert_(Number.isInteger(count)&&count>=0&&count<=1000,'SCHEDULE_ACK_COUNT_INVALID');
+    }
+    // Optional protocol: older firmware still sends heartbeat without bootId,
+    // and can never be reported as schedule-synced.
+    const lock=LockService.getScriptLock();lock.waitLock(5000);
+    try{
+      const g=grid_('Devices'),r=g.rows.find(x=>str_(x.data.device_id)===deviceId);
+      assert_(r||!applied,'SCHEDULE_ACK_DEVICE_NOT_REGISTERED');
+      let matched=false;
+      if(applied){
+        const current=scheduleManifest_(
+          grid_('MealMedicines').rows.map(x=>safeMedicine_(x.data)));
+        matched=hash===current.scheduleHash&&count===current.scheduleCount;
+      }
+      if(r){
+        if(bootId)ensureDeviceAckColumns_(g);
+        const val={online_status:'ONLINE',lock_status:upper_(p.lock||'UNKNOWN'),
+          last_seen:tzNow_(),wifi_rssi_dbm:Number(p.rssi)||0};
+        if(g.keys.includes('current_boot_id'))val.current_boot_id=bootId;
+        if(applied&&matched){
+          val.schedule_ack_boot_id=bootId;val.schedule_ack_hash=hash;
+          val.schedule_ack_count=String(count);val.schedule_ack_at=tzNow_();
+        }
+        writeRow_(g,r.index,val);
+      }
+      return {ok:true,receivedAt:tzNow_(),
+        scheduleAckAccepted:applied?matched:false};
+    }finally{lock.releaseLock();}
   }
   // The emergency button is shared by the entire cabinet. ALL is an explicit
   // cabinet-wide emergency and must not be misattributed to P001.
