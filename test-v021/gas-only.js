@@ -625,6 +625,12 @@ function admin(){
     '<label>สถานะ<select id="userStatus"><option value="ACTIVE">ACTIVE</option><option value="INACTIVE">INACTIVE</option></select></label>'+
     '<div class="gas-actions"><button class="gas-btn" type="submit">บันทึกบัญชี</button>'+
     '<button type="button" class="gas-btn light" data-action="new-user">ล้างแบบฟอร์ม / เพิ่มบัญชีใหม่</button></div></form>')+
+  panel('ตรวจความพร้อมซอฟต์แวร์ก่อนนำเสนอ (ADMIN)',
+    state.data.capabilities?.systemReadiness?
+      '<p class="gas-muted">ตรวจสถานะจาก Apps Script และ Google Sheets แบบอ่านอย่างเดียว ไม่ส่ง LINE ไม่เขียนข้อมูลและไม่สั่งอุปกรณ์ การผ่านทุกหัวข้อยังไม่ใช่ผลทดสอบฮาร์ดแวร์</p>'+
+      '<button type="button" class="gas-btn light" data-action="system-readiness">ตรวจความพร้อมล่าสุด</button>'+
+      '<pre id="systemReadiness" role="status" class="gas-muted" style="white-space:pre-wrap">ยังไม่ได้ตรวจความพร้อมซอฟต์แวร์</pre>':
+      '<p class="gas-muted">ต้อง Deploy Code.gs และ Bridge.html รุ่นใหม่ก่อน จึงจะแสดงเครื่องมือตรวจความพร้อม (ไม่กระทบการทำงานเดิม)</p>')+
   panel('ตั้งค่าผู้รับ LINE (ADMIN)',
     state.data.capabilities?.lineAdmin?
       '<p class="gas-muted">เปิดหรือปิดการรับ LINE ของแต่ละบัญชี และตั้งค่า LINE User ID ได้โดยไม่เผยรหัสเดิม การตั้งค่านี้ไม่เปิดการแจ้งเตือนรอบยาอัตโนมัติทั้งระบบ</p>'+
@@ -654,6 +660,32 @@ function admin(){
 '<p class="gas-muted">ระบบทดสอบ ADMIN จะเปิดให้ใช้เมื่อ Apps Script ที่ Deploy อยู่ยืนยันว่ารองรับฟังก์ชันใหม่ (Code.gs + Bridge.html) ก่อนหน้านั้นจะไม่แสดงปุ่มเริ่มทดสอบ เพื่อป้องกันปุ่มค้างหรือรอจนหมดเวลา</p>');
 }
 let previousDemoId='';
+function showSystemReadiness(data){
+  const node=$('systemReadiness');if(!node)return;
+  if(!data||typeof data!=='object'||data.readOnly!==true){
+    node.textContent='ไม่พบผลตรวจจาก Apps Script รุ่นที่รองรับ';return;
+  }
+  const names={
+    realSchedules:'ตารางยาจริง',s3Online:'ESP32-S3',
+    scheduleApplied:'ยืนยันการซิงก์ตารางยา',lineToken:'LINE Token',
+    lineTrigger:'Trigger LINE',lineEnabled:'เปิด LINE รอบยา',
+    lineRecipients:'ผู้รับ LINE',driveFolder:'โฟลเดอร์ภาพ',
+    cameraOnline:'ESP32-CAM'
+  };
+  const checks=Array.isArray(data.checklist)?data.checklist:[];
+  const lines=[
+    'ตรวจเมื่อ: '+String(data.checkedAt||'—'),
+    'Apps Script: '+String(data.backendVersion||'—'),
+    'รายการที่พร้อม: '+checks.filter(x=>x.passed===true).length+' / '+checks.length,
+    '— รายการตรวจ —'
+  ];
+  checks.forEach(x=>lines.push((x.passed===true?'ผ่าน':'ยังไม่ผ่าน')+
+    ' · '+(names[x.id]||String(x.id||'—'))+' — '+String(x.detail||'')));
+  lines.push('รูปใน Google Drive: '+Number(data.images?.storedInDriveCount||0)+' รายการ');
+  lines.push('หมายเหตุ: '+String(data.warning||'ยังต้องทดสอบกับตู้จริง'));
+  lines.push('การตรวจนี้อ่านข้อมูลอย่างเดียว ไม่ได้เปิดบริการหรือส่งข้อความใด ๆ');
+  node.textContent=lines.join('\n');
+}
 function showLineReadiness(data){
   const node=$('lineReadiness');if(!node)return;
   if(!data||typeof data!=='object'){node.textContent='ไม่พบข้อมูลตรวจความพร้อม LINE';return;}
@@ -882,6 +914,12 @@ document.addEventListener('click',async e=>{
       clearUserForm();
     }
     else if(action==='gallery')window.location.hash='#gallery';
+    else if(action==='system-readiness'){
+      if(state.data.user.role!=='ADMIN'||!state.data.capabilities?.systemReadiness)
+        throw Error('คำสั่งนี้ต้องใช้ Apps Script รุ่นใหม่สำหรับ ADMIN');
+      const readiness=await call('getSystemReadiness',state.token);
+      showSystemReadiness(readiness);
+    }
     else if(action==='line-readiness'){
       if(state.data.user.role!=='ADMIN'||!state.data.capabilities?.lineAdmin)throw Error('คำสั่งนี้ต้องใช้ Apps Script เวอร์ชันใหม่สำหรับ ADMIN');
       const status=await call('getLineReadiness',state.token);
