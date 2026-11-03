@@ -468,9 +468,19 @@ function gallery(){
     panel('ข้อควรทราบ','<p class="gas-muted">ภาพที่ยังอยู่เฉพาะ SD Card ไม่สามารถเปิดผ่านอินเทอร์เน็ตได้ ต้องให้ ESP32-CAM อัปโหลดเข้าระบบก่อน</p>');
 }
 function camera(){
+  const files=state.data.images.filter(x=>String(x.available).toUpperCase()==='TRUE');
+  const newest=files[0]||null;
+  const preview=newest?
+    '<p><strong>ภาพล่าสุดในรายการที่มีสิทธิ์ดู</strong> — '+html(newest.patientId)+' · '+html(newest.time||'ไม่ทราบเวลา')+'</p>'+
+    '<p class="gas-muted">'+html(newest.filename||'ชื่อไฟล์ไม่ระบุ')+'</p>'+
+    '<button type="button" class="gas-btn light" data-action="image" data-id="'+html(newest.id)+'">เปิดภาพล่าสุดจาก Google Drive</button>'+
+    '<div id="photo-'+html(newest.id)+'"></div>':
+    empty('ยังไม่มีภาพที่ระบุว่าพร้อมเปิดจาก Google Drive');
   return '<div class="gas-heading"><h1>กล้อง ESP32-CAM</h1></div>'+
+    panel('ภาพล่าสุดที่บันทึกไว้',preview+
+      '<p class="gas-muted">ภาพนี้ไม่ใช่การถ่ายทอดสด และการมีรายการภาพไม่ได้พิสูจน์ว่ากล้องออนไลน์ในขณะนี้</p>')+
     panel('การดูภาพสด','<p>กล้องทำงานบนเครือข่าย Wi-Fi ภายในบ้าน</p>'+
-    '<p class="gas-muted">การเปิดภาพ HTTP จากหน้า HTTPS อาจถูกเบราว์เซอร์บล็อก และผู้ดูแลที่อยู่นอกบ้านจะเข้า IP ภายในบ้านไม่ได้</p>'+
+    '<p class="gas-muted">การเปิดภาพ HTTP จากหน้า HTTPS อาจถูกเบราว์เซอร์บล็อก และผู้ดูแลนอกบ้านไม่สามารถเข้า IP ภายในบ้านได้โดยตรง</p>'+
     '<p>ใช้คลังรูปภาพ Google Drive สำหรับตรวจสอบภาพจากระยะไกล</p>'+
     '<button class="gas-btn" data-action="gallery">เปิดคลังภาพ</button>');
 }
