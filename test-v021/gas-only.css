@@ -6,6 +6,7 @@
 .gas-login h1{color:#124779;margin:10px 0}.gas-login form{text-align:left}
 .gas-login label{font-weight:700;display:block;margin-top:14px;margin-bottom:6px}
 .gas-login input,.gas-form input,.gas-form select,.gas-form textarea{border:1px solid #c6d6e7;background:#fff;padding:12px;border-radius:9px;width:100%;box-sizing:border-box;font:inherit}
+.gas-form input[readonly]{background:#f3f6fa;color:#526781;border-color:#d7e1eb;cursor:not-allowed}
 .gas-login button{width:100%;margin-top:16px}
 #gasStatus{min-height:20px;color:#3975a5;font-size:14px;margin:14px 0 2px}
 .gas-btn{display:inline-block;border:0;background:#1666b1;color:#fff;border-radius:10px;padding:10px 15px;font:inherit;cursor:pointer;font-weight:700}
