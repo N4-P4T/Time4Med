@@ -448,6 +448,37 @@ function inspectLineReminderReadiness_() {
   Logger.log(JSON.stringify(summary));
   return summary;
 }
+/**
+ * Reserved, side-effect-free Q8H calculator for a future device protocol.
+ * This is deliberately NOT connected to saveMedicine, pullSchedule or LINE:
+ * they must not falsely advertise relative scheduling until S3 reports an
+ * explicit medicineId for the first confirmation, and the protocol is tested.
+ * The anchor never moves when subsequent confirmations are received.
+ */
+function q8hPlan_(firstConfirmedAt,referenceTime) {
+  const first=parseDateTime_(firstConfirmedAt),at=referenceTime==null?
+    new Date():referenceTime instanceof Date?referenceTime:parseDateTime_(referenceTime);
+  if(isNaN(first.getTime())||isNaN(at.getTime()))return {ready:false,reason:'INVALID_Q8H_CLOCK'};
+  const intervalMs=8*60*60*1000,elapsed=at.getTime()-first.getTime();
+  const step=Math.max(1,Math.floor(elapsed/intervalMs)+1);
+  const due=new Date(first.getTime()+step*intervalMs);
+  return {ready:true,intervalHours:8,stepIndex:step,
+    nextDueAt:Utilities.formatDate(due,T4M.tz,'yyyy-MM-dd HH:mm:ss')};
+}
+function q8hDueInGrace_(firstConfirmedAt,referenceTime,graceMinutes) {
+  const first=parseDateTime_(firstConfirmedAt),at=referenceTime instanceof Date?
+    referenceTime:parseDateTime_(referenceTime);
+  const grace=graceMinutes==null?4:Number(graceMinutes);
+  if(isNaN(first.getTime())||isNaN(at.getTime())||
+     !Number.isInteger(grace)||grace<0||grace>5)return null;
+  const intervalMs=8*60*60*1000,elapsed=at.getTime()-first.getTime();
+  if(elapsed<intervalMs)return null; // Confirmation itself is not a due reminder.
+  const step=Math.floor(elapsed/intervalMs);
+  const dueMs=first.getTime()+step*intervalMs;
+  const elapsedMinutes=Math.floor(at.getTime()/60000)-Math.floor(dueMs/60000);
+  if(at.getTime()<dueMs||elapsedMinutes>grace)return null;
+  return {stepIndex:step,dueAt:Utilities.formatDate(new Date(dueMs),T4M.tz,'yyyy-MM-dd HH:mm:ss')};
+}
 function notificationLog_(key,p,recipient,type,status,error) {
   const g=grid_('NotificationLog');const row=g.sheet.getLastRow()+1;
   writeRow_(g,null,{notification_id:key,event_id:key,patient_id:p,recipient_user_id:recipient,
