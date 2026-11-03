@@ -19,6 +19,15 @@ const message=(s,bad=false)=>{const e=$('gasStatus');if(e){e.textContent=s;e.cla
 const activeMedicines=()=>state.data.medicines.filter(x=>x.active&&!x.demo&&String(x.kind).toUpperCase()!=='PRN');
 const safeVal=(s)=>html(s);
 const asTime=x=>/^\d\d:\d\d$/.test(x)?x:'—';
+function dayLabel(value){
+  const s=String(value||'').trim().toUpperCase();
+  if(!s||s==='ALL'||s==='EVERYDAY')return 'ทุกวัน';
+  const keys=s.split(',').map(x=>x.trim()).filter(Boolean);
+  const all=DAYS.map(([key])=>key);
+  if(all.every(key=>keys.includes(key)))return 'ทุกวัน';
+  const names=new Map(DAYS);
+  return keys.every(key=>names.has(key))?keys.map(key=>names.get(key)).join(' · '):s;
+}
 function bridgeOrigin(origin) {
   try {const u=new URL(origin);return u.protocol==='https:' && (u.hostname==='script.google.com'||u.hostname==='script.googleusercontent.com'||u.hostname.endsWith('.googleusercontent.com'));}catch(_){return origin==='null';}
 }
@@ -258,7 +267,7 @@ function dashboard(){
 }
 function medication(){
   const d=state.data,items=d.medicines;
-  const rows=items.map(m=>tr([html(m.patientId),html(m.name)+(m.demo?' <span class="gas-muted">(ทดสอบ — ไม่ส่งเข้าตู้)</span>':''),html(m.meal),html(asTime(m.time)),html(m.days),
+  const rows=items.map(m=>tr([html(m.patientId),html(m.name)+(m.demo?' <span class="gas-muted">(ทดสอบ — ไม่ส่งเข้าตู้)</span>':''),html(m.meal),html(asTime(m.time)),html(dayLabel(m.days)),
     m.demo?(m.active?'ทดสอบ · เปิด':'ทดสอบ · ปิด'):(m.active?'ใช้งาน':'ปิดใช้'),'<button class="gas-btn light" data-action="edit" data-id="'+html(m.id)+'">แก้ไข</button> '+
     (m.active?'<button class="gas-btn danger" data-action="disable" data-id="'+html(m.id)+'">ปิดใช้</button>':'')]));
   const pOptions=d.patients.map(p=>'<option value="'+html(p.id)+'">'+html(p.id+' ชั้น '+p.shelf+' — '+p.name)+'</option>').join('');
