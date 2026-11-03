@@ -143,7 +143,7 @@ function bootstrap(token) {
   const users=user.role==='ADMIN'?grid_('Users').rows.map(x=>({id:x.data.user_id,email:x.data.email,name:x.data.display_name,
     role:x.data.role,patients:x.data.patient_id,status:x.data.status,lineConfigured:Boolean(x.data.line_user_id)})):[];
   return {user:publicUser_(user),patients,medicines,activity,images,devices,users,serverTime:tzNow_(),
-    capabilities:{lineAdmin:user.role==='ADMIN'},backendVersion:'2026-11-03-line-admin-1',
+    capabilities:{lineAdmin:user.role==='ADMIN',demoAdmin:user.role==='ADMIN'},backendVersion:'2026-11-03-line-admin-2',
     note:'สถานะการกดยืนยันไม่ใช่หลักฐานว่ากลืนยาแล้ว และสถานะอุปกรณ์ต้องมาจากข้อมูลใหม่เท่านั้น'};
 }
 function parseDateTime_(value) {
