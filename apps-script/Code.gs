@@ -233,10 +233,11 @@ function writeRow_(g,rowIndex,data) {
   if(rowIndex) g.sheet.getRange(rowIndex,1,1,g.keys.length).setValues([current]);
   else g.sheet.appendRow(current);
 }
-function logActivity_(patientId,userId,kind,details,result,sourceDeviceId) {
-  // Return one audit-event ID so device intake rows can reference the very
-  // same event, rather than creating a second unrelated event ID.
-  const eventId=Utilities.getUuid();
+function logActivity_(patientId,userId,kind,details,result,sourceDeviceId,stableEventId) {
+  // Return one audit-event ID so device intake rows can reference the same
+  // event. Optional stableEventId is generated server-side from a device
+  // event key after validating the authenticated device request.
+  const eventId=stableEventId||Utilities.getUuid();
   const g=grid_('ActivityLog');writeRow_(g,null,{event_id:eventId,
     device_id:sourceDeviceId||'WEBSITE',patient_id:patientId||'ALL',
     user_id:userId,event_type:kind,result:result||'SUCCESS',
@@ -780,19 +781,39 @@ function postDevice_(e) {
       file_size_bytes:bytes.length,transfer_status:'DRIVE',available:'TRUE',drive_file_id:file.getId()});
     return {ok:true,imageId:id};
   }
-  const auditEventId=logActivity_(patientId,deviceId,p.action==='emergency'?'EMERGENCY':'INTAKE_CONFIRMED',
-    p.action==='emergency'?'มีการกดปุ่มฉุกเฉิน':'มีการกดยืนยันที่อุปกรณ์ (ไม่ใช่หลักฐานว่ากลืนยาแล้ว)',
-    undefined,deviceId);
   if(p.action==='intake'){
-    const confirmedAt=tzNow_();
-    // The S3 currently reports a patient/button confirmation, but not an
-    // authenticated schedule occurrence. Do NOT fabricate scheduled_at as
-    // the confirmation time: that would falsely imply the dose was on time.
-    const g=grid_('IntakeLog');writeRow_(g,null,{log_id:Utilities.getUuid(),
-      event_id:auditEventId,patient_id:patientId,
-      scheduled_at:'',confirmed_at:confirmedAt,status:'CONFIRMED',
-      confirmation_source:'BUTTON',created_at:confirmedAt});
+    // A stable eventId from the S3 makes HTTPS retries idempotent.
+    // Older devices without an eventId keep the existing behavior, without
+    // merging two genuine confirm-button presses based on time proximity.
+    const clientId=str_(p.eventId),medicineId=str_(p.medicineId);
+    assert_(!clientId||/^[A-Za-z0-9_-]{8,96}$/.test(clientId),'INTAKE_EVENT_ID_INVALID');
+    const stableId=clientId?'DEV-'+sha_(deviceId+':'+clientId).slice(0,32):'';
+    const lock=LockService.getScriptLock();lock.waitLock(8000);
+    try{
+      const g=grid_('IntakeLog');
+      if(stableId&&g.rows.some(r=>str_(r.data.event_id)===stableId))
+        return {ok:true,duplicate:true,receivedAt:tzNow_()};
+      if(medicineId){
+        const med=grid_('MealMedicines').rows.map(x=>safeMedicine_(x.data))
+          .find(m=>m.id===medicineId);
+        assert_(med&&med.patientId===patientId&&schedulableMedicine_(med),
+          'INTAKE_MEDICINE_ID_NOT_AUTHORIZED');
+      }
+      const confirmedAt=tzNow_();
+      const eventId=logActivity_(patientId,deviceId,'INTAKE_CONFIRMED',
+        'มีการกดยืนยันที่อุปกรณ์ (ไม่ใช่หลักฐานว่ากลืนยาแล้ว)',
+        undefined,deviceId,stableId);
+      // The S3 currently reports a patient/button confirmation, not a
+      // verified due occurrence. Never fabricate scheduled_at.
+      writeRow_(g,null,{log_id:Utilities.getUuid(),event_id:eventId,
+        patient_id:patientId,medicine_id:medicineId,scheduled_at:'',
+        confirmed_at:confirmedAt,status:'CONFIRMED',
+        confirmation_source:'BUTTON',created_at:confirmedAt});
+      return {ok:true,duplicate:false,receivedAt:confirmedAt};
+    }finally{lock.releaseLock();}
   }
+  logActivity_(patientId,deviceId,'EMERGENCY','มีการกดปุ่มฉุกเฉิน',
+    undefined,deviceId);
   if(p.action==='emergency'){
     uniqueLineRecipients_(grid_('Users').rows.map(x=>userForEmail_(x.data.email)).filter(x=>x&&x.lineEnabled&&x.lineId&&can_(x,patientId)))
       .forEach(u=>{try{lineTo_(u.lineId,'Time4Med ฉุกเฉิน! มีการกดปุ่มฉุกเฉินที่ตู้ยา ชั้น '+fixedShelf_(patientId)+' ('+patientId+') กรุณาตรวจสอบทันที\n\nเปิดเว็บไซต์ Time4Med:\n'+time4medWebsiteUrl_());}
