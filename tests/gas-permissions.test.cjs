@@ -104,6 +104,22 @@ c=ctx({Utilities:{base64Decode(){return [0,0,0,...Array(200).fill(0)]}},DriveApp
 c.run(`deviceAuthenticated_=()=>true;`);
 assert.throws(()=>c.run(`postDevice_({postData:{contents:JSON.stringify({action:'image',deviceKey:'test',patientId:'P001',jpegBase64:'A'.repeat(210)})}})`),/IMAGE_NOT_JPEG/);
 
+// An expired/disabled image must never be reopened through the caregiver API.
+c=ctx({
+  DriveApp:{getFileById(){throw Error('expired image must not hit Drive')}}
+});
+c.run(`
+  session_=()=>({id:'CG',role:'CAREGIVER',patientIds:['P001']});
+  grid_=()=>({rows:[{data:{
+    image_id:'IMG-EXPIRED',patient_id:'P001',
+    drive_file_id:'private-id',available:'FALSE'
+  }}]});
+`);
+assert.throws(()=>c.run("readImage('token','IMG-EXPIRED')"),
+  /ภาพไม่พร้อมใช้งานหรือหมดอายุ/);
+assert.throws(()=>c.run("readImage('token','MISSING')"),
+  /ไม่มีสิทธิ์เข้าถึงภาพ/);
+
 const html=fs.readFileSync(path.join(__dirname,'../apps-script/Index.html'),'utf8');
 const scripts=[...html.matchAll(/<script(?:\s[^>]*)?>([\s\S]*?)<\/script>/ig)].map(x=>x[1]);
 for(const js of scripts) new vm.Script(js);
