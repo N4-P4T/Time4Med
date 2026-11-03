@@ -5,11 +5,15 @@ on:
     paths:
       - 'apps-script/**'
       - 'tests/gas-*.cjs'
+      - 'tests/intake-audit-integrity.cjs'
+      - 'tests/line-reminder-safety.cjs'
       - '.github/workflows/gas-release-check.yml'
   push:
     paths:
       - 'apps-script/**'
       - 'tests/gas-*.cjs'
+      - 'tests/intake-audit-integrity.cjs'
+      - 'tests/line-reminder-safety.cjs'
       - '.github/workflows/gas-release-check.yml'
 jobs:
   gas-offline-tests:
@@ -27,3 +31,9 @@ jobs:
         run: node tests/gas-permissions.test.cjs
       - name: Admin-only ephemeral real-device demonstration tests
         run: node tests/gas-demo.test.cjs
+      - name: S3 verified schedule apply, reboot and empty-schedule tests
+        run: node tests/gas-schedule-ack.test.cjs
+      - name: Device intake idempotency and audit integrity
+        run: node tests/intake-audit-integrity.cjs
+      - name: LINE reminder trigger jitter and duplicate safety
+        run: node tests/line-reminder-safety.cjs
