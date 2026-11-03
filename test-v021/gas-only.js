@@ -494,7 +494,7 @@ async function saveUser(ev){
   const role=$('userRole').value,status=$('userStatus').value;
   const patientIds=String($('userPatients').value||'').toUpperCase()
     .split(',').map(x=>x.trim()).filter(Boolean);
-  if(!/^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(email))return pageMessage('อีเมลไม่ถูกต้อง',true);
+  if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))return pageMessage('อีเมลไม่ถูกต้อง',true);
   if(!name)return pageMessage('กรุณากรอกชื่อแสดงของผู้ดูแล',true);
   if(role==='CAREGIVER'&&(!patientIds.length||patientIds.some(x=>!['P001','P002','P003'].includes(x))||
       new Set(patientIds).size!==patientIds.length))
