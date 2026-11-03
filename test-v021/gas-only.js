@@ -464,8 +464,19 @@ async function saveMedicine(ev){
     instruction:$('medInstruction').value,active:$('medActive').checked};
   medicineSaveBusy=true;
   const button=ev.submitter;if(button)button.disabled=true;
-  try{await call('saveMedicine',state.token,value);await reload();pageMessage('บันทึกตารางยาสำเร็จ');}
-  catch(e){pageMessage(e.message,true);}finally{medicineSaveBusy=false;if(button)button.disabled=false;}
+  let saved=false, uncertain=false;
+  try{
+    await call('saveMedicine',state.token,value);
+    saved=true;
+    await reload();
+    pageMessage('บันทึกตารางยาสำเร็จ');
+  }catch(e){
+    if(saved)pageMessage('บันทึกตารางยาแล้ว แต่โหลดรายการล่าสุดไม่สำเร็จ กรุณากด “โหลดล่าสุด” ก่อนดำเนินการต่อ ห้ามกดบันทึกซ้ำ',true);
+    else{
+      uncertain=/ตอบสนองช้าเกินไป|timeout|network|failed to fetch|เชื่อมต่อ/i.test(String(e.message||e));
+      pageMessage((uncertain?'ยังยืนยันผลการบันทึกไม่ได้ โปรดกด “โหลดล่าสุด” ตรวจรายการก่อนบันทึกซ้ำ: ':'บันทึกไม่สำเร็จ: ')+(e.message||String(e)),true);
+    }
+  }finally{medicineSaveBusy=false;if(button&&!saved&&!uncertain)button.disabled=false;}
 }
 function clearUserForm(){
   const form=$('gasUserForm');if(!form)return;
@@ -508,8 +519,19 @@ async function saveUser(ev){
   if(API_URL){value.username=$('userUsername').value.trim();value.newPassword=$('userNewPassword').value;}
   userSaveBusy=true;
   const button=ev.submitter;if(button)button.disabled=true;
-  try{await call('saveUser',state.token,value);await reload();pageMessage('บันทึกบัญชีแล้ว');}
-  catch(e){pageMessage(e.message,true);}finally{userSaveBusy=false;if(button)button.disabled=false;}
+  let saved=false, uncertain=false;
+  try{
+    await call('saveUser',state.token,value);
+    saved=true;
+    await reload();
+    pageMessage('บันทึกบัญชีสำเร็จ');
+  }catch(e){
+    if(saved)pageMessage('บันทึกบัญชีแล้ว แต่โหลดข้อมูลล่าสุดไม่สำเร็จ กรุณากด “โหลดล่าสุด” ก่อนดำเนินการต่อ',true);
+    else{
+      uncertain=/ตอบสนองช้าเกินไป|timeout|network|failed to fetch|เชื่อมต่อ/i.test(String(e.message||e));
+      pageMessage((uncertain?'ยังยืนยันผลการบันทึกบัญชีไม่ได้ โปรดกด “โหลดล่าสุด” ตรวจสอบก่อนบันทึกซ้ำ: ':'บันทึกบัญชีไม่สำเร็จ: ')+(e.message||String(e)),true);
+    }
+  }finally{userSaveBusy=false;if(button&&!saved&&!uncertain)button.disabled=false;}
 }
 document.addEventListener('click',async e=>{
   const btn=e.target.closest('[data-action]');if(!btn||!state.data)return;
@@ -540,7 +562,9 @@ document.addEventListener('click',async e=>{
     }
     else if(action==='disable'){
       const m=state.data.medicines.find(x=>x.id===id);if(!m||!window.confirm('ปิดใช้งานยา '+m.name+' ของ '+m.patientId+'?'))return;
-      await call('disableMedicine',state.token,id);await reload();pageMessage('ปิดใช้รายการยาแล้ว');
+      await call('disableMedicine',state.token,id);
+      try{await reload();pageMessage('ปิดใช้รายการยาแล้ว');}
+      catch(_){pageMessage('ระบบปิดใช้งานรายการยาแล้ว แต่โหลดหน้าล่าสุดไม่สำเร็จ กรุณากด “โหลดล่าสุด” ก่อนทำรายการอื่น',true);}
     }else if(action==='new'){$('gasMedicineForm').reset();$('medId').value='';}
     else if(action==='edit'){
       const m=state.data.medicines.find(x=>x.id===id);if(!m)return;
