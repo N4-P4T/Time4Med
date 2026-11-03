@@ -621,6 +621,20 @@ function admin(){
     '<label>สถานะ<select id="userStatus"><option value="ACTIVE">ACTIVE</option><option value="INACTIVE">INACTIVE</option></select></label>'+
     '<div class="gas-actions"><button class="gas-btn" type="submit">บันทึกบัญชี</button>'+
     '<button type="button" class="gas-btn light" data-action="new-user">ล้างแบบฟอร์ม / เพิ่มบัญชีใหม่</button></div></form>')+
+  panel('ตั้งค่าผู้รับ LINE (ADMIN)',
+    state.data.capabilities?.lineAdmin?
+      '<p class="gas-muted">เปิดหรือปิดการรับ LINE ของแต่ละบัญชี และตั้งค่า LINE User ID ได้โดยไม่เผยรหัสเดิม การตั้งค่านี้ไม่เปิดการแจ้งเตือนรอบยาอัตโนมัติทั้งระบบ</p>'+
+      '<form id="gasLineRecipientForm" class="gas-form">'+
+      '<label>บัญชีผู้รับ<select id="lineTarget" required>'+
+        state.data.users.map(u=>'<option value="'+html(u.email)+'">'+html(u.email+' ('+u.role+', '+u.status+')')+'</option>').join('')+
+      '</select></label>'+
+      '<label>การรับแจ้งเตือน<select id="lineEnabledMode"><option value="KEEP">คงสถานะการรับแจ้งเตือนเดิม</option><option value="TRUE">เปิดรับแจ้งเตือน</option><option value="FALSE">ปิดรับแจ้งเตือน</option></select></label>'+
+      '<label>LINE User ID ใหม่ (เว้นว่างไว้เพื่อเก็บค่าเดิม)<input id="lineNewId" autocomplete="off" maxlength="33" placeholder="U ตามด้วยรหัส 32 ตัว"></label>'+
+      '<label class="gas-inline"><input id="lineClearId" type="checkbox"> ลบ LINE User ID เดิม (ต้องปิดการแจ้งเตือนด้วย)</label>'+
+      '<div class="gas-actions"><button type="submit" class="gas-btn">บันทึกผู้รับ LINE</button>'+
+      '<button type="button" class="gas-btn light" data-action="line-readiness">ตรวจความพร้อม LINE</button></div>'+
+      '</form><pre id="lineReadiness" role="status" class="gas-muted" style="white-space:pre-wrap">ยังไม่ได้ตรวจความพร้อม LINE</pre>':
+      '<p class="gas-muted">โค้ดบน GitHub รองรับการตั้งค่า LINE แล้ว แต่ Apps Script ที่ออนไลน์ยังไม่ประกาศว่ารองรับฟังก์ชันนี้ ต้อง Deploy Code.gs และ Bridge.html เวอร์ชันใหม่ก่อน จึงจะแสดงฟอร์มตั้งค่า (ระบบเดิมยังใช้งานได้)</p>')+
   panel('ทดสอบ LINE','<button data-action="line" class="gas-btn">ส่งข้อความทดสอบไป LINE ของแอดมิน</button>'+
     '<p class="gas-muted">สถานะ “มี LINE User ID” หมายถึงพบรหัสในข้อมูลเท่านั้น ไม่ได้ยืนยันว่าเปิดรับแจ้งเตือนหรือส่งสำเร็จ การทดสอบต้องตรวจข้อความที่ได้รับจริง และไม่เปิดแจ้งเตือนยาตามเวลาโดยอัตโนมัติ</p>')+
   panel('ทดสอบระบบ (ADMIN)','<p class="gas-muted">สาธิตแยกจากตารางยาจริง ไม่เขียนบันทึกการรับยา ไม่สร้างภาพใน Google Drive และไม่ส่ง LINE โดยอัตโนมัติ กรุณาเริ่มเมื่อมีผู้ดูแลอยู่ที่ตู้เท่านั้น</p>'+
@@ -635,6 +649,28 @@ function admin(){
     '<p class="gas-muted">ปุ่มนี้ต้องใช้ Apps Script ที่ Deploy ฟังก์ชันทดสอบไว้แล้ว และ ESP32-S3 ต้องรองรับ demoPoll/demoEvent จึงจะรายงานผลครบจริง การกดเริ่มไม่ได้หมายความว่าตู้ผ่านการทดสอบ</p>');
 }
 let previousDemoId='';
+function showLineReadiness(data){
+  const node=$('lineReadiness');if(!node)return;
+  if(!data||typeof data!=='object'){node.textContent='ไม่พบข้อมูลตรวจความพร้อม LINE';return;}
+  const candidates=Array.isArray(data.dueCandidates)?data.dueCandidates:[];
+  const users=Array.isArray(data.recipients)?data.recipients:[];
+  const uncovered=candidates.filter(x=>!Number(x.recipientCount));
+  const lines=[
+    'ระบบแจ้งเตือนรอบยา: '+(data.enabled?'เปิดตามการตั้งค่า':'ยังไม่ได้เปิด'),
+    'LINE Channel Access Token: '+(data.tokenConfigured?'ตั้งค่าแล้ว':'ยังไม่ได้ตั้งค่า'),
+    'ทริกเกอร์แจ้งเตือนตามเวลา: '+Number(data.triggerCount||0)+' รายการ',
+    'ยาที่เข้าเงื่อนไขแจ้งเตือน: '+Number(data.medicineEligibleCount||0)+' รายการ',
+    'รายการทดสอบที่ระบบตัดออก: '+Number(data.medicineExcludedDemoCount||0)+' รายการ',
+    'ผู้รับที่เปิดแจ้งเตือนและมี LINE ID: '+Number(data.lineEnabledUserRows||0)+' บัญชี',
+    'จุดหมาย LINE ที่ไม่ซ้ำกัน: '+Number(data.uniqueLineDestinations||0)+' ราย',
+    'รอบยาที่ไม่มีผู้รับพร้อมแจ้ง: '+uncovered.length+' รายการ',
+    '— ผู้รับแต่ละบัญชี (ไม่แสดง LINE User ID) —'
+  ];
+  users.forEach(u=>lines.push(String(u.email||'—')+' · '+(u.lineConfigured?'มี LINE ID':'ไม่มี LINE ID')+
+    ' · '+(u.notificationEnabled?'เปิด':'ปิด')+' · '+String(u.status||'—')));
+  lines.push('การตรวจนี้ไม่ส่ง LINE และไม่เปิดการแจ้งเตือน');
+  node.textContent=lines.join('\n');
+}
 function showDemoStatus(result){
   const el=$('demoResult');if(!el)return;
   const photoBtn=$('demoPhotoButton'),photoBox=$('demoPhotoResult');
@@ -681,6 +717,7 @@ function render(){
   text('mqttConnectionLabel','ข้อมูลจาก '+(API_URL?'API':'Apps Script')+' · ไม่ใช้ MQTT');
   const f=$('gasMedicineForm');if(f)f.addEventListener('submit',saveMedicine);
   const uf=$('gasUserForm');if(uf)uf.addEventListener('submit',saveUser);
+  const lf=$('gasLineRecipientForm');if(lf)lf.addEventListener('submit',saveLineRecipientForm);
   const cp=$('gasPasswordChange');if(cp)cp.addEventListener('submit',async ev=>{
     ev.preventDefault();const btn=ev.submitter;if(btn)btn.disabled=true;
     try{
@@ -797,6 +834,36 @@ async function saveUser(ev){
     }
   }finally{userSaveBusy=false;if(button&&!saved&&!uncertain)button.disabled=false;}
 }
+let lineSaveBusy=false;
+async function saveLineRecipientForm(ev){
+  ev.preventDefault();
+  if(lineSaveBusy||state.data?.user?.role!=='ADMIN'||!state.data?.capabilities?.lineAdmin)return;
+  const email=$('lineTarget').value,enabled=$('lineEnabledMode').value;
+  const lineUserId=$('lineNewId').value.trim(),clearLineId=$('lineClearId').checked;
+  if(!email)return pageMessage('เลือกบัญชีผู้รับ LINE',true);
+  if(clearLineId&&lineUserId)return pageMessage('ห้ามกรอกรหัส LINE ใหม่และเลือกลบรหัสพร้อมกัน',true);
+  if(clearLineId&&enabled==='TRUE')return pageMessage('ไม่สามารถลบ LINE User ID พร้อมกับเปิดแจ้งเตือน',true);
+  if(lineUserId&&!/^U[0-9a-fA-F]{32}$/.test(lineUserId))
+    return pageMessage('LINE User ID ต้องขึ้นต้นด้วย U ตามด้วยเลขฐานสิบหก 32 ตัว',true);
+  if(enabled==='KEEP'&&!lineUserId&&!clearLineId)return pageMessage('กรุณาเลือกสิ่งที่ต้องการเปลี่ยนก่อนบันทึก',true);
+  if(!window.confirm('บันทึกการตั้งค่า LINE ของ '+email+'? ระบบจะไม่เปิดแจ้งเตือนตามเวลาทั้งระบบโดยอัตโนมัติ'))return;
+  lineSaveBusy=true;
+  const button=ev.submitter;if(button)button.disabled=true;
+  let saved=false,uncertain=false;
+  try{
+    const result=await call('saveLineRecipient',state.token,{email,enabled,lineUserId,clearLineId});
+    saved=Boolean(result?.ok);
+    if(!saved)throw Error('ระบบยังไม่ยืนยันผลการบันทึก');
+    await reload();
+    pageMessage('บันทึกการตั้งค่าผู้รับ LINE สำเร็จ (ยังไม่ยืนยันว่า LINE รับข้อความแล้ว)');
+  }catch(err){
+    if(saved)pageMessage('บันทึก LINE สำเร็จแล้ว แต่รีเฟรชข้อมูลไม่สำเร็จ โปรดโหลดข้อมูลล่าสุดก่อนบันทึกซ้ำ',true);
+    else{
+      uncertain=/timeout|network|failed to fetch|ตอบสนองช้าเกินไป|เชื่อมต่อ/i.test(String(err.message||err));
+      pageMessage((uncertain?'ยังยืนยันผลการตั้งค่า LINE ไม่ได้ โปรดตรวจข้อมูลก่อนทำซ้ำ: ':'ตั้งค่า LINE ไม่สำเร็จ: ')+String(err.message||err),true);
+    }
+  }finally{lineSaveBusy=false;if(button&&!saved&&!uncertain)button.disabled=false;}
+}
 document.addEventListener('click',async e=>{
   const btn=e.target.closest('[data-action]');if(!btn||!state.data)return;
   const action=btn.dataset.action,id=btn.dataset.id;btn.disabled=true;
@@ -810,7 +877,12 @@ document.addEventListener('click',async e=>{
       clearUserForm();
     }
     else if(action==='gallery')window.location.hash='#gallery';
-    else if(action==='line'){await call('testLine',state.token);pageMessage('ส่งข้อความทดสอบ LINE สำเร็จ');}
+    else if(action==='line-readiness'){
+      if(state.data.user.role!=='ADMIN'||!state.data.capabilities?.lineAdmin)throw Error('คำสั่งนี้ต้องใช้ Apps Script เวอร์ชันใหม่สำหรับ ADMIN');
+      const status=await call('getLineReadiness',state.token);
+      showLineReadiness(status);
+    }
+    else if(action==='line'){await call('testLine',state.token);pageMessage('Apps Script ตอบว่าการส่ง LINE สำเร็จ กรุณาตรวจข้อความที่ปลายทางด้วย');}
     else if(action==='demo-photo'){
       if(state.data.user.role!=='ADMIN')throw Error('เฉพาะ ADMIN เท่านั้น');
       const demoId=String(btn.dataset.demoId||'');
