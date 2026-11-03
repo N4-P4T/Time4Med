@@ -16,7 +16,29 @@ const $=id=>document.getElementById(id);
 const html=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const text=(id,s)=>{const e=$(id);if(e)e.textContent=s;};
 const message=(s,bad=false)=>{const e=$('gasStatus');if(e){e.textContent=s;e.classList.toggle('bad',bad);}else console.log(s);};
-const activeMedicines=()=>state.data.medicines.filter(x=>x.active&&!x.demo&&String(x.kind).toUpperCase()!=='PRN');
+// Mirror the Apps Script schedulableMedicine_ validation for frontend diagnostics.
+// The backend remains authoritative; a green diagnostic is NOT proof of S3 sync.
+function medicineScheduleStatus(m){
+  if(!m||!m.active)return {eligible:false,reason:'ปิดใช้งาน'};
+  if(m.demo)return {eligible:false,reason:'ข้อมูลทดสอบ (TEST / DEMO / LINECHECK)'};
+  if(String(m.kind||'').toUpperCase()==='PRN')return {eligible:false,reason:'ยาใช้ตามอาการ (PRN)'};
+  if(!String(m.id||'').trim())return {eligible:false,reason:'ไม่พบรหัสรายการยา'};
+  const expected={P001:1,P002:2,P003:3}[String(m.patientId||'').toUpperCase()];
+  if(!expected||Number(m.shelf)!==expected)return {eligible:false,reason:'รหัสผู้สูงอายุหรือชั้นยาไม่ถูกต้อง'};
+  if(!Number.isInteger(m.mealType)||m.mealType<1||m.mealType>7)
+    return {eligible:false,reason:'ประเภทมื้อยาไม่ถูกต้อง'};
+  if(!/^(?:[01]\d|2[0-3]):[0-5]\d$/.test(String(m.time||'')))
+    return {eligible:false,reason:'เวลาแจ้งเตือนไม่ถูกต้อง'};
+  const days=String(m.days||'').trim().toUpperCase().replace(/\s/g,'');
+  if(days&&days!=='ALL'&&days!=='EVERYDAY'){
+    const allowed=new Set(['MON','TUE','WED','THU','FRI','SAT','SUN']);
+    const items=days.split(',').filter(Boolean);
+    if(!items.length||items.some(x=>!allowed.has(x)))
+      return {eligible:false,reason:'วันแจ้งเตือนไม่ถูกต้อง'};
+  }
+  return {eligible:true,reason:'เข้าเงื่อนไขตารางยาของ Apps Script'};
+}
+const activeMedicines=()=>state.data.medicines.filter(x=>medicineScheduleStatus(x).eligible);
 const safeVal=(s)=>html(s);
 const asTime=x=>/^\d\d:\d\d$/.test(x)?x:'—';
 function dayLabel(value){
@@ -311,7 +333,7 @@ function dashboard(){
   return '<div class="t21-heading"><div class="t21-heading-main"><p class="t21-eyebrow">TIME4MED / CAREGIVER CENTER</p>'+
     '<h1>ภาพรวมการดูแลวันนี้</h1><p class="t21-heading-description">ข้อมูลจาก Google Sheets ผ่าน '+(API_URL?'API':'Google Apps Script')+'</p></div></div>'+
     '<div class="t21-kpis">'+kpi('ผู้สูงอายุในสิทธิ์',d.patients.length,'P001–P003','👥')+
-    kpi('รายการยาที่ใช้งาน',active.length,'ไม่รวมรายการทดสอบ','💊')+
+    kpi('รายการยาตามตาราง',active.length,'ผ่านเกณฑ์ใน Apps Script แต่ยังไม่ยืนยันว่าตู้ซิงก์','💊')+
     kpi('มื้อยาถัดไปวันนี้',next?next.time:'—',next?next.patientId+' '+next.meal:'ไม่พบรอบที่เหลือในวันนี้','◷')+
     kpi('อุปกรณ์ออนไลน์',d.devices.filter(isLiveDevice).length,'heartbeat ภายใน 3 นาที','📶')+'</div>'+
     (emergency?panel('⚠️ บันทึกเหตุการณ์ฉุกเฉินภายใน 24 ชั่วโมง',
@@ -334,6 +356,28 @@ function dashboard(){
 }
 function medication(){
   const d=state.data,items=d.medicines;
+  const statusRows=items.map(m=>({medicine:m,...medicineScheduleStatus(m)}));
+  const eligible=statusRows.filter(x=>x.eligible);
+  const testActive=statusRows.filter(x=>x.medicine.active&&x.medicine.demo);
+  const invalidActive=statusRows.filter(x=>x.medicine.active&&!x.eligible&&!x.medicine.demo);
+  const inactive=statusRows.filter(x=>!x.medicine.active);
+  const issues=invalidActive.map(x=>tr([
+    html(x.medicine.patientId),html(x.medicine.name),html(x.reason)]));
+  const duplicateKey=m=>[
+    String(m.patientId||'').trim().toUpperCase(),
+    String(m.name||'').trim().toLocaleLowerCase(),
+    String(m.mealType||''),
+    String(m.time||''),
+    String(m.days||'').toUpperCase().split(',').map(x=>x.trim()).filter(Boolean).sort().join(',')
+  ].join('|');
+  const seenKeys=new Set(),duplicateRecords=[];
+  for(const x of eligible){
+    const key=duplicateKey(x.medicine);
+    if(seenKeys.has(key))duplicateRecords.push(x.medicine);
+    else seenKeys.add(key);
+  }
+  const duplicates=duplicateRecords.map(m=>tr([html(m.patientId),html(m.name),
+    html(m.time),html(dayLabel(m.days))]));
   const rows=items.map(m=>tr([html(m.patientId),html(m.name)+(m.demo?' <span class="gas-muted">(ทดสอบ — ไม่ส่งเข้าตู้)</span>':''),html(m.meal),html(asTime(m.time)),html(dayLabel(m.days)),
     m.demo?(m.active?'ทดสอบ · เปิด':'ทดสอบ · ปิด'):(m.active?'ใช้งาน':'ปิดใช้'),'<button class="gas-btn light" data-action="edit" data-id="'+html(m.id)+'">แก้ไข</button> '+
     (m.active?'<button class="gas-btn danger" data-action="disable" data-id="'+html(m.id)+'">ปิดใช้</button>':'')]));
@@ -342,6 +386,18 @@ function medication(){
   const choices=DAYS.map(([key,label])=>'<label class="gas-day"><input type="checkbox" value="'+key+'" name="medDay" checked> '+label+'</label>').join('');
   return '<div class="gas-heading"><h1>รายการยาและรอบแจ้งเตือน</h1><p>บันทึกลง Google Sheets · สิทธิ์ตามผู้สูงอายุ</p></div>'+
     '<p class="gas-muted">รายการที่ขึ้นต้น TEST_, DEMO_ หรือ LINECHECK_ เป็นข้อมูลทดสอบ: แสดงเพื่อให้แก้ไขหรือปิดใช้งานได้ แต่ไม่ถูกส่งเป็นตารางยาจริงให้ ESP32-S3 หรือ LINE</p>'+
+    panel('ตรวจความพร้อมของตารางยา (ข้อมูลจาก Apps Script)',
+      '<p><strong>รายการที่เข้าเงื่อนไข:</strong> '+eligible.length+
+      ' · <strong>รายการทดสอบที่เปิดอยู่:</strong> '+testActive.length+
+      ' · <strong>รายการเปิดอยู่แต่ไม่ผ่านเกณฑ์:</strong> '+invalidActive.length+
+      ' · <strong>รายการปิดใช้งาน:</strong> '+inactive.length+'</p>'+
+      (eligible.length===0?
+        '<p class="gas-muted"><strong>ขณะนี้ไม่มีรายการยาที่เข้าเงื่อนไขส่งให้ตู้สำหรับบัญชีนี้</strong> หากมีแต่ TEST_ จะไม่ถูกส่งเข้าตารางยาจริง</p>':'')+
+      (issues.length?'<p class="gas-muted">รายการที่เปิดอยู่แต่ต้องตรวจแก้:</p>'+
+        tbl(['ผู้สูงอายุ','ชื่อยา','เหตุผล'],issues):'')+
+      (duplicates.length?'<p class="gas-muted"><strong>อาจมีรายการยาซ้ำ:</strong> โปรดตรวจสอบก่อนใช้งานจริง</p>'+
+        tbl(['ผู้สูงอายุ','ชื่อยา','เวลา','วัน'],duplicates):'')+
+      '<p class="gas-muted">ตัวเลขนี้คำนวณจากรายการที่บัญชีนี้มีสิทธิ์ดู โดยเลียนแบบเกณฑ์ของ Code.gs เท่านั้น ไม่ใช่ผลตอบกลับยืนยันว่าตู้ ESP32-S3 ซิงก์สำเร็จ และไม่ยืนยันว่า LINE เปิดแจ้งเตือนแล้ว</p>')+
     panel('ตารางยาปัจจุบัน',rows.length?tbl(['ผู้สูงอายุ','ชื่อยา','มื้อยา','เวลา','วัน','สถานะ','จัดการ'],rows):empty('ยังไม่มีรายการยา'))+
     panel('เพิ่มหรือแก้ไขรายการยา','<form id="gasMedicineForm" class="gas-form">'+
       '<p id="medFormMode" class="gas-muted">กำลังเพิ่มรายการยาใหม่</p>'+
