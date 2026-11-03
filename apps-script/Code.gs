@@ -202,29 +202,50 @@ function logActivity_(patientId,userId,kind,details,result) {
   const g=grid_('ActivityLog');writeRow_(g,null,{event_id:Utilities.getUuid(),device_id:'WEBSITE',patient_id:patientId||'ALL',
     user_id:userId,event_type:kind,result:result||'SUCCESS',details:String(details).slice(0,400),occurred_at:tzNow_()});
 }
+function scheduleDaysIntersect_(first,second) {
+  try {
+    const a=new Set(days_(first).split(','));
+    return days_(second).split(',').some(day=>a.has(day));
+  }catch(_){return false;}
+}
 function saveMedicine(token,input) {
   const u=session_(token);
+  assert_(input&&typeof input==='object','ไม่มีข้อมูลยา');
   const p=upper_(input.patientId),name=str_(input.name),n=Number(input.mealType),time=str_(input.time);
   assert_(fixedShelf_(p),'เลือก P001–P003 เท่านั้น (ชั้น 4 ไม่ใช่ยาประจำบุคคล)');
   assert_(can_(u,p),'ไม่มีสิทธิ์จัดการยาของผู้สูงอายุนี้');
   assert_(name.length>=2&&name.length<=120,'ชื่อยาต้องยาว 2–120 ตัวอักษร');
   assert_(Number.isInteger(n)&&n>=1&&n<=7,'เลือกมื้อยา 1–7');
   assert_(/^(?:[01]\d|2[0-3]):[0-5]\d$/.test(time),'เวลาไม่ถูกต้อง (HH:mm)');
-  const days=days_(input.days),id=str_(input.id),g=grid_('MealMedicines');
-  const found=id?g.rows.find(r=>str_(r.data.record_id)===id):null;
-  assert_(!id||found,'ไม่พบรายการยาที่ต้องการแก้ไข');
-  // Existing record ownership must be checked separately from the new patientId.
-  // This blocks a caregiver from moving another patient's medicine onto their own shelf.
-  if(found) assert_(can_(u,patientIdOf_(found.data)),'ไม่มีสิทธิ์แก้ไขรายการยาของผู้สูงอายุนี้');
-  const pName=grid_('Patients').rows.find(x=>patientIdOf_(x.data)===p)?.data.display_name||p;
-  const val={record_id:id||Utilities.getUuid(),patient_id:p,patient:pName,name,
-    kind:'scheduled',meal_type:String(n),shelf:mealShelf_(n),box_number:String(fixedShelf_(p)).padStart(2,'0'),
-    reminder_time:time,instruction:str_(input.instruction).slice(0,500),is_active:input.active===false?'FALSE':'TRUE',
-    reminder_days:days,updated_at:stamp_(),source:'WEB_APPS_SCRIPT'};
-  if(!found){val.created_at=stamp_();val.stock_status='unchecked';}
+  const days=days_(input.days),id=str_(input.id);
+  // Validate and write while holding the same script lock; two simultaneous
+  // caregivers cannot create overlapping scheduled reminders by racing.
   const lock=LockService.getScriptLock();lock.waitLock(12000);
-  try{writeRow_(g,found?.index||null,val);logActivity_(p,u.id,found?'MEDICINE_UPDATED':'MEDICINE_CREATED',val.record_id);}finally{lock.releaseLock();}
-  return {ok:true,id:val.record_id};
+  try {
+    const g=grid_('MealMedicines');
+    const found=id?g.rows.find(r=>str_(r.data.record_id)===id):null;
+    assert_(!id||found,'ไม่พบรายการยาที่ต้องการแก้ไข');
+    if(found)assert_(can_(u,patientIdOf_(found.data)),
+      'ไม่มีสิทธิ์แก้ไขรายการยาของผู้สูงอายุนี้');
+    if(input.active!==false){
+      const duplicate=g.rows.map(r=>safeMedicine_(r.data)).some(m=>
+        m.active&&m.id!==id&&m.patientId===p&&
+        m.name.trim().toLocaleLowerCase()===name.toLocaleLowerCase()&&
+        m.mealType===n&&m.time===time&&scheduleDaysIntersect_(m.days,days));
+      assert_(!duplicate,'พบรายการยาชื่อเดียวกัน ผู้สูงอายุ มื้อ เวลา และวันแจ้งเตือนที่ทับซ้อน กรุณาแก้ไขรายการเดิม');
+    }
+    const pName=grid_('Patients').rows.find(x=>patientIdOf_(x.data)===p)?.data.display_name||p;
+    const val={record_id:id||Utilities.getUuid(),patient_id:p,patient:pName,name,
+      kind:'scheduled',meal_type:String(n),shelf:mealShelf_(n),
+      box_number:String(fixedShelf_(p)).padStart(2,'0'),
+      reminder_time:time,instruction:str_(input.instruction).slice(0,500),
+      is_active:input.active===false?'FALSE':'TRUE',
+      reminder_days:days,updated_at:stamp_(),source:'WEB_APPS_SCRIPT'};
+    if(!found){val.created_at=stamp_();val.stock_status='unchecked';}
+    writeRow_(g,found?.index||null,val);
+    logActivity_(p,u.id,found?'MEDICINE_UPDATED':'MEDICINE_CREATED',val.record_id);
+    return {ok:true,id:val.record_id};
+  }finally{lock.releaseLock();}
 }
 function disableMedicine(token,id) {
   const u=session_(token);const g=grid_('MealMedicines'),r=g.rows.find(x=>x.data.record_id===id);
