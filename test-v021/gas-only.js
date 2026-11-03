@@ -305,6 +305,7 @@ function dashboard(){
       (scheduleRows.length?tbl(['เวลา','ผู้สูงอายุ','ชื่อยา','มื้อยา'],scheduleRows):
         empty('ยังไม่มีรอบยาจริงในวันนี้ — รายการ TEST_ ไม่แสดงในตารางนี้')))+
     panel('สถานะการเชื่อมต่อ','<p>เว็บไซต์ GitHub Pages → '+(API_URL?'API':'Apps Script')+' → Google Sheets</p>'+
+      '<p class="gas-muted">ข้อมูลยาที่ปรากฏบนเว็บไม่ได้ยืนยันว่าตู้ ESP32-S3 ซิงก์ตารางยาล่าสุดแล้ว และ Heartbeat ไม่ได้ยืนยันการทำงานของ LED หรือเสียง</p>'+
       '<p class="gas-muted">ระบบ LINE ตามเวลาจะทำงานเมื่อผู้ดูแลระบบเปิดใช้งานใน Apps Script เท่านั้น การกดยืนยันไม่ใช่หลักฐานว่ากลืนยาแล้ว</p>'+
       '<button class="gas-btn" data-action="refresh">โหลดข้อมูลล่าสุด</button>')+
     (API_URL?panel('เปลี่ยนรหัสผ่านบัญชีของฉัน','<form id="gasPasswordChange" class="gas-form">'+
@@ -360,6 +361,7 @@ function devices(){
     html(isLiveDevice(x)?(x.lock||'—'):'ไม่ยืนยัน')]));
   return '<div class="gas-heading"><h1>สถานะอุปกรณ์</h1><p>สถานะจาก heartbeat จริง ไม่แสดง ONLINE หากข้อมูลหมดอายุ</p></div>'+
     panel('ESP32-S3 / ESP32-CAM',rows.length?tbl(['อุปกรณ์','ชนิด','สถานะ','รับข้อมูลล่าสุด','กลอน'],rows):empty('อุปกรณ์ยังไม่ส่ง heartbeat เข้าระบบ'))+
+    panel('การซิงก์ตารางยา','<p class="gas-muted">เว็บไซต์ยังไม่มีหลักฐานยืนยันจาก ESP32-S3 ว่าได้รับและนำตารางยารุ่นล่าสุดไปใช้แล้ว จึงไม่แสดงสถานะ SYNC สำเร็จ การมี Heartbeat หรือ HTTP 200 เพียงอย่างเดียวไม่ถือว่าอัปเดตตารางยาครบถ้วน</p>')+
     panel('ข้อจำกัด','<p class="gas-muted">ระบบตรวจ heartbeat ใหม่ทุกครั้งที่แสดงข้อมูล และโหลดสถานะล่าสุดอัตโนมัติเมื่อเปิดหน้านี้ทิ้งไว้ หากข้อมูลเกิน 3 นาทีจะไม่ยืนยันว่าอุปกรณ์ออนไลน์หรือกลอนอยู่ในสถานะใด เว็บนี้ไม่ส่งคำสั่งปลดล็อกผ่านอินเทอร์เน็ต</p>');
 }
 function analytics(){
@@ -622,8 +624,8 @@ document.addEventListener('DOMContentLoaded',()=>{
   const toggle=$('sidebarToggle');if(toggle)toggle.addEventListener('click',()=>document.body.classList.toggle('sidebar-collapsed'));
   const time=()=>{
     const now=new Date();
-    text('currentTime',now.toLocaleTimeString('th-TH',{hour:'2-digit',minute:'2-digit',hour12:false}));
-    text('currentDate',now.toLocaleDateString('th-TH',{day:'numeric',month:'long',year:'numeric'}));
+    text('currentTime',now.toLocaleTimeString('th-TH',{timeZone:'Asia/Bangkok',hour:'2-digit',minute:'2-digit',hour12:false}));
+    text('currentDate',now.toLocaleDateString('th-TH',{timeZone:'Asia/Bangkok',day:'numeric',month:'long',year:'numeric'}));
   };time();setInterval(time,30000);
   // Read-only views refresh automatically; never interrupt the medication/admin editor.
   setInterval(()=>{void refreshLiveView();},60000);
