@@ -33,6 +33,8 @@ jobs:
         run: node tests/gas-demo.test.cjs
       - name: S3 verified schedule apply, reboot and empty-schedule tests
         run: node tests/gas-schedule-ack.test.cjs
+      - name: Q8H first-confirmation arithmetic (not activated in production)
+        run: node tests/gas-q8h-logic.test.cjs
       - name: Device intake idempotency and audit integrity
         run: node tests/intake-audit-integrity.cjs
       - name: LINE reminder trigger jitter and duplicate safety
