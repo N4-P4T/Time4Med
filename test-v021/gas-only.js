@@ -608,7 +608,7 @@ function admin(){
   const rows=state.data.users.map(x=>tr([html(x.email),html(x.role),html(x.patients),html(x.status),
     x.lineConfigured?'มี LINE User ID':'ยังไม่มี LINE User ID',
     '<button type="button" class="gas-btn light" data-action="edit-user" data-email="'+html(x.email)+'">แก้ไขสิทธิ์</button>']));
-  return '<div class="gas-heading"><h1>จัดการระบบ</h1><p>เฉพาะผู้ดูแลระบบ ADMIN</p></div>'+
+  return '<div class="gas-heading"><h1>จัดการระบบ</h1><p>เฉพาะผู้ดูแลระบบ ADMIN · Apps Script: '+html(state.data.backendVersion||'เวอร์ชันเก่า / ยังไม่ระบุ')+'</p></div>'+
   panel('บัญชีผู้ใช้',tbl(['อีเมล','บทบาท','ดูแลผู้สูงอายุ','สถานะ','LINE User ID','จัดการ'],rows))+
   panel('เพิ่มหรือแก้ไขสิทธิ์ผู้ใช้','<form id="gasUserForm" class="gas-form">'+
     '<p id="userFormMode" class="gas-muted">กำลังสร้างบัญชีใหม่ — เลือกแก้ไขจากตารางเพื่อรักษาข้อมูลบัญชีเดิม</p>'+
@@ -637,7 +637,7 @@ function admin(){
       '<p class="gas-muted">โค้ดบน GitHub รองรับการตั้งค่า LINE แล้ว แต่ Apps Script ที่ออนไลน์ยังไม่ประกาศว่ารองรับฟังก์ชันนี้ ต้อง Deploy Code.gs และ Bridge.html เวอร์ชันใหม่ก่อน จึงจะแสดงฟอร์มตั้งค่า (ระบบเดิมยังใช้งานได้)</p>')+
   panel('ทดสอบ LINE','<button data-action="line" class="gas-btn">ส่งข้อความทดสอบไป LINE ของแอดมิน</button>'+
     '<p class="gas-muted">สถานะ “มี LINE User ID” หมายถึงพบรหัสในข้อมูลเท่านั้น ไม่ได้ยืนยันว่าเปิดรับแจ้งเตือนหรือส่งสำเร็จ การทดสอบต้องตรวจข้อความที่ได้รับจริง และไม่เปิดแจ้งเตือนยาตามเวลาโดยอัตโนมัติ</p>')+
-  panel('ทดสอบระบบ (ADMIN)','<p class="gas-muted">สาธิตแยกจากตารางยาจริง ไม่เขียนบันทึกการรับยา ไม่สร้างภาพใน Google Drive และไม่ส่ง LINE โดยอัตโนมัติ กรุณาเริ่มเมื่อมีผู้ดูแลอยู่ที่ตู้เท่านั้น</p>'+
+  panel('ทดสอบระบบ (ADMIN)',state.data.capabilities?.demoAdmin?'<p class="gas-muted">สาธิตแยกจากตารางยาจริง ไม่เขียนบันทึกการรับยา ไม่สร้างภาพใน Google Drive และไม่ส่ง LINE โดยอัตโนมัติ กรุณาเริ่มเมื่อมีผู้ดูแลอยู่ที่ตู้เท่านั้น</p>'+
     '<div class="gas-form"><label>ผู้สูงอายุ<select id="demoPatient"><option value="P001">P001 — ชั้น 1</option><option value="P002">P002 — ชั้น 2</option><option value="P003">P003 — ชั้น 3</option></select></label>'+
     '<label>มื้อยาทดสอบ<select id="demoMeal">'+MEALS.slice(1).map((m,i)=>'<option value="'+(i+1)+'"'+(i===1?' selected':'')+'>'+html(m)+'</option>').join('')+'</select></label>'+
     '<div class="gas-actions"><button type="button" data-action="demo-start" class="gas-btn">เริ่มทดสอบระบบ</button>'+
@@ -646,7 +646,8 @@ function admin(){
     '<pre id="demoResult" role="status" style="white-space:pre-wrap">ยังไม่ได้เรียกดูสถานะจาก Apps Script</pre>'+
     '<button type="button" id="demoPhotoButton" data-action="demo-photo" class="gas-btn light" hidden>ดูภาพสาธิตชั่วคราว</button>'+
     '<div id="demoPhotoResult"></div></div>'+
-    '<p class="gas-muted">ปุ่มนี้ต้องใช้ Apps Script ที่ Deploy ฟังก์ชันทดสอบไว้แล้ว และ ESP32-S3 ต้องรองรับ demoPoll/demoEvent จึงจะรายงานผลครบจริง การกดเริ่มไม่ได้หมายความว่าตู้ผ่านการทดสอบ</p>');
+    '<p class="gas-muted">ปุ่มนี้ต้องใช้ Apps Script ที่ Deploy ฟังก์ชันทดสอบไว้แล้ว และ ESP32-S3 ต้องรองรับ demoPoll/demoEvent จึงจะรายงานผลครบจริง การกดเริ่มไม่ได้หมายความว่าตู้ผ่านการทดสอบ</p>':
+'<p class="gas-muted">ระบบทดสอบ ADMIN จะเปิดให้ใช้เมื่อ Apps Script ที่ Deploy อยู่ยืนยันว่ารองรับฟังก์ชันใหม่ (Code.gs + Bridge.html) ก่อนหน้านั้นจะไม่แสดงปุ่มเริ่มทดสอบ เพื่อป้องกันปุ่มค้างหรือรอจนหมดเวลา</p>');
 }
 let previousDemoId='';
 function showLineReadiness(data){
@@ -884,7 +885,7 @@ document.addEventListener('click',async e=>{
     }
     else if(action==='line'){await call('testLine',state.token);pageMessage('Apps Script ตอบว่าการส่ง LINE สำเร็จ กรุณาตรวจข้อความที่ปลายทางด้วย');}
     else if(action==='demo-photo'){
-      if(state.data.user.role!=='ADMIN')throw Error('เฉพาะ ADMIN เท่านั้น');
+      if(state.data.user.role!=='ADMIN'||!state.data.capabilities?.demoAdmin)throw Error('ระบบสาธิต ADMIN ยังไม่พร้อมหรือยังไม่ Deploy');
       const demoId=String(btn.dataset.demoId||'');
       if(!demoId)throw Error('ยังไม่มีรหัสการสาธิตที่มีภาพ');
       const result=await call('getDemoPreview',state.token,demoId);
@@ -898,7 +899,7 @@ document.addEventListener('click',async e=>{
       }
     }
     else if(action==='demo-start'||action==='demo-status'||action==='demo-stop'){
-      if(state.data.user.role!=='ADMIN')throw Error('เฉพาะ ADMIN เท่านั้น');
+      if(state.data.user.role!=='ADMIN'||!state.data.capabilities?.demoAdmin)throw Error('ระบบสาธิต ADMIN ยังไม่พร้อมหรือยังไม่ Deploy');
       let result;
       if(action==='demo-start'){
         if(!window.confirm('เริ่มสาธิตที่ตู้จริง? ต้องมีผู้ดูแลอยู่ใกล้ตู้ ข้อมูลการทดสอบจะไม่ถูกบันทึกเป็นประวัติรับยา'))return;
