@@ -670,7 +670,9 @@ function showSystemReadiness(data){
     scheduleApplied:'ยืนยันการซิงก์ตารางยา',lineToken:'LINE Token',
     lineTrigger:'Trigger LINE',lineEnabled:'เปิด LINE รอบยา',
     lineRecipients:'ผู้รับ LINE',driveFolder:'โฟลเดอร์ภาพ',
-    cameraOnline:'ESP32-CAM'
+    cameraOnline:'ESP32-CAM',
+    imageEvidence:'หลักฐานรูปภาพ Drive',imageRetention:'นโยบายลบภาพ 30 วัน',
+    imageCleanupTrigger:'Trigger ลบภาพเก่า'
   };
   const checks=Array.isArray(data.checklist)?data.checklist:[];
   const lines=[
