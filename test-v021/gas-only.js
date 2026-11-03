@@ -286,10 +286,25 @@ function nextTodayMedicine(items,date=new Date()){
   const nowMinute=bangkokNowParts(date).minute;
   return todaySchedule(items,date).find(m=>Number(m.time.slice(0,2))*60+Number(m.time.slice(3,5))>=nowMinute);
 }
+function eventTimeMillis(value){
+  const raw=String(value||'').trim();
+  const match=/^(\d{4}-\d{2}-\d{2})[ T](\d{1,2}):([0-5]\d)(?::([0-5]\d))?$/.exec(raw);
+  if(!match||Number(match[2])>23)return NaN;
+  const stamp=Date.parse(match[1]+'T'+match[2].padStart(2,'0')+':'+match[3]+':'+(match[4]||'00')+'+07:00');
+  return Number.isFinite(stamp)?stamp:NaN;
+}
+function latestRecentEmergency(events,date=new Date()){
+  const now=date.getTime(),maxAge=24*60*60*1000;
+  return events.filter(e=>String(e.type||'').toUpperCase()==='EMERGENCY')
+    .map(e=>({...e,atMs:eventTimeMillis(e.time)}))
+    .filter(e=>Number.isFinite(e.atMs)&&now-e.atMs>=0&&now-e.atMs<maxAge)
+    .sort((a,b)=>b.atMs-a.atMs)[0]||null;
+}
 function dashboard(){
   const d=state.data,active=activeMedicines();
   const daily=todaySchedule(active);
   const next=nextTodayMedicine(active);
+  const emergency=latestRecentEmergency(d.activity);
   const rows=d.patients.map(p=>tr([html(p.id),html(p.name),html('ชั้น '+p.shelf),
     html(active.filter(x=>x.patientId===p.id).length+' รายการ')]));
   const scheduleRows=daily.map(m=>tr([html(m.time),html(m.patientId),html(m.name),html(m.meal)]));
@@ -299,6 +314,10 @@ function dashboard(){
     kpi('รายการยาที่ใช้งาน',active.length,'ไม่รวมรายการทดสอบ','💊')+
     kpi('มื้อยาถัดไปวันนี้',next?next.time:'—',next?next.patientId+' '+next.meal:'ไม่พบรอบที่เหลือในวันนี้','◷')+
     kpi('อุปกรณ์ออนไลน์',d.devices.filter(isLiveDevice).length,'heartbeat ภายใน 3 นาที','📶')+'</div>'+
+    (emergency?panel('⚠️ บันทึกเหตุการณ์ฉุกเฉินภายใน 24 ชั่วโมง',
+      '<p><strong>พบเหตุการณ์ที่บันทึกไว้เวลา '+html(emergency.time||'—')+'</strong> สำหรับ '+html(emergency.patientId||'ไม่ระบุ')+'</p>'+
+      '<p class="gas-muted">เป็นเหตุการณ์ย้อนหลังที่ระบบบันทึก ไม่ได้แสดงว่ายังมีเหตุฉุกเฉินอยู่ขณะนี้ กรุณาตรวจสอบรายละเอียดในหน้าประวัติกิจกรรม</p>'+
+      '<p><a href="#activity">เปิดประวัติกิจกรรม</a></p>'):'')+
     panel('ผู้สูงอายุและชั้นยา',tbl(['รหัส','ชื่อ','ชั้น','จำนวนรายการยา'],rows))+
     panel('รอบยาที่กำหนดวันนี้ (เวลาไทย)',
       '<p class="gas-muted">แสดงตารางยาที่เปิดใช้งานในวันนี้ ไม่รวมข้อมูลทดสอบ และไม่ถือว่าได้รับยาแล้ว</p>'+
