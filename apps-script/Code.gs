@@ -392,6 +392,9 @@ function getSystemReadiness(token) {
   const imageRows=grid_('ImageIndex').rows.map(r=>r.data);
   const imageReady=imageRows.filter(x=>active_(x.available)&&
     Boolean(str_(x.drive_file_id))).length;
+  const retentionEnabled=upper_(props_().getProperty('IMAGE_RETENTION_ENABLED'))==='TRUE';
+  const cleanupJobs=ScriptApp.getProjectTriggers()
+    .filter(t=>t.getHandlerFunction()==='monthlyImageCleanup_').length;
   const checklist=[
     {id:'realSchedules',passed:eligible.length>0,
       detail:eligible.length+' รายการยาจริงที่เข้าเงื่อนไข (ไม่นับ TEST/DEMO/PRN)'},
@@ -414,7 +417,13 @@ function getSystemReadiness(token) {
       detail:'กำหนดโฟลเดอร์ภาพ Drive: '+
         (Boolean(props_().getProperty('IMAGE_FOLDER_ID'))?'แล้ว':'ยังไม่ตั้งค่า')},
     {id:'cameraOnline',passed:!!cam&&upper_(cam.online)==='ONLINE',
-      detail:cam?'รับ Heartbeat กล้องล่าสุด: '+str_(cam.lastSeen):'ไม่พบ CAM-001'}
+      detail:cam?'รับ Heartbeat กล้องล่าสุด: '+str_(cam.lastSeen):'ไม่พบ CAM-001'},
+    {id:'imageEvidence',passed:imageReady>0,
+      detail:'ดัชนีภาพที่อ้างถึงไฟล์ Drive: '+imageReady+' รายการ (ยังไม่ได้เปิดตรวจภาพ)'},
+    {id:'imageRetention',passed:retentionEnabled,
+      detail:'เปิดนโยบายลบภาพเกิน 30 วัน: '+(retentionEnabled?'แล้ว':'ยังไม่เปิด')},
+    {id:'imageCleanupTrigger',passed:cleanupJobs>0,
+      detail:'Trigger ลบภาพหมดอายุ: '+cleanupJobs+' รายการ'}
   ];
   return {checkedAt:tzNow_(),backendVersion:snapshot.backendVersion,
     schedules:{eligibleCount:eligible.length,demoExcludedCount:excludedDemo},
@@ -428,7 +437,8 @@ function getSystemReadiness(token) {
       destinations:Number(line.uniqueLineDestinations)||0,
       uncoveredSchedules:blockedRecipients},
     images:{folderConfigured:Boolean(props_().getProperty('IMAGE_FOLDER_ID')),
-      storedInDriveCount:imageReady},
+      storedInDriveCount:imageReady,retentionEnabled,
+      cleanupTriggerCount:cleanupJobs},
     checklist,readOnly:true,
     warning:'สถานะนี้ใช้ข้อมูลหลังบ้านและ Heartbeat ไม่ใช่ผลทดสอบ LED/เสียง/กลอน/กล้องจริง'};
 }
