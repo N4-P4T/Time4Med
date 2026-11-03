@@ -420,12 +420,27 @@ function admin(){
     '<div class="gas-actions"><button type="button" data-action="demo-start" class="gas-btn">เริ่มทดสอบระบบ</button>'+
     '<button type="button" data-action="demo-status" class="gas-btn light">ตรวจสถานะ</button>'+
     '<button type="button" data-action="demo-stop" class="gas-btn danger">หยุดทดสอบ</button></div>'+
-    '<pre id="demoResult" role="status" style="white-space:pre-wrap">ยังไม่ได้เรียกดูสถานะจาก Apps Script</pre></div>'+
+    '<pre id="demoResult" role="status" style="white-space:pre-wrap">ยังไม่ได้เรียกดูสถานะจาก Apps Script</pre>'+
+    '<button type="button" id="demoPhotoButton" data-action="demo-photo" class="gas-btn light" hidden>ดูภาพสาธิตชั่วคราว</button>'+
+    '<div id="demoPhotoResult"></div></div>'+
     '<p class="gas-muted">ปุ่มนี้ต้องใช้ Apps Script ที่ Deploy ฟังก์ชันทดสอบไว้แล้ว และ ESP32-S3 ต้องรองรับ demoPoll/demoEvent จึงจะรายงานผลครบจริง การกดเริ่มไม่ได้หมายความว่าตู้ผ่านการทดสอบ</p>');
 }
+let previousDemoId='';
 function showDemoStatus(result){
   const el=$('demoResult');if(!el)return;
-  if(!result||typeof result!=='object'){el.textContent='ไม่พบข้อมูลสถานะทดสอบ';return;}
+  const photoBtn=$('demoPhotoButton'),photoBox=$('demoPhotoResult');
+  if(!result||typeof result!=='object'){
+    el.textContent='ไม่พบข้อมูลสถานะทดสอบ';
+    if(photoBtn)photoBtn.hidden=true;
+    return;
+  }
+  const demoId=String(result.id||'');
+  if(previousDemoId!==demoId&&photoBox)photoBox.replaceChildren();
+  previousDemoId=demoId;
+  if(photoBtn){
+    photoBtn.hidden=!(result.photoAvailable&&demoId);
+    photoBtn.dataset.demoId=demoId;
+  }
   const names={IDLE:'ยังไม่เริ่ม',WAITING:'รออุปกรณ์',RUNNING:'กำลังทดสอบ',DONE:'อุปกรณ์รายงานครบ',FAILED:'ทดสอบผิดพลาด',STOPPED:'หยุดแล้ว',TIMED_OUT:'หมดเวลารอ'};
   const status=String(result.status||'UNKNOWN');
   const steps=Array.isArray(result.steps)?result.steps:[];
@@ -588,6 +603,20 @@ document.addEventListener('click',async e=>{
     }
     else if(action==='gallery')window.location.hash='#gallery';
     else if(action==='line'){await call('testLine',state.token);pageMessage('ส่งข้อความทดสอบ LINE สำเร็จ');}
+    else if(action==='demo-photo'){
+      if(state.data.user.role!=='ADMIN')throw Error('เฉพาะ ADMIN เท่านั้น');
+      const demoId=String(btn.dataset.demoId||'');
+      if(!demoId)throw Error('ยังไม่มีรหัสการสาธิตที่มีภาพ');
+      const result=await call('getDemoPreview',state.token,demoId);
+      if(typeof result!=='string'||!/^data:image\/jpeg;base64,[A-Za-z0-9+/]+={0,2}$/.test(result))
+        throw Error('ข้อมูลภาพสาธิตที่ได้รับไม่ถูกต้อง');
+      const target=$('demoPhotoResult');
+      if(target&&btn.dataset.demoId===demoId){
+        const img=document.createElement('img');
+        img.alt='ภาพสาธิตชั่วคราวจากตู้ยา';img.className='gas-image';img.src=result;
+        target.replaceChildren(img);
+      }
+    }
     else if(action==='demo-start'||action==='demo-status'||action==='demo-stop'){
       if(state.data.user.role!=='ADMIN')throw Error('เฉพาะ ADMIN เท่านั้น');
       let result;
