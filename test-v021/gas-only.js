@@ -692,7 +692,13 @@ async function saveMedicine(ev){
   const name=$('medName').value.trim();
   if(name.length<2)return pageMessage('กรุณากรอกชื่อยาอย่างน้อย 2 ตัวอักษร',true);
   const medId=$('medId').value, patientId=$('medPatient').value, mealType=Number($('medMeal').value), time=$('medTime').value;
-  const dayKey=v=>String(v||'MON,TUE,WED,THU,FRI,SAT,SUN').split(',').map(x=>x.trim()).filter(Boolean).sort().join(',');
+  const dayKey=v=>{
+    const raw=String(v||'').trim().toUpperCase();
+    const all=DAYS.map(([key])=>key);
+    const values=(!raw||raw==='ALL'||raw==='EVERYDAY')?all:
+      raw.split(',').map(x=>x.trim()).filter(Boolean);
+    return [...new Set(values)].sort().join(',');
+  };
   const exists=state.data.medicines.some(m=>m.active&&m.id!==medId&&m.patientId===patientId&&
     String(m.name).trim().toLocaleLowerCase()===name.toLocaleLowerCase()&&Number(m.mealType)===mealType&&
     m.time===time&&dayKey(m.days)===dayKey(ds.join(',')));
