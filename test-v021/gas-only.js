@@ -354,6 +354,20 @@ function dashboard(){
       '<label>รหัสผ่านใหม่ (อย่างน้อย 12 ตัว)<input id="newPassword" type="password" autocomplete="new-password" minlength="12" required></label>'+
       '<button type="submit" class="gas-btn">เปลี่ยนรหัสผ่าน</button></form>'):'');
 }
+function scheduleWeekdays(days){
+  const s=String(days||'').trim().toUpperCase().replace(/\s/g,'');
+  const all=DAYS.map(([key])=>key);
+  return new Set(!s||s==='ALL'||s==='EVERYDAY'?all:
+    s.split(',').filter(x=>all.includes(x)));
+}
+function overlappingMedicineSlot(a,b){
+  if(!a||!b)return false;
+  if(String(a.patientId||'').toUpperCase()!==String(b.patientId||'').toUpperCase())return false;
+  if(String(a.name||'').trim().toLocaleLowerCase()!==String(b.name||'').trim().toLocaleLowerCase())return false;
+  if(Number(a.mealType)!==Number(b.mealType)||String(a.time||'')!==String(b.time||''))return false;
+  const aDays=scheduleWeekdays(a.days),bDays=scheduleWeekdays(b.days);
+  return [...aDays].some(day=>bDays.has(day));
+}
 function medication(){
   const d=state.data,items=d.medicines;
   const statusRows=items.map(m=>({medicine:m,...medicineScheduleStatus(m)}));
@@ -363,18 +377,11 @@ function medication(){
   const inactive=statusRows.filter(x=>!x.medicine.active);
   const issues=invalidActive.map(x=>tr([
     html(x.medicine.patientId),html(x.medicine.name),html(x.reason)]));
-  const duplicateKey=m=>[
-    String(m.patientId||'').trim().toUpperCase(),
-    String(m.name||'').trim().toLocaleLowerCase(),
-    String(m.mealType||''),
-    String(m.time||''),
-    String(m.days||'').toUpperCase().split(',').map(x=>x.trim()).filter(Boolean).sort().join(',')
-  ].join('|');
-  const seenKeys=new Set(),duplicateRecords=[];
+  const seen=[],duplicateRecords=[];
   for(const x of eligible){
-    const key=duplicateKey(x.medicine);
-    if(seenKeys.has(key))duplicateRecords.push(x.medicine);
-    else seenKeys.add(key);
+    if(seen.some(m=>overlappingMedicineSlot(m,x.medicine)))
+      duplicateRecords.push(x.medicine);
+    seen.push(x.medicine);
   }
   const duplicates=duplicateRecords.map(m=>tr([html(m.patientId),html(m.name),
     html(m.time),html(dayLabel(m.days))]));
@@ -395,7 +402,7 @@ function medication(){
         '<p class="gas-muted"><strong>ขณะนี้ไม่มีรายการยาที่เข้าเงื่อนไขส่งให้ตู้สำหรับบัญชีนี้</strong> หากมีแต่ TEST_ จะไม่ถูกส่งเข้าตารางยาจริง</p>':'')+
       (issues.length?'<p class="gas-muted">รายการที่เปิดอยู่แต่ต้องตรวจแก้:</p>'+
         tbl(['ผู้สูงอายุ','ชื่อยา','เหตุผล'],issues):'')+
-      (duplicates.length?'<p class="gas-muted"><strong>อาจมีรายการยาซ้ำ:</strong> โปรดตรวจสอบก่อนใช้งานจริง</p>'+
+      (duplicates.length?'<p class="gas-muted"><strong>อาจมีรายการยาซ้ำ:</strong> มีวันแจ้งเตือนซ้อนกัน โปรดตรวจสอบก่อนใช้งานจริง</p>'+
         tbl(['ผู้สูงอายุ','ชื่อยา','เวลา','วัน'],duplicates):'')+
       '<p class="gas-muted">ตัวเลขนี้คำนวณจากรายการที่บัญชีนี้มีสิทธิ์ดู โดยเลียนแบบเกณฑ์ของ Code.gs เท่านั้น ไม่ใช่ผลตอบกลับยืนยันว่าตู้ ESP32-S3 ซิงก์สำเร็จ และไม่ยืนยันว่า LINE เปิดแจ้งเตือนแล้ว</p>')+
     panel('ตารางยาปัจจุบัน',rows.length?tbl(['ผู้สูงอายุ','ชื่อยา','มื้อยา','เวลา','วัน','สถานะ','จัดการ'],rows):empty('ยังไม่มีรายการยา'))+
@@ -692,17 +699,10 @@ async function saveMedicine(ev){
   const name=$('medName').value.trim();
   if(name.length<2)return pageMessage('กรุณากรอกชื่อยาอย่างน้อย 2 ตัวอักษร',true);
   const medId=$('medId').value, patientId=$('medPatient').value, mealType=Number($('medMeal').value), time=$('medTime').value;
-  const dayKey=v=>{
-    const raw=String(v||'').trim().toUpperCase();
-    const all=DAYS.map(([key])=>key);
-    const values=(!raw||raw==='ALL'||raw==='EVERYDAY')?all:
-      raw.split(',').map(x=>x.trim()).filter(Boolean);
-    return [...new Set(values)].sort().join(',');
-  };
-  const exists=state.data.medicines.some(m=>m.active&&m.id!==medId&&m.patientId===patientId&&
-    String(m.name).trim().toLocaleLowerCase()===name.toLocaleLowerCase()&&Number(m.mealType)===mealType&&
-    m.time===time&&dayKey(m.days)===dayKey(ds.join(',')));
-  if(exists)return pageMessage('มีรายการยาชื่อเดียวกัน ผู้สูงอายุ มื้อ เวลา และวันเดียวกันอยู่แล้ว กรุณาแก้ไขรายการเดิมแทนการเพิ่มซ้ำ',true);
+  const proposed={patientId,name,mealType,time,days:ds.join(',')};
+  const exists=state.data.medicines.some(m=>m.active&&m.id!==medId&&
+    overlappingMedicineSlot(m,proposed));
+  if(exists)return pageMessage('พบรายการยาชื่อเดียวกัน ผู้สูงอายุ มื้อ เวลา และวันแจ้งเตือนที่ทับซ้อนกัน กรุณาแก้ไขรายการเดิมแทนการเพิ่มซ้ำ',true);
   const value={id:medId,patientId,name,
     mealType:Number($('medMeal').value),time:$('medTime').value,days:ds.join(','),
     instruction:$('medInstruction').value,active:$('medActive').checked};
