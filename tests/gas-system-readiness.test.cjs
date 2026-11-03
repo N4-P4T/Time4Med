@@ -11,7 +11,7 @@ const piece=src.slice(start,end);
 for(const dangerous of ['writeRow_(', 'lineTo_(', 'UrlFetchApp.', 'DriveApp.',
    'setProperty(', 'newTrigger(', 'postDevice_('])
  assert.equal(piece.includes(dangerous),false,'read-only readiness must not invoke '+dangerous);
-let role='ADMIN',real=[],devices=[],images=[],line={};
+let role='ADMIN',real=[],devices=[],images=[],line={},retention=false,cleanupTriggers=false;
 const ctx={
  JSON,Date,Array,Boolean,Number,String,
  session_:()=>({role}),needAdmin_:u=>{if(u.role!=='ADMIN')throw Error('ADMIN_ONLY')},
@@ -19,7 +19,10 @@ const ctx={
  schedulableMedicine_:m=>!!(m.active&&!m.demo&&m.kind==='scheduled'&&m.patientId),
  inspectLineReminderReadiness_:()=>line,
  grid_:name=>{assert.equal(name,'ImageIndex');return{rows:images.map(data=>({data}))}},
- props_:()=>({getProperty:name=>name==='IMAGE_FOLDER_ID'?'folder-configured':''}),
+ props_:()=>({getProperty:name=>name==='IMAGE_FOLDER_ID'?'folder-configured':
+   name==='IMAGE_RETENTION_ENABLED'?(retention?'TRUE':'FALSE'):''}),
+ ScriptApp:{getProjectTriggers:()=>cleanupTriggers?
+   [{getHandlerFunction:()=> 'monthlyImageCleanup_'}]:[]},
  active_:x=>x===true,
  str_:x=>String(x==null?'':x).trim(),
  upper_:x=>String(x||'').toUpperCase(),
@@ -43,6 +46,10 @@ assert.ok(report.checklist.some(c=>c.id==='realSchedules'&&!c.passed));
 assert.ok(report.checklist.some(c=>c.id==='scheduleApplied'&&!c.passed));
 assert.ok(report.checklist.some(c=>c.id==='lineEnabled'&&!c.passed));
 assert.ok(report.checklist.some(c=>c.id==='driveFolder'&&c.passed));
+assert.equal(report.images.retentionEnabled,false);
+assert.equal(report.images.cleanupTriggerCount,0);
+assert.ok(report.checklist.some(c=>c.id==='imageRetention'&&!c.passed));
+assert.ok(report.checklist.some(c=>c.id==='imageCleanupTrigger'&&!c.passed));
 assert.doesNotMatch(JSON.stringify(report),/folder-configured|Bearer|U[a-f0-9]{32}/);
 role='CAREGIVER';
 assert.throws(()=>ctx.check('caregiver-test'),/ADMIN_ONLY/,
@@ -56,10 +63,13 @@ devices=[
 line={enabled:true,triggerCount:1,tokenConfigured:true,uniqueLineDestinations:1,
  dueCandidates:[{recipientCount:1}]};
 images=[{available:true,drive_file_id:'private-image-id'}];
+retention=true;cleanupTriggers=true;
 report=ctx.check('admin-test');
 assert.equal(report.schedules.eligibleCount,1);
 assert.equal(report.line.uncoveredSchedules,0);
 assert.equal(report.images.storedInDriveCount,1);
+assert.equal(report.images.retentionEnabled,true);
+assert.equal(report.images.cleanupTriggerCount,1);
 assert.equal(report.checklist.filter(c=>!c.passed).length,0);
 line.dueCandidates=[{recipientCount:0}];
 report=ctx.check('admin-test');
