@@ -445,6 +445,9 @@ function getSystemReadiness(token) {
 function readImage(token,id) {
   const u=session_(token),g=grid_('ImageIndex'),r=g.rows.find(x=>str_(x.data.image_id)===str_(id));
   assert_(r&&can_(u,r.data.patient_id),'ไม่มีสิทธิ์เข้าถึงภาพ');
+  // Retention and revoked evidence must stay unavailable even if the Drive
+  // file has not finished moving to Trash.
+  assert_(active_(r.data.available),'ภาพไม่พร้อมใช้งานหรือหมดอายุ');
   const fileId=str_(r.data.drive_file_id);
   assert_(fileId,'ภาพเก่าอยู่บน SD Card หรือยังไม่ได้อัปโหลดไป Drive');
   const blob=DriveApp.getFileById(fileId).getBlob();
