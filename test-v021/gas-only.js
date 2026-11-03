@@ -388,7 +388,27 @@ function admin(){
     '<label>สถานะ<select id="userStatus"><option value="ACTIVE">ACTIVE</option><option value="INACTIVE">INACTIVE</option></select></label>'+
     '<button class="gas-btn" type="submit">บันทึกบัญชี</button></form>')+
   panel('ทดสอบ LINE','<button data-action="line" class="gas-btn">ส่งข้อความทดสอบไป LINE ของแอดมิน</button>'+
-    '<p class="gas-muted">ต้องตั้ง LINE User ID ของ ADMIN ในชีต Users แล้ว การทดสอบนี้ไม่เปิดแจ้งเตือนรอบยาอัตโนมัติ</p>');
+    '<p class="gas-muted">ต้องตั้ง LINE User ID ของ ADMIN ในชีต Users แล้ว การทดสอบนี้ไม่เปิดแจ้งเตือนรอบยาอัตโนมัติ</p>')+
+  panel('ทดสอบระบบ (ADMIN)','<p class="gas-muted">สาธิตแยกจากตารางยาจริง ไม่เขียนบันทึกการรับยา ไม่สร้างภาพใน Google Drive และไม่ส่ง LINE โดยอัตโนมัติ กรุณาเริ่มเมื่อมีผู้ดูแลอยู่ที่ตู้เท่านั้น</p>'+
+    '<div class="gas-form"><label>ผู้สูงอายุ<select id="demoPatient"><option value="P001">P001 — ชั้น 1</option><option value="P002">P002 — ชั้น 2</option><option value="P003">P003 — ชั้น 3</option></select></label>'+
+    '<label>มื้อยาทดสอบ<select id="demoMeal">'+MEALS.slice(1).map((m,i)=>'<option value="'+(i+1)+'"'+(i===1?' selected':'')+'>'+html(m)+'</option>').join('')+'</select></label>'+
+    '<div class="gas-actions"><button type="button" data-action="demo-start" class="gas-btn">เริ่มทดสอบระบบ</button>'+
+    '<button type="button" data-action="demo-status" class="gas-btn light">ตรวจสถานะ</button>'+
+    '<button type="button" data-action="demo-stop" class="gas-btn danger">หยุดทดสอบ</button></div>'+
+    '<pre id="demoResult" role="status" style="white-space:pre-wrap">ยังไม่ได้เรียกดูสถานะจาก Apps Script</pre></div>'+
+    '<p class="gas-muted">ปุ่มนี้ต้องใช้ Apps Script ที่ Deploy ฟังก์ชันทดสอบไว้แล้ว และ ESP32-S3 ต้องรองรับ demoPoll/demoEvent จึงจะรายงานผลครบจริง การกดเริ่มไม่ได้หมายความว่าตู้ผ่านการทดสอบ</p>');
+}
+function showDemoStatus(result){
+  const el=$('demoResult');if(!el)return;
+  if(!result||typeof result!=='object'){el.textContent='ไม่พบข้อมูลสถานะทดสอบ';return;}
+  const names={IDLE:'ยังไม่เริ่ม',WAITING:'รออุปกรณ์',RUNNING:'กำลังทดสอบ',DONE:'อุปกรณ์รายงานครบ',FAILED:'ทดสอบผิดพลาด',STOPPED:'หยุดแล้ว',TIMED_OUT:'หมดเวลารอ'};
+  const status=String(result.status||'UNKNOWN');
+  const steps=Array.isArray(result.steps)?result.steps:[];
+  el.textContent='สถานะ: '+(names[status]||status)+'\n'+
+    'ผู้สูงอายุ: '+(result.patientId||'—')+'\n'+
+    'ขั้นตอนที่อุปกรณ์รายงาน: '+steps.length+'\n'+
+    steps.map(x=>'• '+String(x.phase||'')+' '+String(x.at||'')).join('\n')+'\n'+
+    (result.note?'รายละเอียด: '+String(result.note):'');
 }
 function render(){
   if(!state.data)return;
@@ -458,6 +478,19 @@ document.addEventListener('click',async e=>{
     if(action==='refresh')await reload();
     else if(action==='gallery')window.location.hash='#gallery';
     else if(action==='line'){await call('testLine',state.token);pageMessage('ส่งข้อความทดสอบ LINE สำเร็จ');}
+    else if(action==='demo-start'||action==='demo-status'||action==='demo-stop'){
+      if(state.data.user.role!=='ADMIN')throw Error('เฉพาะ ADMIN เท่านั้น');
+      let result;
+      if(action==='demo-start'){
+        if(!window.confirm('เริ่มสาธิตที่ตู้จริง? ต้องมีผู้ดูแลอยู่ใกล้ตู้ ข้อมูลการทดสอบจะไม่ถูกบันทึกเป็นประวัติรับยา'))return;
+        result=await call('startDemo',state.token,{patientId:$('demoPatient').value,mealType:Number($('demoMeal').value),sendLine:false});
+      }else if(action==='demo-status')result=await call('getDemoStatus',state.token);
+      else{
+        if(!window.confirm('หยุดการทดสอบที่กำลังทำงาน?'))return;
+        result=await call('cancelDemo',state.token);
+      }
+      showDemoStatus(result);
+    }
     else if(action==='disable'){
       const m=state.data.medicines.find(x=>x.id===id);if(!m||!window.confirm('ปิดใช้งานยา '+m.name+' ของ '+m.patientId+'?'))return;
       await call('disableMedicine',state.token,id);await reload();pageMessage('ปิดใช้รายการยาแล้ว');
