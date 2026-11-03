@@ -16,7 +16,7 @@ https://n4-p4t.github.io/Time4Med/test-v021/
 2. สำรองเวอร์ชันล่าสุดของ `Code.gs` และ `Bridge.html` ใน Apps Script ปัจจุบัน
 3. นำ **เนื้อหาเต็ม** ของ `apps-script/Code.gs` และ `apps-script/Bridge.html` จาก commit ที่ผ่านการทดสอบแล้วไปอัปเดตในไฟล์ชื่อเดิม อย่าลบ Script Properties หรือ Triggers
 4. ใน Apps Script ใช้ **Deploy → Manage deployments → Edit → New version → Deploy** เพื่อรักษา Web App URL เดิม (และให้สิทธิ์อนุญาตตามที่ Apps Script ถาม ถ้ามี)
-5. กลับไปหน้า GitHub Pages กดรีเฟรชแล้วเข้า ADMIN; ควรเห็น `Apps Script: 2026-11-03-line-admin-2` และเมนู LINE ที่รองรับ
+5. กลับไปหน้า GitHub Pages กดรีเฟรชแล้วเข้า ADMIN; ควรเห็น `Apps Script: 2026-11-03-schedule-ack-1` และเมนู LINE ที่รองรับ
 6. กด **ตรวจความพร้อม LINE** ซึ่งเป็นการอ่านข้อมูลอย่างเดียว ไม่ส่งข้อความ ไม่เปิดทริกเกอร์
 7. ถ้าต้องทดสอบ LINE จริง ให้ใช้ปุ่มทดสอบข้อความเดิมและตรวจการรับข้อความที่โทรศัพท์ปลายทางอีกครั้ง
 
@@ -49,6 +49,14 @@ https://n4-p4t.github.io/Time4Med/test-v021/
 - `IntakeLog.event_id` จะอ้างถึง `ActivityLog.event_id` ของเหตุการณ์เดียวกัน และแสดง `device_id` ของผู้รายงานตามจริง
 - ฟังก์ชันนี้ยังไม่แปลว่า **ผู้สูงอายุกลืนยาแล้ว** หรือว่า **รับยาตรงเวลา** ต้องมีหลักฐานรอบยาที่ผูกกับรายการยาจริงก่อนจึงจะคำนวณสถิติการรับยาตรงเวลาได้
 - เทสต์ซอฟต์แวร์แบบไม่แตะอุปกรณ์: `node tests/intake-audit-integrity.cjs`
+
+## การยืนยันตารางยารุ่นล่าสุด (S3 schedule acknowledgment)
+
+- `pullSchedule` ตอบกลับ `scheduleHash` (SHA-256 แบบ canonical) และ `scheduleCount` เพิ่มจาก `schedules` ที่มีอยู่แล้ว เพื่อไม่ทำลายความเข้ากันได้กับเฟิร์มแวร์เดิม
+- เฟิร์มแวร์รุ่นใหม่ต้องใส่ `bootId` และส่ง `scheduleApplied:true`, `scheduleHash`, `scheduleCount` ใน Heartbeat **หลังนำตารางไปใช้จริงเท่านั้น**
+- Backend จะเพิ่มหัวคอลัมน์ที่จำเป็นในชีต Devices เมื่อมี `bootId` ครั้งแรก และจะไม่รับรอง Sync จาก Heartbeat ปกติ
+- ต้องทดสอบทั้งตารางมีรายการ / ตารางว่าง `[]` / เปลี่ยนยา / ปิดยา / รีสตาร์ตตู้ โดยใช้เอกสาร <https://github.com/N4-P4T/Time4Med/blob/main/docs/S3_SCHEDULE_SYNC_PROTOCOL_TH.md>
+- เฟิร์มแวร์ปัจจุบันยังไม่ได้ส่งหลักฐานแบบใหม่ จึงคาดว่าเว็บไซต์จะยังแสดง “ยังไม่ยืนยัน” แม้ตู้ส่ง Heartbeat อยู่
 
 ## ข้อจำกัดที่ยังต้องแก้ในฮาร์ดแวร์และระบบร่วมกัน
 
