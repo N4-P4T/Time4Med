@@ -375,10 +375,13 @@ function camera(){
 }
 function admin(){
   if(state.data.user.role!=='ADMIN')return empty('เฉพาะแอดมิน');
-  const rows=state.data.users.map(x=>tr([html(x.email),html(x.role),html(x.patients),html(x.status),x.lineConfigured?'เชื่อมแล้ว':'ยังไม่เชื่อม']));
+  const rows=state.data.users.map(x=>tr([html(x.email),html(x.role),html(x.patients),html(x.status),
+    x.lineConfigured?'เชื่อมแล้ว':'ยังไม่เชื่อม',
+    '<button type="button" class="gas-btn light" data-action="edit-user" data-email="'+html(x.email)+'">แก้ไขสิทธิ์</button>']));
   return '<div class="gas-heading"><h1>จัดการระบบ</h1><p>เฉพาะผู้ดูแลระบบ ADMIN</p></div>'+
-  panel('บัญชีผู้ใช้',tbl(['อีเมล','บทบาท','ดูแลผู้สูงอายุ','สถานะ','LINE User ID'],rows))+
+  panel('บัญชีผู้ใช้',tbl(['อีเมล','บทบาท','ดูแลผู้สูงอายุ','สถานะ','LINE User ID','จัดการ'],rows))+
   panel('เพิ่มหรือแก้ไขสิทธิ์ผู้ใช้','<form id="gasUserForm" class="gas-form">'+
+    '<p id="userFormMode" class="gas-muted">กำลังสร้างบัญชีใหม่ — เลือกแก้ไขจากตารางเพื่อรักษาข้อมูลบัญชีเดิม</p>'+
     '<label>อีเมล<input id="userEmail" type="email" required></label>'+
     (API_URL?'<label>ชื่อผู้ใช้ (a-z, 0-9)<input id="userUsername" autocomplete="off" required minlength="3" maxlength="40" placeholder="caregiver01"></label>'+
       '<label>รหัสผ่านเริ่มต้น (เฉพาะบัญชีใหม่หรือเมื่อต้องการเปลี่ยน)<input id="userNewPassword" type="password" autocomplete="new-password" minlength="12" placeholder="อย่างน้อย 12 ตัวอักษร"></label>':'')+
@@ -386,7 +389,8 @@ function admin(){
     '<label>บทบาท<select id="userRole"><option value="CAREGIVER">CAREGIVER — ผู้ดูแล</option><option value="ADMIN">ADMIN — แอดมิน</option></select></label>'+
     '<label>ผู้สูงอายุที่ดูแล (คั่นด้วย ,)<input id="userPatients" placeholder="P001,P002,P003"></label>'+
     '<label>สถานะ<select id="userStatus"><option value="ACTIVE">ACTIVE</option><option value="INACTIVE">INACTIVE</option></select></label>'+
-    '<button class="gas-btn" type="submit">บันทึกบัญชี</button></form>')+
+    '<div class="gas-actions"><button class="gas-btn" type="submit">บันทึกบัญชี</button>'+
+    '<button type="button" class="gas-btn light" data-action="new-user">ล้างแบบฟอร์ม / เพิ่มบัญชีใหม่</button></div></form>')+
   panel('ทดสอบ LINE','<button data-action="line" class="gas-btn">ส่งข้อความทดสอบไป LINE ของแอดมิน</button>'+
     '<p class="gas-muted">ต้องตั้ง LINE User ID ของ ADMIN ในชีต Users แล้ว การทดสอบนี้ไม่เปิดแจ้งเตือนรอบยาอัตโนมัติ</p>')+
   panel('ทดสอบระบบ (ADMIN)','<p class="gas-muted">สาธิตแยกจากตารางยาจริง ไม่เขียนบันทึกการรับยา ไม่สร้างภาพใน Google Drive และไม่ส่ง LINE โดยอัตโนมัติ กรุณาเริ่มเมื่อมีผู้ดูแลอยู่ที่ตู้เท่านั้น</p>'+
@@ -463,19 +467,62 @@ async function saveMedicine(ev){
   try{await call('saveMedicine',state.token,value);await reload();pageMessage('บันทึกตารางยาสำเร็จ');}
   catch(e){pageMessage(e.message,true);}finally{medicineSaveBusy=false;if(button)button.disabled=false;}
 }
+function clearUserForm(){
+  const form=$('gasUserForm');if(!form)return;
+  form.reset();
+  $('userEmail').readOnly=false;
+  const mode=$('userFormMode');if(mode)mode.textContent='กำลังสร้างบัญชีใหม่';
+}
+function editUserForm(email){
+  if(state.data?.user?.role!=='ADMIN')return;
+  const user=state.data.users.find(x=>String(x.email).toLowerCase()===String(email).toLowerCase());
+  if(!user)return pageMessage('ไม่พบบัญชีที่เลือก กรุณาโหลดข้อมูลล่าสุด',true);
+  $('userEmail').value=user.email;
+  $('userEmail').readOnly=true; // Prevent accidental creation of a second account.
+  $('userName').value=user.name||user.email;
+  $('userRole').value=user.role==='ADMIN'?'ADMIN':'CAREGIVER';
+  $('userPatients').value=user.role==='ADMIN'?'':String(user.patients||'');
+  $('userStatus').value=user.status==='ACTIVE'?'ACTIVE':'INACTIVE';
+  const mode=$('userFormMode');if(mode)mode.textContent='กำลังแก้ไขบัญชี: '+user.email+' — ไม่สามารถเปลี่ยนอีเมลของบัญชีเดิมได้';
+  const form=$('gasUserForm');if(form?.scrollIntoView)form.scrollIntoView({behavior:'smooth',block:'center'});
+}
+let userSaveBusy=false;
 async function saveUser(ev){
   ev.preventDefault();
-  const value={email:$('userEmail').value,name:$('userName').value,role:$('userRole').value,
-    patientIds:$('userPatients').value,status:$('userStatus').value};
+  if(userSaveBusy||state.data?.user?.role!=='ADMIN')return;
+  const email=$('userEmail').value.trim().toLowerCase(), name=$('userName').value.trim();
+  const role=$('userRole').value,status=$('userStatus').value;
+  const patientIds=String($('userPatients').value||'').toUpperCase()
+    .split(',').map(x=>x.trim()).filter(Boolean);
+  if(!/^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(email))return pageMessage('อีเมลไม่ถูกต้อง',true);
+  if(!name)return pageMessage('กรุณากรอกชื่อแสดงของผู้ดูแล',true);
+  if(role==='CAREGIVER'&&(!patientIds.length||patientIds.some(x=>!['P001','P002','P003'].includes(x))||
+      new Set(patientIds).size!==patientIds.length))
+    return pageMessage('CAREGIVER ต้องระบุผู้สูงอายุ P001, P002, P003 โดยไม่ซ้ำ เช่น P001,P002',true);
+  if(email===String(state.data.user.email).toLowerCase()&&(role!=='ADMIN'||status!=='ACTIVE'))
+    return pageMessage('ไม่สามารถลดสิทธิ์หรือปิดใช้งานบัญชี ADMIN ที่กำลังใช้ได้',true);
+  const previous=state.data.users.find(x=>String(x.email).toLowerCase()===email);
+  if(previous&&previous.role==='ADMIN'&&(role!=='ADMIN'||status!=='ACTIVE')&&
+    !window.confirm('กำลังเปลี่ยนสิทธิ์ของ ADMIN '+email+' กรุณายืนยันอีกครั้ง'))return;
+  const value={email,name,role,patientIds:role==='ADMIN'?'ALL':patientIds.join(','),status};
   if(API_URL){value.username=$('userUsername').value.trim();value.newPassword=$('userNewPassword').value;}
+  userSaveBusy=true;
+  const button=ev.submitter;if(button)button.disabled=true;
   try{await call('saveUser',state.token,value);await reload();pageMessage('บันทึกบัญชีแล้ว');}
-  catch(e){pageMessage(e.message,true);}
+  catch(e){pageMessage(e.message,true);}finally{userSaveBusy=false;if(button)button.disabled=false;}
 }
 document.addEventListener('click',async e=>{
   const btn=e.target.closest('[data-action]');if(!btn||!state.data)return;
   const action=btn.dataset.action,id=btn.dataset.id;btn.disabled=true;
   try{
     if(action==='refresh')await reload();
+    else if(action==='edit-user'){
+      if(state.data.user.role!=='ADMIN')throw Error('เฉพาะ ADMIN เท่านั้น');
+      editUserForm(btn.dataset.email);
+    }else if(action==='new-user'){
+      if(state.data.user.role!=='ADMIN')throw Error('เฉพาะ ADMIN เท่านั้น');
+      clearUserForm();
+    }
     else if(action==='gallery')window.location.hash='#gallery';
     else if(action==='line'){await call('testLine',state.token);pageMessage('ส่งข้อความทดสอบ LINE สำเร็จ');}
     else if(action==='demo-start'||action==='demo-status'||action==='demo-stop'){
