@@ -35,6 +35,8 @@ jobs:
         run: node tests/gas-schedule-ack.test.cjs
       - name: Q8H first-confirmation arithmetic (not activated in production)
         run: node tests/gas-q8h-logic.test.cjs
+      - name: ADMIN read-only software go-live checklist and authorization
+        run: node tests/gas-system-readiness.test.cjs
       - name: Device intake idempotency and audit integrity
         run: node tests/intake-audit-integrity.cjs
       - name: LINE reminder trigger jitter and duplicate safety
