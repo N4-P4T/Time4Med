@@ -324,6 +324,7 @@ function medication(){
     '<p class="gas-muted">รายการที่ขึ้นต้น TEST_, DEMO_ หรือ LINECHECK_ เป็นข้อมูลทดสอบ: แสดงเพื่อให้แก้ไขหรือปิดใช้งานได้ แต่ไม่ถูกส่งเป็นตารางยาจริงให้ ESP32-S3 หรือ LINE</p>'+
     panel('ตารางยาปัจจุบัน',rows.length?tbl(['ผู้สูงอายุ','ชื่อยา','มื้อยา','เวลา','วัน','สถานะ','จัดการ'],rows):empty('ยังไม่มีรายการยา'))+
     panel('เพิ่มหรือแก้ไขรายการยา','<form id="gasMedicineForm" class="gas-form">'+
+      '<p id="medFormMode" class="gas-muted">กำลังเพิ่มรายการยาใหม่</p>'+
       '<input id="medId" type="hidden"><label>ผู้สูงอายุ<select id="medPatient" required>'+pOptions+'</select></label>'+
       '<label>ชื่อยา<input id="medName" minlength="2" maxlength="120" required placeholder="ระบุชื่อยา"></label>'+
       '<label>มื้อยา<select id="medMeal" required>'+mealOptions+'</select></label>'+
@@ -336,14 +337,23 @@ function medication(){
 }
 function inventory(){
   const d=state.data,active=activeMedicines();
-  const rows=[1,2,3].map(s=>{
+  const shelves=[1,2,3].map(s=>{
     const p='P00'+s,items=active.filter(x=>x.patientId===p);
     return tr([html('ชั้น '+s),html(p),html(items.length+' รายการ'),html(items.map(x=>x.name).join(', ')||'—')]);
   });
-  rows.push(tr(['ชั้น 4','ยาสามัญประจำบ้าน','ไม่ใช้ LED','ไม่มีการแยกผู้รับยา']));
+  shelves.push(tr(['ชั้น 4','ยาสามัญประจำบ้าน','ไม่ใช้ LED','ไม่มีการแยกผู้รับยา']));
+  const stockLabels={unchecked:'ยังไม่ได้ตรวจ',unknown:'ยังไม่ทราบ',ok:'ปกติ',low:'ใกล้หมด',out:'หมดแล้ว'};
+  const details=active.map(m=>{
+    const stock=String(m.stock||'unchecked').trim(),label=stockLabels[stock.toLowerCase()]||stock;
+    return tr([html('ชั้น '+m.shelf),html(m.patientId),html(m.name),html(m.meal),
+      html(asTime(m.time)),html(dayLabel(m.days)),html(label)]);
+  });
   return '<div class="gas-heading"><h1>แผนผังตู้และคลังยา</h1></div>'+
-    panel('ชั้นยา 4 ชั้น',tbl(['ตำแหน่ง','ผู้ใช้','จำนวนรายการ','รายการยา'],rows))+
-    panel('สถานะสต็อก','<p class="gas-muted">ระบบปัจจุบันเก็บสถานะยา ไม่ได้นับจำนวนเม็ดยาจากซองยาอัตโนมัติ</p>');
+    panel('ชั้นยา 4 ชั้น',tbl(['ตำแหน่ง','ผู้ใช้','จำนวนรายการ','รายการยา'],shelves))+
+    panel('รายการยาที่ใช้งานและสถานะสต็อก',
+      '<p class="gas-muted">แสดงสถานะสต็อกที่บันทึกไว้ใน Google Sheets เท่านั้น ไม่ได้ตรวจนับเม็ดยาอัตโนมัติ และไม่รวมข้อมูลทดสอบ</p>'+
+      (details.length?tbl(['ชั้น','ผู้สูงอายุ','ชื่อยา','มื้อยา','เวลา','วัน','สถานะสต็อก'],details):
+        empty('ยังไม่มีรายการยาจริงที่เปิดใช้งาน')) );
 }
 function devices(){
   const rows=state.data.devices.map(x=>tr([html(x.id),html(x.type),html(visibleDeviceStatus(x)),html(x.lastSeen||'—'),
@@ -487,6 +497,26 @@ async function saveMedicine(ev){
     }
   }finally{medicineSaveBusy=false;if(button&&!saved&&!uncertain)button.disabled=false;}
 }
+function clearMedicineForm(){
+  const form=$('gasMedicineForm');if(!form)return;
+  form.reset();
+  $('medId').value='';
+  document.querySelectorAll('[name="medDay"]').forEach(x=>x.checked=true);
+  const mode=$('medFormMode');if(mode)mode.textContent='กำลังเพิ่มรายการยาใหม่';
+}
+function editMedicineForm(id){
+  const m=state.data?.medicines?.find(x=>x.id===id);if(!m)return;
+  $('medId').value=m.id;$('medPatient').value=m.patientId;
+  $('medName').value=m.name;$('medMeal').value=m.mealType;
+  $('medTime').value=m.time||'08:00';$('medInstruction').value=m.instruction||'';
+  $('medActive').checked=Boolean(m.active);
+  const raw=String(m.days||'').trim().toUpperCase();
+  const all=!raw||raw==='ALL'||raw==='EVERYDAY';
+  const selected=new Set(raw.split(',').map(x=>x.trim()).filter(Boolean));
+  document.querySelectorAll('[name="medDay"]').forEach(x=>x.checked=all||selected.has(x.value));
+  const mode=$('medFormMode');if(mode)mode.textContent='กำลังแก้ไขรายการยา: '+m.name+' ('+m.patientId+')';
+  const form=$('gasMedicineForm');if(form?.scrollIntoView)form.scrollIntoView({behavior:'smooth',block:'center'});
+}
 function clearUserForm(){
   const form=$('gasUserForm');if(!form)return;
   form.reset();
@@ -574,17 +604,9 @@ document.addEventListener('click',async e=>{
       await call('disableMedicine',state.token,id);
       try{await reload();pageMessage('ปิดใช้รายการยาแล้ว');}
       catch(_){pageMessage('ระบบปิดใช้งานรายการยาแล้ว แต่โหลดหน้าล่าสุดไม่สำเร็จ กรุณากด “โหลดล่าสุด” ก่อนทำรายการอื่น',true);}
-    }else if(action==='new'){$('gasMedicineForm').reset();$('medId').value='';}
-    else if(action==='edit'){
-      const m=state.data.medicines.find(x=>x.id===id);if(!m)return;
-      $('medId').value=m.id;$('medPatient').value=m.patientId;
-      $('medName').value=m.name;$('medMeal').value=m.mealType;
-      $('medTime').value=m.time||'08:00';$('medInstruction').value=m.instruction||'';
-      $('medActive').checked=m.active;
-      const ds=String(m.days||'').split(',');
-      document.querySelectorAll('[name="medDay"]').forEach(x=>x.checked=ds.includes(x.value));
-      $('gasMedicineForm').scrollIntoView({behavior:'smooth',block:'center'});
-    }else if(action==='image'){
+    }else if(action==='new'){clearMedicineForm();}
+    else if(action==='edit'){editMedicineForm(id);}
+    else if(action==='image'){
       const result=await call('readImage',state.token,id);
       const parent=$('photo-'+id);if(parent&&/^data:image\/(?:jpeg|png|webp);base64,/.test(result)){
         const img=document.createElement('img');img.alt='ภาพหลักฐานการรับยา';img.src=result;img.className='gas-image';
