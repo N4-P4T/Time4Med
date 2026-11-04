@@ -451,7 +451,7 @@ function readImage(token,id) {
   const fileId=str_(r.data.drive_file_id);
   assert_(fileId,'ภาพเก่าอยู่บน SD Card หรือยังไม่ได้อัปโหลดไป Drive');
   const blob=DriveApp.getFileById(fileId).getBlob();
-  assert_(blob.getSize()<1250000,'ภาพใหญ่เกินกำหนด โปรดบีบอัดภาพ');
+  assert_(DriveApp.getFileById(fileId).getSize()<1250000,'ภาพใหญ่เกินกำหนด โปรดบีบอัดภาพ');
   assert_(blob.getContentType().startsWith('image/'),'ไฟล์ไม่ใช่ภาพ');
   return 'data:'+blob.getContentType()+';base64,'+Utilities.base64Encode(blob.getBytes());
 }
