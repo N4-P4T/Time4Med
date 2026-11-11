@@ -1,0 +1,27 @@
+name: S3 GAS schedule core (offline C++)
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'firmware/**'
+      - 'tests/s3-schedule-*.test.cpp'
+      - 'tests/mocks/**'
+      - '.github/workflows/s3-gas-schedule-core.yml'
+  push:
+    paths:
+      - 'firmware/**'
+      - 'tests/s3-schedule-core.test.cpp'
+      - '.github/workflows/s3-gas-schedule-core.yml'
+jobs:
+  test-schedule-core:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - name: Compile and run host C++ schedule safety checks
+        run: |
+          g++ -std=c++11 -Wall -Wextra -Werror -pedantic tests/s3-schedule-core.test.cpp -o /tmp/time4med_schedule_test
+          /tmp/time4med_schedule_test
+          g++ -std=c++11 -Wall -Wextra -Werror -pedantic -Itests/mocks tests/s3-schedule-store.test.cpp -o /tmp/time4med_store_test
+          /tmp/time4med_store_test
