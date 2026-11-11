@@ -1,0 +1,55 @@
+name: Verify Time4Med v0.23 Staged Schedule Gateway
+
+on:
+  pull_request:
+    paths:
+      - 'backend/**'
+      - 'firmware/schedule_v2/**'
+      - 'tests/schedule-gateway.test.mjs'
+      - 'tests/worker-schedule-auth.test.mjs'
+      - 'tests/schedule-wire.test.mjs'
+      - 'tests/schedule-engine.test.cpp'
+      - '.github/workflows/schedule-v023-check.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  gateway-and-engine:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Validate staged Cloudflare Worker JavaScript
+        run: |
+          node --check backend/worker-v020-preview.mjs
+          node --check backend/schedule-plan.mjs
+          node --check tests/schedule-gateway.test.mjs
+      - name: Test authorized server-side plans
+        run: node tests/schedule-gateway.test.mjs
+      - name: Test full Worker with signed test-only Google JWT + mocked Sheets
+        run: node tests/worker-schedule-auth.test.mjs
+      - name: Test HMAC device/topic/replay-sequence wire envelope
+        run: node tests/schedule-wire.test.mjs
+      - name: Compile and test C++17 ESP32 schedule engine (host simulation)
+        run: |
+          g++ -std=c++17 -Wall -Wextra -Werror tests/schedule-engine.test.cpp -o /tmp/t4m-schedule-engine
+          /tmp/t4m-schedule-engine
+      - uses: arduino/setup-arduino-cli@v2
+      - name: Install ESP32 Board Package on GitHub runner
+        run: |
+          arduino-cli core update-index --additional-urls https://espressif.github.io/arduino-esp32/package_esp32_index.json
+          arduino-cli core install esp32:esp32 --additional-urls https://espressif.github.io/arduino-esp32/package_esp32_index.json
+      - name: Prepare standalone read-only ESP32-S3 compilation probe
+        run: |
+          cp firmware/schedule_v2/Time4MedScheduleEngine.h firmware/Time4MedSchedule_Probe/
+          cp firmware/schedule_v2/ScheduleNvsStorage.h firmware/Time4MedSchedule_Probe/
+          cp firmware/schedule_v2/ScheduleMqttAuth.h firmware/Time4MedSchedule_Probe/
+          cp firmware/schedule_v2/NvsReplayCounter.h firmware/Time4MedSchedule_Probe/
+      - name: Compile for ESP32-S3 (no flashing, no credentials)
+        run: |
+          arduino-cli compile --fqbn esp32:esp32:esp32s3 firmware/Time4MedSchedule_Probe
