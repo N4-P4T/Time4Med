@@ -1,0 +1,53 @@
+name: Build ESP32-S3 MQTT Probe
+
+on:
+  pull_request:
+    paths:
+      - 'firmware/Time4Med_MqttProbe/**'
+      - '.github/workflows/mqtt-probe-compile.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify read-only probe safety
+        run: |
+          python3 - <<'PY'
+          import pathlib
+          import re
+          import subprocess
+          code = pathlib.Path("firmware/Time4Med_MqttProbe/Time4Med_MqttProbe.ino").read_text()
+          code_without_comments = re.sub(r"/\*[\s\S]*?\*/|//[^\n]*", "", code)
+          unsafe = r"\b(?:pinMode|digitalWrite|analogWrite|ledcWrite|ledcWriteTone|setInsecure|publish)\s*\("
+          if re.search(unsafe, code_without_comments):
+              raise SystemExit("Safety guard: MQTT probe must not actuate GPIO or publish MQTT commands")
+          if "tls.setCACert(HIVEMQ_ROOT_CA_BUNDLE)" not in code:
+              raise SystemExit("Safety guard: TLS trust check removed")
+          tracked_secrets = subprocess.check_output(
+              ["git", "ls-files", "firmware/Time4Med_MqttProbe/secrets.h"], text=True
+          ).strip()
+          if tracked_secrets:
+              raise SystemExit("Safety guard: secrets.h must never be committed")
+          print("PASS: no GPIO actuation, no MQTT publish, TLS enabled, no tracked secrets")
+          PY
+      - uses: arduino/setup-arduino-cli@v2
+      - name: Install ESP32 board platform
+        run: |
+          arduino-cli core update-index --additional-urls https://espressif.github.io/arduino-esp32/package_esp32_index.json
+          arduino-cli core install esp32:esp32 --additional-urls https://espressif.github.io/arduino-esp32/package_esp32_index.json
+      - name: Install the MQTT Arduino library
+        run: arduino-cli lib install "MQTT"
+      - name: Use sample credentials for compilation only
+        run: cp firmware/Time4Med_MqttProbe/secrets.example.h firmware/Time4Med_MqttProbe/secrets.h
+      - name: Compile for ESP32-S3
+        run: |
+          arduino-cli compile \
+            --fqbn esp32:esp32:esp32s3 \
+            --additional-urls https://espressif.github.io/arduino-esp32/package_esp32_index.json \
+            firmware/Time4Med_MqttProbe
