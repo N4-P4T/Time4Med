@@ -1,0 +1,12 @@
+#pragma once
+/* Rename this file to telemetry_private.h ON YOUR COMPUTER ONLY.
+ * Do not commit or share this private file.
+ * Key: 64 hexadecimal characters, same as the Cloudflare staging Secret.
+ * CA: trusted PEM root that you VERIFIED against the actual workers.dev
+ * host using the ESP32-S3 and its TLS chain. The earlier google.com
+ * HTTPS probe is NOT sufficient evidence for this host.
+ */
+#define TIME4MED_STATUS_ENDPOINT "https://time4med-api-staging.napat-kaewboonpan.workers.dev/api/device/telemetry"
+#define TIME4MED_STATUS_HMAC_KEY ""
+#define TIME4MED_STATUS_ROOT_CA_PEM R"T4MPEM(
+)T4MPEM"
