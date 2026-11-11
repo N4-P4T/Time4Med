@@ -1,0 +1,226 @@
+<!doctype html>
+<html lang="th">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="referrer" content="no-referrer">
+  <title>Time4Med | MQTT Connection Diagnostics</title>
+  <style>
+    :root { font-family: system-ui, "Noto Sans Thai", sans-serif; color: #152437; background: #f3f6fb }
+    * { box-sizing: border-box }
+    body { max-width: 860px; margin: 0 auto; padding: 24px 16px 56px; line-height: 1.6 }
+    h1 { font-size: 1.6rem; margin-bottom: .25rem }
+    h2 { font-size: 1.1rem; margin-top: 0 }
+    p { margin-top: .3rem }
+    .subtle { color: #516176; font-size: .92rem }
+    .panel { background: white; border: 1px solid #d6dfea; border-radius: 14px; padding: 20px; margin: 18px 0 }
+    .row { display: flex; gap: 10px; flex-wrap: wrap; align-items: center }
+    label { display: grid; gap: 5px; flex: 1; min-width: 190px; font-weight: 600 }
+    input { font: inherit; width: 100%; padding: 10px 12px; border: 1px solid #99a9bd; border-radius: 9px }
+    button { font: inherit; cursor: pointer; border: 0; border-radius: 9px; padding: 10px 14px; background: #1455ae; color: white }
+    button[disabled] { opacity: .5; cursor: not-allowed }
+    button.secondary { background: #e8eff9; color: #163b70 }
+    .state { border-radius: 9px; background: #ecf1f8; padding: 10px 12px; margin: 8px 0; white-space: pre-wrap }
+    .warn { color: #8c4311; background: #fff6e9 }
+    .ok { color: #135a31; background: #e9f8ee }
+    .bad { color: #a02020; background: #fff0ef }
+    code { overflow-wrap: anywhere }
+    pre { white-space: pre-wrap; overflow-wrap: anywhere; font: 13px/1.6 ui-monospace, Consolas, monospace; background: #0f243c; color: #e7f5ff; border-radius: 10px; padding: 16px; max-height: 450px; overflow-y: auto }
+    a { color: #1455ae }
+  </style>
+</head>
+<body>
+  <p><a href="../">← กลับเว็บไซต์ Time4Med</a></p>
+  <h1>ตรวจสอบ MQTT ของ Time4Med</h1>
+  <p class="subtle">เครื่องมือวินิจฉัยแบบแยกจากหน้าเว็บหลัก ไม่ส่งคำสั่ง LOCK/UNLOCK หรือแก้ไขตารางยา</p>
+
+  <section class="panel">
+    <h2>1. เชื่อม HiveMQ Cloud</h2>
+    <p class="subtle">Broker: <code id="host">กำลังโหลด...</code> · WSS 8884 · ไม่เก็บรหัสผ่านลง localStorage / GitHub</p>
+    <form id="connectForm">
+      <div class="row">
+        <label>MQTT Username
+          <input id="username" value="time4med-web" autocomplete="username" required>
+        </label>
+        <label>MQTT Password
+          <input id="password" type="password" autocomplete="off" required>
+        </label>
+      </div>
+      <div class="row" style="margin-top:14px">
+        <button type="submit" id="connect">เชื่อมต่อ Broker</button>
+        <button type="button" class="secondary" id="disconnect" disabled>ตัดการเชื่อมต่อ</button>
+      </div>
+    </form>
+    <div class="state" id="brokerStatus" role="status">ยังไม่ได้เชื่อมต่อ</div>
+  </section>
+
+  <section class="panel">
+    <h2>2. สถานะ ESP32-S3</h2>
+    <p class="subtle">การเชื่อม Broker สำเร็จ ≠ การยืนยันว่า ESP32-S3 ออนไลน์ ข้อมูล retained อาจเป็นข้อมูลเก่า</p>
+    <div class="state" id="deviceStatus" role="status">ยังไม่ได้รับข้อมูลสถานะจากอุปกรณ์</div>
+    <button type="button" class="secondary" id="requestList" disabled>ขอรายการตารางยา (LIST: อ่านข้อมูลเท่านั้น)</button>
+    <div class="state" id="scheduleStatus">ยังไม่มีรายงานตารางยา</div>
+  </section>
+
+  <section class="panel">
+    <h2>3. บันทึกเหตุการณ์</h2>
+    <div class="row">
+      <button type="button" class="secondary" id="clearLog">ล้างข้อความบนหน้าจอ</button>
+    </div>
+    <pre id="log" aria-live="polite">รอเริ่มตรวจสอบ...</pre>
+    <p class="subtle">ไม่ควรส่งภาพหน้าจอที่มีชื่อผู้ป่วยหรือข้อมูลส่วนตัว โดยไม่ปกปิดข้อมูลก่อน</p>
+  </section>
+
+  <script src="https://cdn.jsdelivr.net/npm/mqtt@5.14.1/dist/mqtt.min.js"></script>
+  <script>
+    (() => {
+      "use strict";
+      const HOST = "wss://730b8f62b55c4753803b4302a8cf6bf4.s1.eu.hivemq.cloud:8884/mqtt";
+      const ROOT = "time4med/v1/cabinet/cabinet-01/";
+      const STATUS = ROOT + "status";
+      const EVENT = ROOT + "event";
+      const SCHEDULE = ROOT + "schedule";
+      const COMMAND_SCHEDULE = ROOT + "command/schedule";
+      const $ = id => document.getElementById(id);
+      $("host").textContent = HOST;
+      let client = null;
+      let lastOnlineMessageAt = 0;
+      let lastOnlineIsFresh = false;
+      let lastStatus = null;
+      let count = 0;
+      const fmtTime = () => new Date().toLocaleTimeString("th-TH", {hour12:false});
+
+      function log(message) {
+        if (++count === 1) $("log").textContent = "";
+        const lines = $("log").textContent.split("\n");
+        lines.unshift("[" + fmtTime() + "] " + message);
+        $("log").textContent = lines.slice(0, 60).join("\n");
+      }
+      function broker(message, klass = "") {
+        $("brokerStatus").textContent = message;
+        $("brokerStatus").className = "state " + klass;
+      }
+      function updateDeviceState() {
+        let message = "ยังไม่ได้รับสถานะ ESP32-S3 (ตรวจ Wi-Fi, TLS, ชื่อผู้ใช้ และ Topic ในเฟิร์มแวร์)";
+        let klass = "warn";
+        if (!client || !client.connected) {
+          message = "หน้าเว็บยังไม่ได้เชื่อม Broker — ไม่สามารถยืนยันสถานะอุปกรณ์ได้";
+        } else if (lastStatus && lastStatus.online === false) {
+          message = "อุปกรณ์รายงาน OFFLINE (Last Will/สถานะล่าสุด)";
+          klass = "bad";
+        } else if (lastStatus && lastStatus.online === true) {
+          const elapsed = Math.floor((Date.now() - lastOnlineMessageAt) / 1000);
+          if (lastOnlineIsFresh && elapsed <= 120) {
+            message = "อุปกรณ์ออนไลน์ — ได้รับสถานะสดเมื่อ " + elapsed + " วินาทีที่แล้ว";
+            klass = "ok";
+          } else {
+            message = "พบข้อมูล ONLINE เก่าหรือ retained แต่ยังยืนยันสถานะสดไม่ได้";
+            klass = "warn";
+          }
+          message += " | กลอน: " + String(lastStatus.lock_status || "ไม่ทราบ");
+          message += " | RTC: " + String(lastStatus.rtc_valid);
+        }
+        $("deviceStatus").textContent = message;
+        $("deviceStatus").className = "state " + klass;
+      }
+      function disconnect() {
+        if (client) {
+          const old = client;
+          client = null;
+          old.end(true);
+        }
+        $("connect").disabled = false;
+        $("disconnect").disabled = true;
+        $("requestList").disabled = true;
+        $("password").value = "";
+        lastOnlineMessageAt = 0;
+        lastOnlineIsFresh = false;
+        lastStatus = null;
+        broker("ไม่ได้เชื่อมต่อ", "warn");
+        updateDeviceState();
+      }
+      $("connectForm").addEventListener("submit", event => {
+        event.preventDefault();
+        if (typeof mqtt === "undefined" || !mqtt.connect) {
+          broker("โหลด MQTT.js ไม่สำเร็จ ตรวจอินเทอร์เน็ตหรือ CDN", "bad");
+          return;
+        }
+        const username = $("username").value.trim();
+        const password = $("password").value;
+        if (!username || !password) return;
+        disconnect();
+        broker("กำลังเชื่อม HiveMQ...", "warn");
+        $("connect").disabled = true;
+        $("disconnect").disabled = false;
+        const current = mqtt.connect(HOST, {
+          username, password,
+          clientId: "time4med-diagnostic-" + Math.random().toString(16).slice(2, 12),
+          clean: true, protocolVersion: 4,
+          connectTimeout: 10000, reconnectPeriod: 5000, keepalive: 30
+        });
+        // Retain no extra copy of the password after connection initialization.
+        $("password").value = "";
+        client = current;
+        current.on("connect", () => {
+          if (client !== current) return;
+          broker("เชื่อม HiveMQ Cloud สำเร็จ (ยังไม่ยืนยัน ESP32-S3)", "ok");
+          log("เชื่อม Broker สำเร็จ; กำลัง subscribe status/event/schedule");
+          current.subscribe([STATUS, EVENT, SCHEDULE], {qos:1}, err => {
+            if (client !== current) return;
+            if (err) { broker("ต่อ Broker ได้ แต่ subscribe ไม่สำเร็จ: ตรวจสิทธิ์ Topic", "bad"); log("สมัครรับ Topic ไม่สำเร็จ"); }
+            else { $("requestList").disabled = false; log("Subscribe ผ่าน — รอสถานะ ESP32-S3"); }
+          });
+        });
+        current.on("message", (topic, buf, packet) => {
+          if (client !== current) return;
+          let data;
+          try { data = JSON.parse(buf.toString()); }
+          catch (_) { log("ได้รับ payload ที่ไม่ใช่ JSON: " + topic); return; }
+          const retained = !!(packet && packet.retain);
+          if (topic === STATUS) {
+            lastStatus = data;
+            lastOnlineIsFresh = !retained && data.online === true;
+            lastOnlineMessageAt = Date.now();
+            updateDeviceState();
+            log("STATUS " + (retained ? "[retained] " : "") +
+              "online=" + String(data.online) + " state=" + String(data.system_state || "-"));
+          } else if (topic === SCHEDULE) {
+            // v0.11.x reports one schedule slot per MQTT message; no end-of-list marker.
+            $("scheduleStatus").textContent = "รายงานจาก ESP32-S3 (หนึ่งรายการ ไม่ใช่รายการทั้งหมด): " +
+              JSON.stringify(data);
+            log("SCHEDULE " + (retained ? "[retained] " : "") + JSON.stringify(data));
+          } else if (topic === EVENT) {
+            log("EVENT " + String(data.event || "unknown") + " — " + String(data.detail || ""));
+          }
+        });
+        current.on("reconnect", () => {
+          if (client === current) broker("กำลังเชื่อม Broker ใหม่...", "warn");
+        });
+        current.on("offline", () => {
+          if (client === current) broker("การเชื่อมต่อ Broker ออฟไลน์", "bad");
+        });
+        current.on("error", err => {
+          if (client !== current) return;
+          // Error messages may include infrastructure details; never log credentials.
+          broker("เชื่อมต่อไม่สำเร็จ — ตรวจ Username/Password, TLS, Network และสิทธิ์ Access", "bad");
+          log("MQTT error: " + String(err && err.code || "connection_error"));
+        });
+        current.on("close", () => {
+          if (client === current) broker("การเชื่อมต่อขาด (กำลังลองใหม่อัตโนมัติ)", "warn");
+        });
+      });
+      $("disconnect").addEventListener("click", disconnect);
+      $("requestList").addEventListener("click", () => {
+        if (!client || !client.connected) { log("ยังไม่เชื่อมต่อ"); return; }
+        $("scheduleStatus").textContent = "ส่ง LIST แล้ว รอรายการจากเครื่อง (ไม่มีข้อความปิดท้ายรายการ)";
+        client.publish(COMMAND_SCHEDULE, "LIST", {qos:1, retain:false}, err => {
+          log(err ? "ส่ง LIST ไม่สำเร็จ" : "ส่ง LIST แล้ว — ไม่มีการแก้ไขตารางหรือกลอน");
+        });
+      });
+      $("clearLog").addEventListener("click", () => { count = 0; $("log").textContent = "ล้างบันทึกบนหน้าจอแล้ว"; });
+      window.setInterval(updateDeviceState, 5000);
+      window.addEventListener("pagehide", () => { if (client) client.end(true); });
+    })();
+  </script>
+</body>
+</html>
