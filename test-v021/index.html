@@ -561,13 +561,13 @@
                         <input id="medicineTime" type="time" required>
                     </div>
                     <div class="form-group">
-                        <label for="medicineBox">หมายเลขกล่องบนตู้</label>
-                        <input id="medicineBox" type="text" maxlength="12" autocomplete="off" placeholder="เช่น 01 หรือ A1">
+                        <label for="medicineBox">หมายเลขช่องยาประจำผู้สูงอายุ</label>
+                        <input id="medicineBox" type="text" maxlength="12" autocomplete="off" placeholder="P001=1, P002=2, P003=3">
                     </div>
                     <div class="form-group cabinet-location-note" aria-live="polite">
-                        <span class="cabinet-location-title">ตำแหน่งจากมื้อยาที่เลือก</span>
-                        <strong id="medicineShelfPreview">ชั้น 1 — เช้า</strong>
-                        <small>แนะนำติดหมายเลขกล่องจริงให้ตรงกับเว็บไซต์</small>
+                        <span class="cabinet-location-title">ตำแหน่งชั้นตามผู้สูงอายุที่เลือก</span>
+                        <strong id="medicineShelfPreview">กรุณาเลือก P001–P003</strong>
+                        <small>ช่อง 1–3 ระบุบุคคลตามโปรโตคอล ESP32-S3 ไม่ใช่หมายเลขกล่องยาย่อยภายในชั้น</small>
                     </div>
                     <details class="medicine-extra">
                         <summary>รายละเอียดจากฉลาก (ถ้ามี)</summary>
@@ -648,7 +648,7 @@
              <div class="panel-heading inventory-heading">
                <div class="heading-left"><span class="heading-icon">🗂️</span>
                  <div><h2>แผนผังตู้และสถานะยา</h2>
-                   <p class="panel-subtitle">4 ชั้นตามมื้ออาหาร · ยา PRN แยกพื้นที่ · ผู้ดูแลเป็นผู้ตรวจสอบสถานะ</p>
+                   <p class="panel-subtitle">ชั้น 1–3 สำหรับ P001–P003 · ชั้น 4 สำหรับยาสามัญประจำบ้าน · ผู้ดูแลเป็นผู้ตรวจสอบสถานะ</p>
                  </div>
                </div>
                <span class="inventory-local-badge">ข้อมูลบัญชีนี้ / Google Sheets (เมื่อเชื่อมต่อ)</span>
@@ -662,14 +662,13 @@
              <div id="cabinetShelfMap" class="cabinet-shelf-map" aria-label="แผนผังตู้ยา"></div>
              <div class="inventory-toolbar">
                <div class="inventory-filters">
-                 <label for="inventorySlotFilter">กรองตามมื้อ / ตำแหน่ง</label>
+                 <label for="inventorySlotFilter">กรองตามชั้น / ผู้สูงอายุ</label>
                  <select id="inventorySlotFilter">
                    <option value="all">ทุกชั้น</option>
-                   <option value="morning">ชั้น 1 — เช้า</option>
-                   <option value="noon">ชั้น 2 — กลางวัน</option>
-                   <option value="evening">ชั้น 3 — เย็น</option>
-                   <option value="bedtime">ชั้น 4 — ก่อนนอน</option>
-                   <option value="prn">พื้นที่ PRN</option>
+                   <option value="P001">ชั้น 1 — P001</option>
+                   <option value="P002">ชั้น 2 — P002</option>
+                   <option value="P003">ชั้น 3 — P003</option>
+                   <option value="common">ชั้น 4 — ยาสามัญประจำบ้าน</option>
                  </select>
                </div>
                <div class="inventory-export-actions">
@@ -1070,11 +1069,11 @@
                         </h3>
 
                         <p>
-                            ตรวจสอบว่าอุปกรณ์เชื่อมต่อ Hotspot เดียวกับกล้อง
+                            ภาพสดยังไม่เปิดใช้งานบนเว็บไซต์ระหว่างตรวจสอบสิทธิ์การเข้าถึง
                         </p>
 
                         <span class="camera-placeholder-note">
-                            Camera IP: 172.20.10.6
+                            ESP32-CAM · เครือข่ายภายใน
                         </span>
 
                     </div>
@@ -1088,7 +1087,7 @@
                     </span>
 
                     <span id="cameraAddressText">
-                        Stream: 172.20.10.6:81
+                        Live stream: รอระบบตรวจสิทธิ์
                     </span>
 
                 </div>
@@ -1115,7 +1114,7 @@
                         <div>
                             <h2>คลังรูปภาพ</h2>
                             <p class="panel-subtitle">
-                                ภาพหลักฐานการหยิบยาและกดปุ่มยืนยันจาก SD Card
+                                ภาพหลักฐานที่บันทึกจาก ESP32-CAM ลง Google Drive
                             </p>
                         </div>
 
@@ -1129,7 +1128,7 @@
 
                 <div class="gallery-toolbar">
                     <span id="galleryCount">ยังไม่มีภาพในคลัง</span>
-                    <span>ESP32-CAM: 172.20.10.6</span>
+                    <span>คลังภาพ: Google Drive</span>
                 </div>
 
                 <div id="galleryGrid" class="gallery-grid" aria-live="polite"></div>
@@ -1141,7 +1140,7 @@
                         เมื่อผู้รับประทานยาหยิบยาและกดปุ่มยืนยัน ภาพหลักฐานจะแสดงที่นี่
                     </p>
                     <small id="galleryConnectionMessage">
-                        กรุณาเชื่อมต่อเครือข่ายเดียวกับ ESP32-CAM
+                        กำลังรอการเชื่อมคลังภาพ Google Drive ผ่าน Backend ที่ตรวจสอบสิทธิ์
                     </small>
                 </div>
 

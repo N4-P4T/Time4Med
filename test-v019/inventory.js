@@ -8,11 +8,10 @@
   if (!el('inventoryItems') || typeof medicines === 'undefined') return;
   const safe = v => String(v ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   const groups = [
-    {id:'morning',name:'ชั้น 1 — เช้า',desc:'ก่อนอาหาร / หลังอาหาร'},
-    {id:'noon',name:'ชั้น 2 — กลางวัน',desc:'ก่อนอาหาร / หลังอาหาร'},
-    {id:'evening',name:'ชั้น 3 — เย็น',desc:'ก่อนอาหาร / หลังอาหาร'},
-    {id:'bedtime',name:'ชั้น 4 — ก่อนนอน',desc:'ก่อนนอน'},
-    {id:'prn',name:'พื้นที่ยา PRN',desc:'ใช้เมื่อมีอาการ · ต้องออกแบบการเข้าถึงเมื่อจำเป็น'}
+    {id:'P001',name:'ชั้น 1 — P001',desc:'ยาของ P001 · เช้า / กลางวัน / เย็น / ก่อนนอน'},
+    {id:'P002',name:'ชั้น 2 — P002',desc:'ยาของ P002 · เช้า / กลางวัน / เย็น / ก่อนนอน'},
+    {id:'P003',name:'ชั้น 3 — P003',desc:'ยาของ P003 · เช้า / กลางวัน / เย็น / ก่อนนอน'},
+    {id:'common',name:'ชั้น 4 — ยาสามัญประจำบ้าน',desc:'ไม่มี LED · ไม่ผูกกับตารางมื้อยารายบุคคล'}
   ];
   let history = [];
   // Sensitive session log stays in memory only (no localStorage).
@@ -34,7 +33,7 @@
     for (const group of groups) {
       const rows=valid.filter(m=>mealDef(m).shelf===group.id);
       const boxes=[...new Set(rows.map(m=>m.boxNumber).filter(Boolean))].sort((a,b)=>String(a).localeCompare(String(b),undefined,{numeric:true}));
-      const card=document.createElement('article');card.className='cabinet-map-shelf'+(group.id==='prn'?' prn':'');
+      const card=document.createElement('article');card.className='cabinet-map-shelf';
       card.innerHTML=`<h3>${safe(group.name)} <small>(${rows.length} รายการ)</small></h3><p>${safe(group.desc)}</p>
         <div class="cabinet-map-boxes">${boxes.length ? boxes.map(n=>`<span class="cabinet-map-box">📦 ${safe(n)}</span>`).join('') : '<span class="cabinet-map-box empty">ยังไม่ระบุกล่อง</span>'}</div>`;
       map.appendChild(card);
