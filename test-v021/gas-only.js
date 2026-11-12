@@ -306,9 +306,15 @@ function liveDeviceTimeMs(value){
   const raw=String(value||'').trim();
   if(!raw)return NaN;
   const iso=raw.replace(' ','T');
-  return Date.parse(/(?:Z|[+-]\\d{2}:\\d{2})$/i.test(iso)?iso:iso+'+07:00');
+  return Date.parse(/(?:Z|[+-]\d{2}:\d{2})$/i.test(iso)?iso:iso+'+07:00');
 }
-function isLiveDevice(device,nowMs=Date.now()){
+function serverReferenceTimeMs(){
+  // Server and heartbeat timestamps use Bangkok time; tolerate user clock skew.
+  const server=liveDeviceTimeMs(state.data?.serverTime);
+  if(!Number.isFinite(server))return Date.now();
+  return server+Math.max(0,Date.now()-lastFetchAt);
+}
+function isLiveDevice(device,nowMs=serverReferenceTimeMs()){
   const last=liveDeviceTimeMs(device.lastSeen);
   return String(device.online).toUpperCase()==='ONLINE' && Number.isFinite(last) &&
     last<=nowMs && nowMs-last<180000;
