@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="th"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Time4Med — ตรวจการเชื่อมต่อเว็บไซต์</title>
+<style>body{font-family:system-ui,"Noto Sans Thai",sans-serif;background:#eef4fa;color:#173957;padding:30px;max-width:560px;margin:5vh auto}main{background:white;border:1px solid #ccddea;border-radius:18px;padding:24px}button{background:#1769b1;color:white;font:inherit;border:0;border-radius:10px;padding:13px 20px}pre{white-space:pre-wrap;word-break:break-word;background:#f5f8fc;border-radius:8px;padding:16px}</style></head>
+<body><main><h2>Time4Med · ทดสอบการสื่อสาร</h2>
+<p>ทดสอบคำสั่งอ่านอย่างเดียว: <code>logout(null)</code> ไม่ส่ง OTP และไม่แก้ไขตู้ยาหรือฐานข้อมูล</p>
+<button id="test">ตรวจการเชื่อมต่อ</button><pre id="status">ยังไม่เริ่มทดสอบ</pre></main>
+<script>
+const WEB_APP='https://script.google.com/macros/s/AKfycbx2-O9PDp-T0eXoP1A9_xesHk8mWcWszAbLsbsFOMpARpIIICibdKu6On0G0agGdMIEtQ/exec';
+document.getElementById('test').onclick=()=>{
+  const status=document.getElementById('status'),b=document.getElementById('test');
+  const channel=Array.from(crypto.getRandomValues(new Uint8Array(24)),x=>x.toString(16).padStart(2,'0')).join('');
+  b.disabled=true;status.textContent='กำลังตรวจสอบ...';
+  const frame=document.createElement('iframe');frame.name='test-rpc-'+channel;
+  frame.style.cssText='position:absolute;left:-9999px;width:1px;height:1px;border:0';
+  const form=document.createElement('form');form.action=WEB_APP;form.method='POST';form.target=frame.name;form.style.display='none';
+  const p={t4m_form_rpc:'1',t4m_channel:channel,t4m_id:'1',t4m_method:'logout',t4m_args:'[null]'};
+  for(const [name,value] of Object.entries(p)){const i=document.createElement('input');i.type='hidden';i.name=name;i.value=value;form.append(i);}
+  let timer;
+  function clean(){clearTimeout(timer);window.removeEventListener('message',onMessage);frame.remove();form.remove();b.disabled=false}
+  function onMessage(e){
+    const d=e.data;if(!d||d.app!=='time4med-form-rpc'||d.channel!==channel)return;
+    if(!(e.origin==='null'||e.origin==='https://script.google.com'||e.origin==='https://script.googleusercontent.com'||e.origin.endsWith('.googleusercontent.com')))return;
+    clean();status.textContent=d.ok&&d.value===true?'ผ่าน: GitHub ↔ Apps Script ตอบกลับสำเร็จ ✅':'ไม่ผ่าน: '+String(d.error||'ผลตอบกลับไม่ตรง');
+  }
+  window.addEventListener('message',onMessage);
+  timer=setTimeout(()=>{clean();status.textContent='ไม่ผ่าน: ไม่ได้รับข้อความตอบกลับจาก Apps Script ภายใน 30 วินาที'},30000);
+  document.body.append(frame,form);form.submit();
+};
+</script></body></html>
