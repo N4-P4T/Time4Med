@@ -13,6 +13,58 @@ const AUTHUSER_ATTEMPTS = [null, 0, 1, 2, 3];
 const MEALS = ['','ก่อนอาหารเช้า','หลังอาหารเช้า','ก่อนอาหารกลางวัน','หลังอาหารกลางวัน','ก่อนอาหารเย็น','หลังอาหารเย็น','ก่อนนอน'];
 const DAYS = [['MON','จ'],['TUE','อ'],['WED','พ'],['THU','พฤ'],['FRI','ศ'],['SAT','ส'],['SUN','อา']];
 const state={peer:null,origin:null,channel:null,frames:new Map(),seq:0,pending:new Map(),token:null,data:null,ready:false,rpcVerified:false,view:'dashboard'};
+
+/* Keep an authenticated caregiver signed in for at most six hours
+   on this browser profile. The server still validates every token.
+   No password, email, OTP or patient data is stored in localStorage.
+   Local storage is per-browser, so Safari and LINE may require separate logins. */
+const SESSION_STORE_KEY='time4med.auth.v1';
+const MAX_SESSION_AGE_MS=6*60*60*1000;
+function discardSavedSession(){
+  try{window.localStorage.removeItem(SESSION_STORE_KEY);}catch(_){}
+}
+function rememberSession(token){
+  try{
+    window.localStorage.setItem(SESSION_STORE_KEY,JSON.stringify({
+      token:String(token), expires:Date.now()+MAX_SESSION_AGE_MS
+    }));
+  }catch(_){/* Private browsing may forbid storage: allow normal OTP login. */}
+}
+function savedSessionToken(){
+  try{
+    const raw=window.localStorage.getItem(SESSION_STORE_KEY);
+    const s=raw?JSON.parse(raw):null;
+    if(s && typeof s.token==='string'&&s.token.length>=40 &&
+       Number.isFinite(s.expires)&&s.expires>Date.now() &&
+       s.expires<=Date.now()+MAX_SESSION_AGE_MS)return s.token;
+  }catch(_){}
+  discardSavedSession();
+  return '';
+}
+async function restoreSavedSession(){
+  const token=savedSessionToken();
+  if(!token)return false;
+  const box=$('t4mAuthScreen');
+  message('กำลังคืนค่าการเข้าสู่ระบบเดิม...');
+  try{
+    const data=await call('bootstrap',token);
+    if(!data||!data.user)throw Error('เซสชันไม่ถูกต้อง');
+    state.token=token;state.data=data;
+    lastFetchAt=Date.now();
+    box.hidden=true;document.body.classList.remove('t4m-auth-locked');
+    const bar=$('t4mUserbar');if(bar)bar.hidden=false;
+    text('t4mSignedInUser',data.user.email);
+    render();
+    return true;
+  }catch(error){
+    // On a network error, keep the saved token to retry on next page load.
+    // An expired/revoked token cannot bypass the server validation.
+    if(/หมดเวลา|ไม่มีสิทธิ์|กรุณาเข้าสู่ระบบ|invalid|not authorized|เซสชันไม่ถูกต้อง/i.test(
+       String(error.message||error)))discardSavedSession();
+    return false;
+  }
+}
+
 const $=id=>document.getElementById(id);
 const html=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const text=(id,s)=>{const e=$(id);if(e)e.textContent=s;};
@@ -203,6 +255,7 @@ function syncVerifiedProfile(){
 async function signedIn(result,box){
   if(!result||!result.token)throw Error('ไม่พบเซสชันที่ถูกต้อง');
   state.token=result.token;state.data=await call('bootstrap',state.token);
+  rememberSession(state.token);
   lastFetchAt=Date.now();
   box.hidden=true;document.body.classList.remove('t4m-auth-locked');
   const bar=$('t4mUserbar');if(bar)bar.hidden=false;
@@ -248,7 +301,7 @@ function startAuth(){
       }catch(e){message(e.message,true);}finally{if(btn)btn.disabled=false;}
     });
     const signout=$('t4mSignOut');if(signout)signout.addEventListener('click',async()=>{
-      const token=state.token;state.token=null;state.data=null;
+      const token=state.token;discardSavedSession();state.token=null;state.data=null;
       try{await call('logout',token);}catch(_){}window.location.reload();
     });
     return;
@@ -282,7 +335,7 @@ function startAuth(){
     }catch(e){handleOtpTransportError(e,'verify');}finally{if(b)b.disabled=false;}
   });
   const out=$('t4mSignOut');if(out)out.addEventListener('click',async()=>{
-    const token=state.token;state.token=null;state.data=null;
+    const token=state.token;discardSavedSession();state.token=null;state.data=null;
     try{await call('logout',token);}catch(_){}
     window.location.reload();
   });
@@ -1036,7 +1089,10 @@ document.addEventListener('click',async e=>{
 });
 window.addEventListener('hashchange',()=>{if(state.data)render();});
 document.addEventListener('DOMContentLoaded',()=>{
-  startAuth();if(FORM_RPC_ENABLED)void verifyRpcBeforeLogin();else if(!API_URL)installBridge();
+  startAuth();
+  if(FORM_RPC_ENABLED){
+    void (async()=>{if(!(await restoreSavedSession()))await verifyRpcBeforeLogin();})();
+  }else if(!API_URL)installBridge();
   const toggle=$('sidebarToggle');if(toggle)toggle.addEventListener('click',()=>document.body.classList.toggle('sidebar-collapsed'));
   const time=()=>{
     const now=new Date();
