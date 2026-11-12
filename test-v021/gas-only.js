@@ -1,10 +1,11 @@
-/* Legacy Pages interface. The canonical Time4Med link uses Apps Script directly; no external login API. */
+/* Time4Med GitHub Pages is the canonical caregiver UI; Apps Script is the backend. */
 (() => {
 'use strict';
 const WEB_APP = 'https://script.google.com/macros/s/AKfycbx2-O9PDp-T0eXoP1A9_xesHk8mWcWszAbLsbsFOMpARpIIICibdKu6On0G0agGdMIEtQ/exec';
 // Keep the same GitHub Pages sign-in for all devices. No forced GAS redirect.
 // External login API removed; historical Pages view retains OTP only.
 const API_URL='';
+const FORM_RPC_ENABLED=true; // requires matching Code.gs on Apps Script /exec
 function makeChannel(){return Array.from(crypto.getRandomValues(new Uint8Array(24)),x=>x.toString(16).padStart(2,'0')).join('');}
 // Google Apps Script documents unsupported multi-Google-account routing. An explicit
 // authuser hint sometimes helps; it cannot be guaranteed to work on all accounts.
@@ -53,7 +54,62 @@ function dayLabel(value){
 function bridgeOrigin(origin) {
   try {const u=new URL(origin);return u.protocol==='https:' && (u.hostname==='script.google.com'||u.hostname==='script.googleusercontent.com'||u.hostname.endsWith('.googleusercontent.com'));}catch(_){return origin==='null';}
 }
+
+/* Cross-site form POST transport: avoids third-party google.script.run.
+   All OTPs and session tokens are submitted in POST bodies, never query URLs.
+   Replies go only to the Time4Med GitHub Pages origin. */
+function formRpc(method,args) {
+  const channel=makeChannel(),id=++state.seq;
+  return new Promise((resolve,reject)=>{
+    const frame=document.createElement('iframe');
+    frame.name='t4m-rpc-'+channel;
+    frame.setAttribute('aria-hidden','true');
+    frame.style.cssText='position:absolute;left:-9999px;top:0;width:1px;height:1px;border:0;opacity:0;';
+    const form=document.createElement('form');
+    form.method='POST';
+    form.action=WEB_APP;
+    form.target=frame.name;
+    form.acceptCharset='UTF-8';
+    form.style.display='none';
+    const fields={
+      t4m_form_rpc:'1',t4m_channel:channel,t4m_id:String(id),
+      t4m_method:method,t4m_args:JSON.stringify(args)
+    };
+    for(const [name,value] of Object.entries(fields)){
+      const input=document.createElement('input');
+      input.type='hidden';input.name=name;input.value=value;form.appendChild(input);
+    }
+    let settled=false;
+    let timer;
+    const cleanup=()=>{
+      window.removeEventListener('message',onReply);
+      window.clearTimeout(timer);
+      form.remove();frame.remove();
+    };
+    const onReply=event=>{
+      const d=event.data;
+      if(!d||d.app!=='time4med-form-rpc'||d.channel!==channel||Number(d.id)!==id||!bridgeOrigin(event.origin))return;
+      if(settled)return;
+      settled=true;cleanup();
+      if(d.ok)resolve(d.value);
+      else reject(Error(d.error||'Apps Script ไม่ตอบกลับตามที่คาด'));
+    };
+    window.addEventListener('message',onReply);
+    timer=window.setTimeout(()=>{
+      if(settled)return;
+      settled=true;cleanup();
+      reject(Error('Apps Script ตอบสนองช้าเกินไป กรุณาตรวจสอบก่อนส่งคำสั่งซ้ำ'));
+    },method==='logout'?25000:60000);
+    document.body.appendChild(frame);
+    document.body.appendChild(form);
+    try{form.submit();}catch(error){
+      if(!settled){settled=true;cleanup();reject(error);}
+    }
+  });
+}
+
 async function call(method,...args) {
+  if(FORM_RPC_ENABLED)return formRpc(method,args);
   if(API_URL){
     const response=await fetch(API_URL,{method:'POST',mode:'cors',credentials:'omit',cache:'no-store',
       headers:{'Content-Type':'application/json'},body:JSON.stringify({method,args})});
@@ -974,7 +1030,7 @@ document.addEventListener('click',async e=>{
 });
 window.addEventListener('hashchange',()=>{if(state.data)render();});
 document.addEventListener('DOMContentLoaded',()=>{
-  startAuth();if(!API_URL)installBridge();
+  startAuth();if(FORM_RPC_ENABLED)void verifyRpcBeforeLogin();else if(!API_URL)installBridge();
   const toggle=$('sidebarToggle');if(toggle)toggle.addEventListener('click',()=>document.body.classList.toggle('sidebar-collapsed'));
   const time=()=>{
     const now=new Date();
