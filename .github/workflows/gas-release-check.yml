@@ -7,6 +7,7 @@ on:
       - 'tests/gas-*.cjs'
       - 'tests/intake-audit-integrity.cjs'
       - 'tests/line-reminder-safety.cjs'
+      - 'tests/line-alerts-addon.cjs'
       - '.github/workflows/gas-release-check.yml'
   push:
     paths:
@@ -41,3 +42,7 @@ jobs:
         run: node tests/intake-audit-integrity.cjs
       - name: LINE reminder trigger jitter and duplicate safety
         run: node tests/line-reminder-safety.cjs
+      - name: LINE-only event monitor checks (no external sends)
+        run: |
+          node --check < apps-script/Time4Med_LINE_Alerts_20261113.gs
+          node tests/line-alerts-addon.cjs
