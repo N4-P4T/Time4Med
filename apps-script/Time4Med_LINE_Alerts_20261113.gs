@@ -266,7 +266,11 @@ function time4medLineAlertsStart(){
   });
   jobs.slice(1).forEach(function(j){ScriptApp.deleteTrigger(j);});
   if(!jobs.length)ScriptApp.newTrigger('time4medLineAlertsTick').timeBased().everyMinutes(1).create();
-  if(!p.getProperty('T4ML_STARTED_AT'))p.setProperty('T4ML_STARTED_AT',String(Date.now()));
+  if(p.getProperty('T4ML_ENABLED')!=='TRUE'){
+    p.setProperty('T4ML_STARTED_AT',String(Date.now())); // Never backfill older events on restart.
+    p.deleteProperty('T4ML_OFFLINE_LATCH_S3-001');
+    p.deleteProperty('T4ML_OFFLINE_LATCH_CAM-001');
+  }
   p.setProperty('T4ML_ENABLED','TRUE');
   return {enabled:true,startedAt:p.getProperty('T4ML_STARTED_AT'),
     triggerCount:ScriptApp.getProjectTriggers().filter(function(t){
