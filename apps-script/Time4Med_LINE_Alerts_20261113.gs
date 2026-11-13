@@ -314,3 +314,44 @@ function time4medLineAlertsTestOnce(){
     return {sent:sent,logId:key,softLimit:ctx.limit,loggedThisMonth:ctx.sent};
   }finally{lock.releaseLock();}
 }
+
+/**
+ * Optional integration point for NEW, authenticated S3 device action:
+ *   action:'door', deviceId:'S3-001', door:'OPEN'|'CLOSED'.
+ * In the *existing* Code.gs postDevice_, AFTER device-key verification,
+ * add 'door' to the action whitelist and call this function for that action.
+ * An unknown initial state establishes a baseline without an alert.
+ * Existing Web App /exec deployment must be updated for a new device action.
+ */
+function time4medDoorChangeFromDevice_(p){
+  if(t4mlTrim_(p.deviceId)!=='S3-001')
+    throw new Error('DOOR_DEVICE_ID_INVALID');
+  var door=t4mlUpper_(p.door);
+  if(door!=='OPEN'&&door!=='CLOSED')throw new Error('DOOR_STATE_INVALID');
+  var lock=LockService.getScriptLock();lock.waitLock(5000);
+  try{
+    var devices=t4mlTable_('Devices',4,100);
+    var row=devices.rows.find(function(r){return t4mlTrim_(r.data.device_id)==='S3-001';});
+    if(!row)throw new Error('DOOR_DEVICE_NOT_REGISTERED');
+    var index=devices.keys.indexOf('door_status');
+    if(index<0){
+      index=devices.keys.length;
+      devices.sheet.getRange(4,index+1).setValue('door_status');
+    }
+    var previous=t4mlUpper_(row.data.door_status);
+    if(previous===door)return {ok:true,changed:false,door:door,receivedAt:t4mlStamp_(new Date())};
+    if(previous==='OPEN'||previous==='CLOSED'){
+      var event='DOOR_'+door;
+      var act=t4mlTable_('ActivityLog',4,100);
+      t4mlLog_(act.sheet,{
+        event_id:Utilities.getUuid(),device_id:'S3-001',patient_id:'ALL',
+        user_id:'SYSTEM',event_type:event,result:'SUCCESS',
+        details:'ESP32-S3 reed-switch transition: '+previous+' -> '+door,
+        occurred_at:t4mlStamp_(new Date())
+      });
+    }
+    devices.sheet.getRange(row.index,index+1).setValue(door);
+    return {ok:true,changed:previous==='OPEN'||previous==='CLOSED',
+      door:door,receivedAt:t4mlStamp_(new Date())};
+  }finally{lock.releaseLock();}
+}
