@@ -1,5 +1,5 @@
 /* Time4Med modern UI preview. This CSS never changes permissions or device behavior. */
-:root{--navy:#0d2b4e;--navy2:#143c68;--blue:#2563eb;--blue-pale:#eef5ff;--mint:#10b981;--ink:#17324d;--muted:#6b8095;--border:#dfebf5;--paper:#fff;--bg:#f5f8fc;--shadow:0 8px 28px rgba(25,60,100,.055);}
+:root{--navy:#15364f;--navy2:#1f5365;--blue:#236aab;--blue-pale:#eaf5fc;--mint:#079b86;--ink:#193c4c;--muted:#647e88;--border:#dce9e7;--paper:#fff;--bg:#f6faf9;--shadow:0 12px 30px rgba(21,70,77,.065);--teal:#108b91;--jade:#18a47e;--aqua:#59c6be;--sea:#d9f5ee;--amber:#d89838;--sand:#fff3da;--soft-blue:#e6f3fd;}
 *,*::before,*::after{box-sizing:border-box}
 html{scroll-behavior:smooth}
 body{margin:0;min-height:100vh;background:var(--bg);color:var(--ink);font:15px/1.68 system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans Thai",Tahoma,sans-serif;-webkit-font-smoothing:antialiased}
@@ -142,3 +142,140 @@ a:focus-visible,button:focus-visible{outline:3px solid #78b5fa;outline-offset:3p
 
 .preview-banner{padding:7px clamp(18px,4vw,54px);font-size:11px;color:#53708b;background:#eaf4fd;border-bottom:1px solid #d8e6f3;display:flex;align-items:center;justify-content:space-between;gap:10px}.preview-banner a{color:#1a5d9d;font-weight:750;text-decoration:underline}
 @media(max-width:860px){.preview-banner{padding:7px 15px;flex-wrap:wrap}}
+
+
+/* -----------------------------------------------------------
+   MEDICAL MODERN · Time4Med preview color pass (2026-11-14)
+   Design only: backend, OTP, access rights and live device
+   semantics are intentionally unchanged.
+   ----------------------------------------------------------- */
+body{
+ background:
+  radial-gradient(ellipse 34rem 28rem at 98% 1%,rgba(98,213,189,.11),transparent 75%),
+  radial-gradient(ellipse 40rem 26rem at 5% 70%,rgba(104,182,220,.075),transparent 76%),
+  var(--bg);
+}
+.sidebar{
+ background:linear-gradient(176deg,#123650 0%,#145164 50%,#0d354f 100%);
+ box-shadow:4px 0 28px rgba(13,64,82,.12);
+}
+.sidebar-brand{border-bottom-color:rgba(203,245,233,.18)}
+.sidebar-brand-text span{color:#b3e8e0}
+.sidebar-link{color:#d3e9e9}
+.sidebar-link:hover,.sidebar-link:focus-visible{background:rgba(199,245,231,.14);color:#fff}
+.sidebar-link.active{
+ background:linear-gradient(95deg,#218f93,#24789a);
+ border-color:rgba(159,239,221,.38);
+ box-shadow:inset 3px 0 #b3f3d8,0 4px 13px rgba(2,34,44,.1)
+}
+.sidebar-user{border-color:rgba(179,231,221,.3);background:rgba(198,246,229,.09)}
+.sidebar-user-icon{color:#9bf2c8}
+.sidebar-user span.t4m-profile-name{color:#b9dcd9}
+.main-header.t21-topbar{
+ border-bottom:1px solid #d8ebe6;
+ background:linear-gradient(106deg,rgba(255,255,255,.97),rgba(240,251,249,.96));
+}
+.header-kicker{color:#11868e}
+.header-title strong{color:#134256}
+.header-connection{border-color:#c7e9df;background:#ebfaf6;color:#176f65}
+.status-indicator{background:#159d83}
+.preview-banner{background:linear-gradient(92deg,#e3f6ee,#edf7fd);color:#356f70;border-bottom-color:#c8eae0}
+.preview-banner a{color:#0c777a}
+.t21-heading{
+ position:relative;
+ overflow:hidden;
+ background:linear-gradient(116deg,#164466 0%,#126d77 55%,#189b93 100%);
+ box-shadow:0 14px 32px rgba(14,105,104,.13);
+ border-color:rgba(255,255,255,.24);
+}
+.t21-heading::after{
+ content:"";position:absolute;pointer-events:none;
+ width:300px;height:300px;right:-130px;top:-170px;border-radius:50%;
+ background:radial-gradient(circle,rgba(219,255,241,.28),rgba(219,255,241,0) 70%);
+}
+.t21-heading h1{position:relative;z-index:1}
+.t21-heading .t21-eyebrow{color:#d5fff2}
+.t21-heading-description{color:#e6fffa}
+.t21-kpi{
+ position:relative;
+ overflow:hidden;
+ border-color:#e0ecea;
+ box-shadow:0 8px 22px rgba(13,86,92,.06);
+ background:linear-gradient(160deg,#fff 65%,#f9fdfa);
+}
+.t21-kpi::before{
+ content:"";position:absolute;inset:0 0 auto;height:4px;background:#479cc5;
+}
+.t21-kpi:nth-child(1){background:linear-gradient(145deg,#fff,#f0f8ff)}
+.t21-kpi:nth-child(1)::before{background:#5bace1}
+.t21-kpi:nth-child(1) .t21-kpi-icon{background:#e0f1ff;color:#247ab2}
+.t21-kpi:nth-child(2){background:linear-gradient(145deg,#fff,#edf9f2)}
+.t21-kpi:nth-child(2)::before{background:#1caa79}
+.t21-kpi:nth-child(2) .t21-kpi-icon{background:#daf8e9;color:#0a865e}
+.t21-kpi:nth-child(3){background:linear-gradient(145deg,#fff,#fff9e9)}
+.t21-kpi:nth-child(3)::before{background:#e1a14b}
+.t21-kpi:nth-child(3) .t21-kpi-icon{background:#fff0d5;color:#a66a1e}
+.t21-kpi:nth-child(4){background:linear-gradient(145deg,#fff,#eefafa)}
+.t21-kpi:nth-child(4)::before{background:#28b3aa}
+.t21-kpi:nth-child(4) .t21-kpi-icon{background:#d9f7f2;color:#078f8b}
+.t21-kpi-value{color:#1a4a58}
+.t21-kpi-label{color:#4e7179}
+.gas-heading h1{color:#134a59}
+.gas-panel.panel-card{
+ border-color:#dcebe8;
+ box-shadow:0 8px 25px rgba(13,78,84,.052);
+}
+.gas-panel .panel-heading{
+ border-bottom:1px solid #e0efeb;
+ background:linear-gradient(105deg,#f8fefd,#f1faf8 70%,#fff);
+}
+.gas-panel h2{color:#145867}
+.gas-panel:nth-of-type(3n + 2) .panel-heading{
+ background:linear-gradient(105deg,#f7fcff,#eef7fd 74%,#fff);
+}
+.gas-panel:nth-of-type(3n + 3) .panel-heading{
+ background:linear-gradient(105deg,#fffdf8,#fff9ed 74%,#fff);
+}
+.gas-table th{
+ background:#ecf8f6;
+ color:#28656f;
+}
+.gas-table tbody tr:hover{background:#f2fbf8}
+.gas-scroll{border-color:#dcebe7}
+.gas-btn{
+ background:linear-gradient(100deg,#0f8b85,#227ba3);
+ box-shadow:0 4px 12px rgba(6,102,113,.12);
+}
+.gas-btn:hover{background:linear-gradient(100deg,#0b746f,#195d8b)}
+.gas-btn.light{background:#e6f5f1;color:#13736e;box-shadow:none}
+.gas-btn.light:hover{background:#d3efea}
+.gas-btn.danger{background:#b33e4d;box-shadow:none}
+.gas-btn.danger:hover{background:#942f42}
+.gas-login .gas-btn{background:linear-gradient(100deg,#0d8988,#1d739e)}
+.gas-day{border-color:#d8e9e4;background:#f6fcf9}
+.gas-form input:focus,.gas-form select:focus,.gas-form textarea:focus{
+ outline-color:#91ddd2;
+}
+.t4m-auth-screen{
+ background:radial-gradient(circle at 15% 15%,rgba(70,208,176,.32),transparent 35%),
+ radial-gradient(circle at 88% 83%,rgba(101,179,217,.24),transparent 39%),
+ linear-gradient(137deg,#0e304a,#126d70 68%,#235c7c);
+}
+.t4m-auth-card.gas-login{border-color:#cfebe4;box-shadow:0 25px 75px rgba(3,45,49,.27)}
+.gas-login h1{color:#15566a}
+.gas-login input{border-color:#c9e5dc}
+.gas-login input:focus{outline:2px solid #88d9ca;outline-offset:2px}
+#gasStatus{color:#126d76}
+.t4m-userbar{border-color:#cbe8e0}
+.t4m-userbar button{background:#e2f5ef;color:#116c68}
+.gas-photo{background:linear-gradient(140deg,#fff,#f5fcf8);border-color:#d7ece7}
+.main-footer{border-top-color:#d7e9e4}
+a{color:#16858a}
+a:hover{color:#096c72}
+a:focus-visible,button:focus-visible{outline-color:#37b8b3}
+@media(max-width:860px){
+ .sidebar{background:linear-gradient(95deg,#0e3e55,#116b70);}
+ .sidebar-link.active{box-shadow:inset 0 3px #b8ffe4,0 3px 10px #063f4f25}
+ .main-header.t21-topbar{background:rgba(250,255,252,.97)}
+}
+@media(prefers-reduced-motion:reduce){.sidebar-link{transition:none}}
