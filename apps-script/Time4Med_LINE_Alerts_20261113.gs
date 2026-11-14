@@ -251,7 +251,9 @@ function time4medLineAlertsTick(){
     t4mlConfirmed_(ctx,started);
     t4mlDoor_(ctx,started);
     t4mlUnconfirmed_(ctx,started);
-    t4mlOffline_(ctx,started);
+    // Offline notifications paused while the cabinet is powered off for assembly.
+    // Leave t4mlOffline_ intact for future re-enablement.
+    // t4mlOffline_(ctx,started);
     return {ok:true,recipients:ctx.users.length,loggedThisMonth:ctx.sent,
       softLimit:ctx.limit,checkedAt:t4mlStamp_(now)};
   }finally{lock.releaseLock();}
