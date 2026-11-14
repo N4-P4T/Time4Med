@@ -139,3 +139,6 @@ a:focus-visible,button:focus-visible{outline:3px solid #78b5fa;outline-offset:3p
  .main-footer{flex-direction:column}
 }
 @media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}.sidebar-link{transition:none}}
+
+.preview-banner{padding:7px clamp(18px,4vw,54px);font-size:11px;color:#53708b;background:#eaf4fd;border-bottom:1px solid #d8e6f3;display:flex;align-items:center;justify-content:space-between;gap:10px}.preview-banner a{color:#1a5d9d;font-weight:750;text-decoration:underline}
+@media(max-width:860px){.preview-banner{padding:7px 15px;flex-wrap:wrap}}
