@@ -868,7 +868,7 @@ function render(){
     a.innerHTML='<span class="sidebar-link-icon">⚙</span><span class="sidebar-link-text"><strong>จัดการระบบ</strong><small>ADMIN</small></span>';
     document.querySelector('.sidebar-navigation').appendChild(a);
   }
-  text('mqttConnectionLabel','ข้อมูลจาก '+(API_URL?'API':'Apps Script')+' · ไม่ใช้ MQTT');
+  text('mqttConnectionLabel','ข้อมูลจาก '+(API_URL?'API':'Apps Script'));
   const f=$('gasMedicineForm');if(f)f.addEventListener('submit',saveMedicine);
   const uf=$('gasUserForm');if(uf)uf.addEventListener('submit',saveUser);
   const lf=$('gasLineRecipientForm');if(lf)lf.addEventListener('submit',saveLineRecipientForm);
