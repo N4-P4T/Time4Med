@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="th">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#0c2849">
+  <meta name="description" content="Time4Med — จัดการตารางยา ติดตามสถานะตู้ และดูประวัติการแจ้งเตือน">
+  <title>Time4Med | ศูนย์ดูแล</title>
+  <link rel="stylesheet" href="../test-v021/gas-only.css">
+  <link rel="stylesheet" href="modern.css?v=1">
+</head>
+<body class="t4m-auth-locked">
+  <section class="t4m-auth-screen" id="t4mAuthScreen" aria-label="เข้าสู่ระบบ Time4Med">
+    <div class="t4m-auth-card gas-login">
+      <img src="../test-v019/logo.png" alt="Time4Med" class="t4m-auth-logo">
+      <h1>Time4Med</h1><p>กำลังโหลดระบบเข้าสู่ระบบ...</p>
+    </div>
+  </section>
+
+  <header id="t4mUserbar" class="t4m-userbar" hidden>
+    <span id="t4mSignedInUser"></span>
+    <button type="button" id="t4mSignOut">ออกจากระบบ</button>
+  </header>
+
+  <aside class="sidebar" aria-label="เมนูเว็บไซต์">
+    <div class="sidebar-brand">
+      <img src="../test-v019/logo.png" alt="" class="sidebar-logo">
+      <div class="sidebar-brand-text">
+        <strong>Time4Med</strong>
+        <span>Care Center</span>
+      </div>
+    </div>
+    <nav class="sidebar-navigation" aria-label="เมนูหลัก">
+      <a href="#dashboard" class="sidebar-link active"><span class="sidebar-link-icon">⌂</span><span class="sidebar-link-text"><strong>ภาพรวม</strong></span></a>
+      <a href="#medication" class="sidebar-link"><span class="sidebar-link-icon">💊</span><span class="sidebar-link-text"><strong>รายการยา</strong></span></a>
+      <a href="#devices" class="sidebar-link"><span class="sidebar-link-icon">▣</span><span class="sidebar-link-text"><strong>สถานะตู้</strong></span></a>
+      <a href="#inventory" class="sidebar-link"><span class="sidebar-link-icon">▦</span><span class="sidebar-link-text"><strong>คลังยา</strong></span></a>
+      <a href="#activity" class="sidebar-link"><span class="sidebar-link-icon">◷</span><span class="sidebar-link-text"><strong>ประวัติ</strong></span></a>
+      <a href="#gallery" class="sidebar-link"><span class="sidebar-link-icon">▧</span><span class="sidebar-link-text"><strong>รูปภาพ</strong></span></a>
+    </nav>
+    <div class="sidebar-user">
+      <span class="sidebar-user-icon">●</span>
+      <div>
+        <strong class="t4m-profile-role">กำลังตรวจสอบสิทธิ์</strong>
+        <span class="t4m-profile-name">บัญชีผู้ดูแล</span>
+      </div>
+    </div>
+    <button type="button" id="sidebarToggle" hidden aria-label="สลับเมนู">☰</button>
+  </aside>
+
+  <div class="app-content">
+    <header class="main-header t21-topbar">
+      <div class="header-title"><span class="header-kicker">TIME4MED / CARE CENTER</span><strong>ดูแลการรับยาได้ในที่เดียว</strong></div>
+      <div class="header-right">
+        <div class="header-clock"><strong id="currentTime">--:--</strong><span id="currentDate">เวลาประเทศไทย</span></div>
+        <div class="header-connection"><span class="status-indicator"></span><span id="mqttConnectionLabel">กำลังเชื่อมต่อ Apps Script</span></div>
+      </div>
+    </header>
+    <main id="dashboard" class="dashboard-container" aria-live="polite">
+      <div class="gas-heading"><h1>ภาพรวมการดูแลวันนี้</h1><p>กรุณาเข้าสู่ระบบเพื่อดูข้อมูลที่ได้รับสิทธิ์</p></div>
+    </main>
+    <footer class="main-footer">Time4Med · ดูแลด้วยข้อมูลจากระบบจริง <span>© 2026</span></footer>
+  </div>
+
+  <!-- Reuse the existing audited OTP/session/API implementation. No hardware, GAS or LINE changes. -->
+  <script defer src="../test-v021/gas-only.js?v=20261112-formrpc-r3-session"></script>
+</body>
+</html>
