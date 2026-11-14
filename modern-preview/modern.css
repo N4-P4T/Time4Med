@@ -1,0 +1,141 @@
+/* Time4Med modern UI preview. This CSS never changes permissions or device behavior. */
+:root{--navy:#0d2b4e;--navy2:#143c68;--blue:#2563eb;--blue-pale:#eef5ff;--mint:#10b981;--ink:#17324d;--muted:#6b8095;--border:#dfebf5;--paper:#fff;--bg:#f5f8fc;--shadow:0 8px 28px rgba(25,60,100,.055);}
+*,*::before,*::after{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;min-height:100vh;background:var(--bg);color:var(--ink);font:15px/1.68 system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans Thai",Tahoma,sans-serif;-webkit-font-smoothing:antialiased}
+button,input,select,textarea{font:inherit}
+a{color:var(--blue)}
+[hidden]{display:none!important}
+body.t4m-auth-locked>:not(#t4mAuthScreen){visibility:hidden!important}
+body:not(.t4m-auth-locked)>#t4mAuthScreen{display:none!important}
+
+/* Login: keep original server-authenticated email OTP flow */
+.t4m-auth-screen{position:fixed;inset:0;z-index:9999;display:grid;place-items:center;padding:20px;background:radial-gradient(circle at 22% 5%,#274e79 0,transparent 41%),linear-gradient(140deg,#0b2543,#143d69);overflow:auto}
+.t4m-auth-card.gas-login{width:min(100%,435px);padding:34px;background:var(--paper);border:1px solid #d9e9fb;border-radius:24px;box-shadow:0 26px 80px #04152d55;text-align:center}
+.gas-login h1{margin:5px 0;font-size:30px;letter-spacing:-.6px;color:var(--navy)}
+.gas-login p{margin:4px 0 15px;color:var(--muted)}
+.gas-login label{text-align:left;color:var(--ink);font-weight:700;margin:13px 0 5px}
+.gas-login input{min-height:46px;border:1px solid #d4e2f0;border-radius:12px;padding:12px;background:#fff}
+.gas-login .gas-btn{min-height:46px;border-radius:12px}
+.t4m-auth-logo{width:68px;height:68px;object-fit:contain}
+.gas-login small{color:var(--muted);font-size:12px}
+.gas-direct-fallback{border-radius:12px}
+
+/* Fixed left navigation on desktop */
+.sidebar{position:fixed;inset:0 auto 0 0;width:238px;padding:24px 14px 18px;display:flex;flex-direction:column;background:linear-gradient(175deg,var(--navy),#092543);color:#fff;z-index:30;box-shadow:4px 0 28px #0925430c}
+.sidebar-brand{display:flex;align-items:center;gap:10px;padding:5px 11px 26px;border-bottom:1px solid #ffffff1e}
+.sidebar-logo{width:48px;height:48px;object-fit:contain;border-radius:13px;background:#fff}
+.sidebar-brand-text strong{display:block;color:#fff;font-size:21px;line-height:1.2;letter-spacing:-.3px}
+.sidebar-brand-text span{display:block;color:#a7c8ea;font-size:11px;letter-spacing:.05em}
+.sidebar-navigation{display:flex;flex-direction:column;gap:5px;overflow-y:auto;padding:26px 0 14px;min-height:0}
+.sidebar-link{display:flex;align-items:center;gap:13px;min-height:47px;padding:8px 13px;border:1px solid transparent;border-radius:13px;text-decoration:none;color:#c8dcf1;transition:background .16s ease,color .16s ease}
+.sidebar-link:hover,.sidebar-link:focus-visible{background:#ffffff14;color:white}
+.sidebar-link.active{color:white;background:#2b5f9b;border-color:#6aa4d750;box-shadow:inset 3px 0 #9ce8ee}
+.sidebar-link-icon{width:25px;display:inline-flex;justify-content:center;font-size:20px;font-weight:700}
+.sidebar-link-text strong{font-size:14px;font-weight:700;white-space:nowrap}
+.sidebar-user{margin-top:auto;display:flex;align-items:center;gap:10px;padding:13px 12px;border:1px solid #ffffff21;border-radius:15px;background:#ffffff0c;min-width:0}
+.sidebar-user-icon{color:#58d4ad;font-size:18px}
+.sidebar-user>div{min-width:0}.sidebar-user strong,.sidebar-user span.t4m-profile-name{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.sidebar-user strong{font-size:12px;color:#fff}.sidebar-user span.t4m-profile-name{font-size:11px;color:#aec8e6}
+#sidebarToggle{display:none}
+.app-content{min-width:0;margin-left:238px;min-height:100vh;display:flex;flex-direction:column}
+
+/* Compact top bar */
+.main-header.t21-topbar{position:sticky;top:0;z-index:20;display:flex;align-items:center;justify-content:space-between;gap:18px;min-height:91px;padding:17px clamp(20px,4vw,54px);background:#fffffff5;backdrop-filter:blur(14px);border-bottom:1px solid var(--border)}
+.header-title{display:flex;flex-direction:column;gap:1px}.header-title strong{color:var(--navy);font-size:20px;font-weight:800;line-height:1.32}
+.header-kicker{font-size:10px;font-weight:800;letter-spacing:.13em;color:#4d83ba}
+.header-right{display:flex;align-items:center;gap:17px}
+.header-clock{display:flex;flex-direction:column;align-items:flex-end;border-right:1px solid var(--border);padding-right:17px;white-space:nowrap}
+.header-clock strong{font-size:19px;font-variant-numeric:tabular-nums;line-height:1.22;color:var(--navy)}
+.header-clock span{font-size:11px;color:var(--muted)}
+.header-connection{display:flex;align-items:center;gap:8px;max-width:275px;border:1px solid #d9e8f5;background:#f2f8ff;color:#476582;border-radius:99px;padding:7px 12px;font-size:11px;font-weight:650;line-height:1.5}
+.status-indicator{flex:0 0 7px;height:7px;border-radius:50%;background:#62a5e0}
+.t4m-userbar{position:fixed;right:20px;bottom:18px;z-index:50;display:flex;align-items:center;gap:9px;border:1px solid #d9e8f5;border-radius:30px;background:#fff;box-shadow:0 6px 25px #0c284918;padding:6px 7px 6px 13px;font-size:11px;color:var(--muted)}
+.t4m-userbar span{max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.t4m-userbar button{border:0;border-radius:25px;padding:7px 12px;background:#e9f1fb;color:var(--navy);font-weight:700;cursor:pointer}
+
+/* Main / cards */
+.dashboard-container{flex:1;width:100%;max-width:1450px;margin:0 auto;padding:28px clamp(18px,4vw,54px) 44px;min-height:60vh}
+.gas-meta{display:flex;align-items:center;justify-content:space-between;gap:14px;margin-bottom:20px;font-size:12px;color:var(--muted)}
+.gas-heading{margin:6px 0 23px}.gas-heading h1{font-size:clamp(24px,2.2vw,32px);font-weight:850;letter-spacing:-.65px;color:var(--navy);line-height:1.35;margin:0 0 6px}.gas-heading p{margin:0;color:var(--muted);font-size:13px}
+.t21-heading{padding:24px 28px;background:linear-gradient(115deg,#124471 0%,#1f6099 68%,#2d86a0 100%);border:1px solid #ffffff39;border-radius:22px;color:#fff;margin-bottom:20px;box-shadow:var(--shadow)}
+.t21-heading h1{margin:4px 0 7px;color:#fff;font-size:clamp(24px,2.8vw,32px);line-height:1.33;letter-spacing:-.5px}
+.t21-heading .t21-eyebrow{margin:0;font-size:10px;font-weight:800;letter-spacing:.14em;color:#cbeeff}
+.t21-heading-description{margin:0;color:#e4f4ff;font-size:13px}
+.t21-kpis{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:16px;margin:0 0 23px}
+.t21-kpi{background:#fff;border:1px solid var(--border);border-radius:18px;padding:17px;min-width:0;box-shadow:var(--shadow)}
+.t21-kpi-top{display:flex;align-items:center;gap:10px;margin-bottom:12px}
+.t21-kpi-icon{display:grid;place-items:center;flex:0 0 38px;width:38px;height:38px;background:#ecf5ff;color:#235ba1;border-radius:12px;font-size:20px}
+.t21-kpi-label{font-size:12px;font-weight:750;color:#617b95;line-height:1.4}
+.t21-kpi-value{font-size:clamp(24px,2.6vw,37px);line-height:1.2;color:var(--navy);font-weight:850;font-variant-numeric:tabular-nums;margin-bottom:8px}
+.t21-kpi small{display:block;line-height:1.45;color:var(--muted);font-size:11px;min-height:30px}
+.gas-panel.panel-card{border:1px solid var(--border);border-radius:18px;background:#fff;box-shadow:var(--shadow);overflow:hidden;margin-bottom:18px;min-width:0}
+.gas-panel .panel-heading{padding:17px 22px;border-bottom:1px solid #eaf1f8;background:linear-gradient(180deg,#fff,#fbfdff)}
+.gas-panel h2{color:var(--navy);font-size:16px;font-weight:800;line-height:1.45;margin:0}
+.gas-panel-body{padding:19px 22px;line-height:1.8}
+.gas-panel-body>p{margin:0 0 12px}
+.gas-panel-body a{font-weight:650}
+.gas-muted{color:var(--muted);font-size:13px;line-height:1.75}
+.gas-scroll{overflow:auto;border:1px solid #e7eef6;border-radius:12px}
+.gas-table{border-collapse:collapse;width:100%;min-width:520px;font-size:13px}
+.gas-table th,.gas-table td{text-align:left;padding:13px 11px;border-bottom:1px solid #e9f0f6;vertical-align:top}
+.gas-table th{background:#f4f8fd;color:#496983;white-space:nowrap;font-size:12px;font-weight:750}
+.gas-table tr:last-child td{border-bottom:0}
+.gas-table tbody tr:hover{background:#f8fbff}
+.gas-btn{appearance:none;border:0;display:inline-flex;align-items:center;justify-content:center;gap:6px;background:#2668b4;border-radius:11px;padding:10px 16px;min-height:42px;color:#fff;cursor:pointer;font-size:13px;font-weight:750;text-decoration:none}
+.gas-btn:hover{background:#15549a}
+.gas-btn.light{background:#eaf3fe;color:#1d5c9e}
+.gas-btn.danger{background:#a93d50;color:#fff}
+.gas-btn:disabled{opacity:.52;cursor:not-allowed}
+.gas-form{display:grid;gap:14px;max-width:780px}
+.gas-form label{display:grid;gap:6px;font-size:13px;color:#31506d;font-weight:700}
+.gas-form input:not([type=checkbox]),.gas-form select,.gas-form textarea{width:100%;background:#fff;border:1px solid #ccdcea;border-radius:11px;min-height:44px;padding:11px}
+.gas-form input:focus,.gas-form select:focus,.gas-form textarea:focus{outline:2px solid #99c3fb;outline-offset:1px}
+.gas-days{display:flex;flex-wrap:wrap;gap:8px}.gas-day{display:flex!important;flex-direction:row;align-items:center;gap:5px!important;border:1px solid #e1ebf4;border-radius:9px;padding:6px 11px;background:#fafcff;font-size:12px}
+.gas-day input{width:auto}.gas-actions{display:flex;gap:10px;flex-wrap:wrap}
+.gas-gallery{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:13px}
+.gas-photo{min-width:0;background:#fbfdff;border:1px solid #e2ecf7;border-radius:15px;padding:14px}
+.gas-image{max-width:100%;height:auto;border-radius:10px}
+#gasPageMessage{white-space:pre-wrap;font-size:13px;font-weight:700;color:#128267}
+#gasPageMessage.bad,.bad{color:#af2944!important}
+.main-footer{max-width:1450px;margin:0 auto;width:100%;padding:16px clamp(18px,4vw,54px) 38px;border-top:1px solid var(--border);font-size:11px;color:#8295aa;display:flex;justify-content:space-between;gap:14px}
+a:focus-visible,button:focus-visible{outline:3px solid #78b5fa;outline-offset:3px}
+@media(max-width:1200px){.t21-kpis{grid-template-columns:repeat(2,minmax(0,1fr))}.sidebar{width:205px}.app-content{margin-left:205px}}
+@media(max-width:860px){
+ .sidebar{inset:auto 0 0;width:100%;height:72px;display:block;padding:5px 4px calc(5px + env(safe-area-inset-bottom,0px));background:#092a4c;box-shadow:0 -4px 28px #10284424}
+ .sidebar-brand,.sidebar-user{display:none}
+ .sidebar-navigation{display:flex;flex-direction:row;gap:3px;padding:0;overflow-x:auto;overflow-y:hidden;scrollbar-width:none;scroll-snap-type:x proximity}
+ .sidebar-navigation::-webkit-scrollbar{display:none}
+ .sidebar-link{flex:0 0 76px;min-height:59px;padding:6px 3px;display:flex;flex-direction:column;gap:0;justify-content:center;text-align:center;border-radius:10px;scroll-snap-align:center}
+ .sidebar-link.active{box-shadow:inset 0 3px #8cdbef;border-color:#ffffff35}
+ .sidebar-link-icon{height:25px;line-height:25px;font-size:19px}
+ .sidebar-link-text strong{display:block;font-size:10px;white-space:nowrap}
+ .app-content{margin-left:0;padding-bottom:80px}
+ .main-header.t21-topbar{min-height:69px;padding:13px 18px}
+ .header-title strong{font-size:16px}
+ .header-kicker{font-size:9px}
+ .header-clock{display:none}
+ .header-connection{max-width:190px;font-size:10px}
+ .t4m-userbar{position:fixed;bottom:80px;right:12px}
+ .dashboard-container{padding:20px 15px 30px}
+ .gas-panel .panel-heading{padding:15px 17px}.gas-panel-body{padding:15px}
+ .main-footer{padding:15px 15px 28px}
+}
+@media(max-width:540px){
+ .header-title strong{font-size:15px}
+ .header-connection{max-width:135px;padding:5px 8px;font-size:9px}
+ .t21-heading{padding:20px 18px;border-radius:17px}
+ .t21-kpis{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+ .t21-kpi{padding:13px;border-radius:14px}
+ .t21-kpi-label{font-size:10px}.t21-kpi-value{font-size:27px}
+ .t21-kpi-icon{width:30px;height:30px;flex-basis:30px;font-size:17px}
+ .t21-kpi small{font-size:10px}
+ .gas-meta{flex-wrap:wrap;gap:7px}
+ .gas-panel h2{font-size:15px}
+ .gas-table{font-size:12px}
+ .gas-table th,.gas-table td{padding:10px}
+ .gas-actions .gas-btn{flex:1}
+ .t4m-userbar span{max-width:110px}
+ .main-footer{flex-direction:column}
+}
+@media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}.sidebar-link{transition:none}}
