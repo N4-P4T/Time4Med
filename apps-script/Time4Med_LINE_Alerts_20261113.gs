@@ -148,19 +148,100 @@ function t4mlConfirmed_(ctx,startMs){
       '\n(ยืนยันการกดปุ่ม ไม่ใช่หลักฐานว่ากลืนยาแล้ว)');
   });
 }
+/**
+ * Classify door opening by the actual scheduled meal time from MealMedicines.
+ * The window is the due minute through 30 minutes afterward, inclusive.
+ * Check the actual scheduled calendar day (including previous day at midnight).
+ * This classification does NOT mean medication intake is confirmed.
+ */
+function t4mlDoorMealMatches_(atMs,medicineRows){
+  var minutes=Math.floor(atMs/60000);
+  var date0=Utilities.formatDate(new Date(atMs),T4ML.tz,'yyyy-MM-dd');
+  var date1=Utilities.formatDate(new Date(atMs-24*60*60000),T4ML.tz,'yyyy-MM-dd');
+  var dates=[date0,date1],dayNames=['SUN','MON','TUE','WED','THU','FRI','SAT'];
+  var mealLabels={1:'ก่อนอาหารเช้า',2:'หลังอาหารเช้า',3:'ก่อนอาหารกลางวัน',
+                  4:'หลังอาหารกลางวัน',5:'ก่อนอาหารเย็น',6:'หลังอาหารเย็น',7:'ก่อนนอน'};
+  var found=[],seen={};
+  medicineRows.forEach(function(row){
+    var d=row.data,patient=t4mlUpper_(d.patient_id),name=t4mlTrim_(d.name);
+    var id=t4mlTrim_(d.record_id),meal=Number(d.meal_type);
+    if(!id||!['P001','P002','P003'].includes(patient)||
+       !t4mlBool_(d.is_active)||t4mlUpper_(d.kind)==='PRN'||
+       !Number.isInteger(meal)||meal<1||meal>7||
+       /^(TEST|DEMO|LINECHECK)[_\s-]/i.test(name)||
+       /^(TEST|DEMO|LINECHECK)[_\s-]/i.test(id))return;
+    var time=t4mlTrim_(d.reminder_time);
+    var match=/^(\d{1,2}):([0-5]\d)(?::00)?$/.exec(time);
+    if(!match||Number(match[1])>23)return;
+    time=('0'+Number(match[1])).slice(-2)+':'+match[2];
+    var days=t4mlUpper_(d.reminder_days).replace(/\s/g,'');
+    var allDays=!days||days==='ALL'||days==='EVERYDAY';
+    var allowed=allDays?[]:days.split(',');
+    if(!allDays&&(!allowed.length||allowed.some(function(x){
+      return ['SUN','MON','TUE','WED','THU','FRI','SAT'].indexOf(x)===-1;
+    })))return;
+    dates.forEach(function(date){
+      var dueMs=Date.parse(date+'T'+time+':00+07:00');
+      if(!Number.isFinite(dueMs))return;
+      var dueDay=dayNames[Number(Utilities.formatDate(new Date(dueMs),T4ML.tz,'u'))%7];
+      if(!allDays&&allowed.indexOf(dueDay)===-1)return;
+      var dueMinute=Math.floor(dueMs/60000);
+      if(minutes<dueMinute||minutes>dueMinute+30)return;
+      var unique=patient+':'+meal+':'+date+':'+time;
+      if(seen[unique])return;
+      seen[unique]=true;
+      found.push({patient:patient,meal:mealLabels[meal],time:time});
+    });
+  });
+  return found;
+}
+function t4mlDoorTimeLabel_(atMs){
+  return Utilities.formatDate(new Date(atMs),T4ML.tz,'dd/MM/yyyy HH:mm')+' น.';
+}
 function t4mlDoor_(ctx,startMs){
   var logs=t4mlTable_('ActivityLog',4,T4ML.scanRows).rows;
+  // Opening time, rather than closing time, classifies the entire door cycle.
+  var medicines=null,lastOpen=null;
   logs.forEach(function(r){
     var d=r.data,kind=t4mlUpper_(d.event_type),at=t4mlParse_(d.occurred_at);
     if(!['DOOR_OPEN','DOOR_CLOSED'].includes(kind)||
-       t4mlTrim_(d.device_id)!=='S3-001'||
-       !Number.isFinite(at)||at<startMs||at>ctx.now.getTime())return;
+       t4mlTrim_(d.device_id)!=='S3-001'||!Number.isFinite(at))return;
+    var opened=kind==='DOOR_OPEN',matches=null;
+    if(opened){
+      if(medicines===null)medicines=t4mlTable_('MealMedicines',1,500).rows;
+      matches=t4mlDoorMealMatches_(at,medicines);
+      lastOpen={at:at,matches:matches};
+    }else{
+      if(lastOpen && at>=lastOpen.at && at-lastOpen.at<=12*60*60000)
+        matches=lastOpen.matches;
+      lastOpen=null;
+    }
+    if(at<startMs||at>ctx.now.getTime())return;
     var event=t4mlTrim_(d.event_id);
     if(!event)return;
-    var opened=kind==='DOOR_OPEN';
-    t4mlSendPatient_(ctx,'DOOR:'+event,'ALL',kind,
-      (opened?'🚪 Time4Med: มีการเปิดประตูตู้ยา':'✅ Time4Med: ประตูตู้ยาปิดแล้ว')+
-      '\nเวลา '+t4mlStamp_(new Date(at)));
+    var message;
+    if(opened && matches.length){
+      var lines=matches.slice(0,5).map(function(x){
+        return '• '+x.patient+' '+x.meal+' ('+x.time+' น.)';
+      });
+      if(matches.length>5)lines.push('และอีก '+(matches.length-5)+' มื้อยา');
+      message='✅ Time4Med | เปิดประตูตู้ยาในช่วงเวลารับยา'+
+        '\nเวลาเปิด: '+t4mlDoorTimeLabel_(at)+
+        '\nมื้อยาที่ตรงช่วงเวลา:\n'+lines.join('\n')+
+        '\n(เปิดประตูไม่ได้หมายความว่ายืนยันรับยาแล้ว)';
+    }else if(opened){
+      message='⚠️ Time4Med | เปิดประตูตู้ยานอกเวลารับยา'+
+        '\nเวลาเปิด: '+t4mlDoorTimeLabel_(at)+
+        '\nไม่มีมื้อยาที่กำหนดในช่วงเวลานี้'+
+        '\n(เปิดประตูไม่ได้หมายความว่ายืนยันรับยาแล้ว)';
+    }else{
+      message='✅ Time4Med | ประตูตู้ยาปิดแล้ว'+
+        '\nเวลาปิด: '+t4mlDoorTimeLabel_(at);
+      if(matches!==null)
+        message+='\nการเปิดครั้งนี้: '+
+          (matches.length?'อยู่ในช่วงเวลารับยา':'นอกเวลารับยา');
+    }
+    t4mlSendPatient_(ctx,'DOOR:'+event,'ALL',kind,message);
   });
 }
 function t4mlUnconfirmed_(ctx,startMs){
