@@ -2,7 +2,7 @@
  * No real Google account, network, patient records or emails touched. */
 'use strict';
 const fs=require('node:fs'),vm=require('node:vm'),assert=require('node:assert/strict');
-const source=fs.readFileSync('test-v021/gas-only.js','utf8');
+const source=fs.readFileSync('modern-preview/gas-only.js','utf8');
 const begin=source.indexOf('async function verifyRpcBeforeLogin(){');
 const end=source.indexOf("window.addEventListener('message'",begin);
 assert.ok(begin>0&&end>begin,'backend probe exists');

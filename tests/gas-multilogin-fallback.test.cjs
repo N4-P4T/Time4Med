@@ -39,7 +39,7 @@ async function main(){
     }
     return route.abort();
   });
-  await page.goto(GH+'/Time4Med/test-v021/',{waitUntil:'domcontentloaded'});
+  await page.goto(GH+'/Time4Med/modern-preview/',{waitUntil:'domcontentloaded'});
   await page.waitForFunction(()=>document.querySelector('#gasConnectState')?.textContent==='เชื่อมต่อ Apps Script แล้ว',{timeout:18000});
   assert.deepEqual(calls,[null,'0'],'should only try default and authuser=0');
   assert.match(await page.locator('#gasStatus').innerText(),/เชื่อมต่อระบบสำเร็จ/);

@@ -285,7 +285,7 @@ function handleOtpTransportError(err,operation){
 function startAuth(){
   const box=$('t4mAuthScreen');
   if(API_URL){
-    box.innerHTML='<div class="t4m-auth-card gas-login"><img src="../test-v019/logo.png" class="t4m-auth-logo" alt="Time4Med">'+
+    box.innerHTML='<div class="t4m-auth-card gas-login"><img src="logo.png" class="t4m-auth-logo" alt="Time4Med">'+
       '<h1>Time4Med</h1><p>เข้าสู่ระบบด้วยชื่อผู้ใช้และรหัสผ่าน</p>'+
       '<form id="gasPasswordLogin"><label for="gasUsername">ชื่อผู้ใช้งาน</label><input id="gasUsername" autocomplete="username" required maxlength="120">'+
       '<label for="gasPassword">รหัสผ่าน</label><input id="gasPassword" type="password" autocomplete="current-password" required>'+
@@ -306,7 +306,7 @@ function startAuth(){
     });
     return;
   }
-  box.innerHTML='<div class="t4m-auth-card gas-login"><img src="../test-v019/logo.png" class="t4m-auth-logo" alt="Time4Med">'+
+  box.innerHTML='<div class="t4m-auth-card gas-login"><img src="logo.png" class="t4m-auth-logo" alt="Time4Med">'+
   '<h1>Time4Med</h1><p>เข้าสู่ระบบผู้ดูแลด้วยอีเมล OTP</p>'+
   '<form id="gasOtpRequest"><label for="gasEmail">อีเมลที่ได้รับสิทธิ์</label><input id="gasEmail" type="email" autocomplete="email" required placeholder="name@example.com">'+
   '<button type="submit" class="gas-btn">ส่งรหัสเข้าอีเมล</button></form>'+
@@ -868,7 +868,7 @@ function render(){
     a.innerHTML='<span class="sidebar-link-icon">⚙</span><span class="sidebar-link-text"><strong>จัดการระบบ</strong><small>ADMIN</small></span>';
     document.querySelector('.sidebar-navigation').appendChild(a);
   }
-  text('mqttConnectionLabel','ข้อมูลจาก '+(API_URL?'API':'Apps Script'));
+  text('deviceConnectionLabel','ข้อมูลจาก '+(API_URL?'API':'Apps Script'));
   const f=$('gasMedicineForm');if(f)f.addEventListener('submit',saveMedicine);
   const uf=$('gasUserForm');if(uf)uf.addEventListener('submit',saveUser);
   const lf=$('gasLineRecipientForm');if(lf)lf.addEventListener('submit',saveLineRecipientForm);

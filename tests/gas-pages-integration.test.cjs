@@ -50,7 +50,7 @@ async function main(){
    }
    unexpected.push(route.request().url());return route.abort();
   });
-  await page.goto(GH+'/Time4Med/test-v021/',{waitUntil:'domcontentloaded'});
+  await page.goto(GH+'/Time4Med/modern-preview/',{waitUntil:'domcontentloaded'});
   await page.waitForFunction(()=>document.querySelector('#gasConnectState')?.textContent==='เชื่อมต่อ Apps Script แล้ว',{timeout:15000});
   await page.locator('#gasEmail').fill('time4med.project@gmail.com');
   await page.locator('#gasOtpRequest button').click();
@@ -58,7 +58,7 @@ async function main(){
   await page.locator('#gasOtp').fill('123456');
   await page.locator('#gasOtpVerify button').click();
   await page.waitForSelector('.t21-kpi-value');
-  assert.deepEqual(await page.locator('.t4m-profile-role').allTextContents(),['แอดมิน (ADMIN)','แอดมิน (ADMIN)']);
+  assert.deepEqual(await page.locator('.t4m-profile-role').allTextContents(),['แอดมิน (ADMIN)']);
   assert.equal(await page.locator('.sidebar-navigation a[href="#admin"]').count(),1,'ADMIN menu is present only for verified admin');
   assert.match(await page.locator('#dashboard').innerText(),/ผู้สูงอายุในสิทธิ์/);
   await page.locator('a[href="#medication"]').click();
@@ -110,16 +110,16 @@ async function main(){
         if(!local.startsWith(root+path.sep))return route.abort();
         try{
           const body=fs.readFileSync(local);
-          return route.fulfill({status:200,body,contentType:local.endsWith('.js')?'application/javascript':local.endsWith('.css')?'text/css':'text/html'});
+          return route.fulfill({status:200,body,contentType:local.endsWith('.js')?'application/javascript':local.endsWith('.css')?'text/css':local.endsWith('.png')?'image/png':'text/html'});
         }catch(_){return route.fulfill({status:404,body:'missing fixture'});}
       }
       return route.abort();
     });
-    for(const entry of ['/Time4Med/','/Time4Med/test-v021/']){
+    for(const entry of ['/Time4Med/','/Time4Med/modern-preview/']){
       await mobile.goto(GH+entry,{waitUntil:'commit'}).catch(error=>{
         if(!/net::ERR_(?:ABORTED|FAILED)/.test(String(error)))throw error;
       });
-      await mobile.waitForURL(url=>url.origin===GH&&url.pathname==='/Time4Med/test-v021/',{timeout:10000});
+      await mobile.waitForURL(url=>url.origin===GH&&url.pathname==='/Time4Med/modern-preview/',{timeout:10000});
       await mobile.locator('#gasOtpRequest').waitFor({timeout:10000});
       assert.equal(await mobile.locator('#gasOtpRequest').count(),1,
         device+' '+entry+' opens GitHub Pages OTP UI instead of broken GAS redirect');

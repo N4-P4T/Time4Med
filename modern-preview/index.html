@@ -6,13 +6,13 @@
   <meta name="theme-color" content="#126d70">
   <meta name="description" content="Time4Med — จัดการตารางยา ติดตามสถานะตู้ และดูประวัติการแจ้งเตือน">
   <title>Time4Med | ศูนย์ดูแล</title>
-  <link rel="stylesheet" href="../test-v021/gas-only.css">
+  <link rel="stylesheet" href="gas-only.css">
   <link rel="stylesheet" href="modern.css?v=2-medical-modern">
 </head>
 <body class="t4m-auth-locked">
   <section class="t4m-auth-screen" id="t4mAuthScreen" aria-label="เข้าสู่ระบบ Time4Med">
     <div class="t4m-auth-card gas-login">
-      <img src="../test-v019/logo.png" alt="Time4Med" class="t4m-auth-logo">
+      <img src="logo.png" alt="Time4Med" class="t4m-auth-logo">
       <h1>Time4Med</h1><p>กำลังโหลดระบบเข้าสู่ระบบ...</p>
     </div>
   </section>
@@ -24,7 +24,7 @@
 
   <aside class="sidebar" aria-label="เมนูเว็บไซต์">
     <div class="sidebar-brand">
-      <img src="../test-v019/logo.png" alt="" class="sidebar-logo">
+      <img src="logo.png" alt="" class="sidebar-logo">
       <div class="sidebar-brand-text">
         <strong>Time4Med</strong>
         <span>Care Center</span>
@@ -53,7 +53,7 @@
       <div class="header-title"><span class="header-kicker">TIME4MED / CARE CENTER</span><strong>ดูแลการรับยาได้ในที่เดียว</strong></div>
       <div class="header-right">
         <div class="header-clock"><strong id="currentTime">--:--</strong><span id="currentDate">เวลาประเทศไทย</span></div>
-        <div class="header-connection"><span class="status-indicator"></span><span id="mqttConnectionLabel">กำลังเชื่อมต่อ Apps Script</span></div>
+        <div class="header-connection"><span class="status-indicator"></span><span id="deviceConnectionLabel">กำลังเชื่อมต่อ Apps Script</span></div>
       </div>
     </header>
     <main id="dashboard" class="dashboard-container" aria-live="polite">
@@ -63,6 +63,6 @@
   </div>
 
   <!-- Reuse the existing audited OTP/session/API implementation. No hardware, GAS or LINE changes. -->
-  <script defer src="../test-v021/gas-only.js?v=20261114-status-label"></script>
+  <script defer src="gas-only.js?v=20261126-gas-cleanup"></script>
 </body>
 </html>
