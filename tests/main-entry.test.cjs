@@ -1,44 +1,21 @@
-/** Main GitHub Pages entry must not connect to legacy MQTT or claim a deployment before it exists. */
 'use strict';
-const assert=require('node:assert/strict');
-const fs=require('node:fs');
-const {spawn}=require('node:child_process');
-const {chromium}=require('playwright');
-const root='http://127.0.0.1:8899/';
-const html=fs.readFileSync('index.html','utf8');
-if (html.includes('GitHub Pages + Google Apps Script')) {
-  assert.match(html,/href="\.\/test-v021\/"/,'GitHub Pages points to caregiver dashboard');
-  assert.doesNotMatch(html,/mqtt\.min\.js|hivemq\.cloud|workers\.dev/i);
-  console.log('PASS: GitHub Pages is the GAS-only caregiver entry, without old brokers');
-  process.exit(0);
+const fs=require('node:fs'), assert=require('node:assert/strict'), path=require('node:path'), vm=require('node:vm');
+const entry=fs.readFileSync('index.html','utf8'), html=fs.readFileSync('modern-preview/index.html','utf8');
+assert.match(entry,/href="\.\/modern-preview\/"/);
+assert.match(entry,/window\.location\.replace/);
+assert.doesNotMatch(entry+html,/hivemq\.cloud|workers\.dev|mqtt\.min\.js|test-v0\d+/i);
+for(const match of html.matchAll(/(?:src|href)="([^"#]+)"/g)){
+ const target=match[1].split('?')[0];
+ assert.ok(!/^https?:/.test(target),'unexpected external asset');
+ assert.ok(fs.existsSync(path.join('modern-preview',target)),target);
 }
-
-const oldConfig=fs.readFileSync('mqtt-config.js','utf8');
-assert.match(html,/Time4Med/);
-assert.doesNotMatch(html,/(?:test-v021\/|mqtt-config\.js|mqtt\.min\.js|Cloudflare|hivemq\.cloud)/i,
-  'release root must not load legacy MQTT, Cloudflare or staging entry');
-assert.doesNotMatch(oldConfig,/\bpassword\s*:/i,'never put broker password into public source');
-assert.match(html,/PASTE_APPS_SCRIPT_WEB_APP_URL_HERE|script\.google\.com\/macros\/s\//,
-  'root must contain GAS URL placeholder or configured GAS URL');
-async function wait(){for(let i=0;i<40;i++){try{if((await fetch(root,{signal:AbortSignal.timeout(1000)})).ok)return;}catch{} await new Promise(r=>setTimeout(r,150));}throw Error('local server unavailable');}
-async function main(){
-  const server=spawn('python3',['-m','http.server','8899','--bind','127.0.0.1'],{stdio:'ignore'});
-  let browser;
-  try{
-    await wait();browser=await chromium.launch({headless:true,args:['--no-sandbox']});
-    const ctx=await browser.newContext({viewport:{width:390,height:844}});
-    const page=await ctx.newPage(),errors=[];
-    page.on('pageerror',e=>errors.push(String(e)));
-    await page.route('**/*',route=>route.request().url().startsWith(root)?route.continue():route.abort());
-    await page.goto(root,{waitUntil:'domcontentloaded'});
-    await page.locator('#enter').waitFor({state:'visible'});
-    const link=page.locator('#enter'),href=await link.getAttribute('href');
-    if(html.includes('PASTE_APPS_SCRIPT_WEB_APP_URL_HERE')){
-      assert.equal(href,null,'entry must be disabled until GAS deployment URL is configured');
-      assert.equal(await link.getAttribute('aria-disabled'),'true');
-    } else assert.match(href||'',/^https:\/\/script\.google\.com\/macros\/s\/[\w-]+\/exec$/);
-    assert.deepEqual(errors,[]);
-    await ctx.close();console.log('PASS: safe GAS entry on mobile viewport');
-  }finally{if(browser)await browser.close();server.kill();}
-}
-main().catch(e=>{console.error(e);process.exitCode=1;});
+const js=fs.readFileSync('modern-preview/gas-only.js','utf8');
+new vm.Script(js);
+assert.doesNotMatch(js,/hivemq\.cloud|workers\.dev|test-v0\d+|mqttConnectionLabel/i);
+assert.match(js,/const API_URL='';/);
+assert.match(js,/script\.google\.com\/macros\/s\//);
+assert.match(html,/id="deviceConnectionLabel"/);
+assert.match(js,/deviceConnectionLabel/);
+assert.ok(fs.existsSync('modern-preview/logo.png'));
+for(const p of ['mqtt-config.js','test-v018','test-v019','test-v020','test-v021','.github/workflows/mqtt-live-check.yml'])assert.ok(!fs.existsSync(p),p);
+console.log('PASS: actual Medical Modern entry, local assets, GAS-only script, no retired runtime files');

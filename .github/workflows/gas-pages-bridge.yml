@@ -1,10 +1,9 @@
-name: Time4Med legacy Pages and Apps Script bridge check
+name: Time4Med Medical Modern Pages and Apps Script bridge check
 on:
   pull_request:
     paths:
-      - 'test-v021/gas-only.js'
-      - 'test-v021/gas-only.css'
-      - 'test-v021/index.html'
+      - 'modern-preview/**'
+      - 'index.html'
       - 'apps-script/Bridge.html'
       - 'apps-script/Code.gs'
       - 'tests/gas-pages-integration.test.cjs'
@@ -13,10 +12,10 @@ on:
       - 'tests/gas-direct-fallback.test.cjs'
       - '.github/workflows/gas-pages-bridge.yml'
   push:
+    branches: [main]
     paths:
-      - 'test-v021/gas-only.js'
-      - 'test-v021/gas-only.css'
-      - 'test-v021/index.html'
+      - 'modern-preview/**'
+      - 'index.html'
       - 'apps-script/Bridge.html'
       - 'apps-script/Code.gs'
       - 'tests/gas-pages-integration.test.cjs'

@@ -21,7 +21,7 @@ async function main(){
    }
    return route.abort();
   });
-  await page.goto(GH+'/Time4Med/test-v021/',{waitUntil:'domcontentloaded'});
+  await page.goto(GH+'/Time4Med/modern-preview/',{waitUntil:'domcontentloaded'});
   await page.waitForSelector('#gasDirectFallback:visible',{timeout:35000});
   assert.equal(urls.length,5,'All 5 distinct Google account routing hints attempted');
   assert.equal(await page.locator('#gasFallbackNote').isVisible(),true);

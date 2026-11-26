@@ -142,8 +142,8 @@ console.log('OK: valid S3 schedule snapshot, 12 LED indices and duplicate-free e
 console.log('OK: shelf mapping, meal LEDs, Sheets time normalization, days, date parsing, caregiver permissions, cabinet-wide emergency, intake validation');
 
 /* GitHub Pages → Apps Script migration static/parse smoke checks. */
-const webClient = fs.readFileSync(path.join(__dirname, '..','test-v021','gas-only.js'),'utf8');
-const webIndex = fs.readFileSync(path.join(__dirname, '..','test-v021','index.html'),'utf8');
+const webClient = fs.readFileSync(path.join(__dirname, '..','modern-preview','gas-only.js'),'utf8');
+const webIndex = fs.readFileSync(path.join(__dirname, '..','modern-preview','index.html'),'utf8');
 const rootIndex = fs.readFileSync(path.join(__dirname, '..','index.html'),'utf8');
 const bridgeHtml = fs.readFileSync(path.join(__dirname, '..','apps-script','Bridge.html'),'utf8');
 new vm.Script(webClient,{filename:'gas-only.js'});
@@ -159,7 +159,7 @@ assert.match(bridgeHtml,/event\.origin !== allowedOrigin/);
 assert.match(bridgeHtml,/requestOtp: true, verifyOtp: true, bootstrap: true/);
 assert.match(fs.readFileSync(file,'utf8'),/setXFrameOptionsMode\(HtmlService\.XFrameOptionsMode\.ALLOWALL\)/);
 assert.match(rootIndex,/window\.location\.replace\(document\.getElementById\('enter'\)\.href\)/);
-assert.match(rootIndex,/href="\.\/test-v021\/"/);
+assert.match(rootIndex,/href="\.\/modern-preview\/"/);
 assert.doesNotMatch(rootIndex,/script\.google\.com\/macros\/s\//);
 assert.doesNotMatch(webClient,/window\.location\.replace\(WEB_APP\)/);
 equal(call('time4medWebsiteUrl_()'),'https://n4-p4t.github.io/Time4Med/');

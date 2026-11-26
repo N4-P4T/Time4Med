@@ -2,10 +2,10 @@
 
 Time4Med เป็นโครงการตู้ยาอัจฉริยะสำหรับผู้สูงอายุ โดยให้ผู้ดูแลจัดการตารางยาผ่านเว็บไซต์และติดตามข้อมูลที่ระบบบันทึกไว้
 
-## ระบบปัจจุบัน (3 พฤศจิกายน 2026)
+## ระบบปัจจุบัน (26 พฤศจิกายน 2026)
 
-- เว็บไซต์หลัก: [Time4Med GitHub Pages](https://n4-p4t.github.io/Time4Med/) → `test-v021/`
-- Frontend: `test-v021/index.html`, `test-v021/gas-only.js`, `test-v021/gas-only.css`
+- เว็บไซต์หลัก: [Time4Med GitHub Pages](https://n4-p4t.github.io/Time4Med/) → `modern-preview/`
+- Frontend: `modern-preview/index.html`, `modern-preview/gas-only.js`, `modern-preview/gas-only.css`, `modern-preview/modern.css`, `modern-preview/logo.png`
 - Backend: Google Apps Script (ต้นฉบับใน `apps-script/Code.gs`)
 - ข้อมูล: Google Sheets (รวมถึง `MealMedicines`, `Users`, `Devices`, `ActivityLog`)
 - รูปภาพหลักฐาน: Google Drive เมื่อ ESP32-CAM ส่งข้อมูลเข้าระบบได้
@@ -39,7 +39,14 @@ Heartbeat บอกเพียงว่าตู้ติดต่อ server �
 
 ## แนวทางแก้ไข
 
-- ปรับ `test-v021/gas-only.js` สำหรับ UI และ bump cache version ใน `test-v021/index.html` เพื่อให้เบราว์เซอร์โหลดไฟล์ใหม่
+- ปรับ `modern-preview/gas-only.js` สำหรับ UI และ bump cache version ใน `modern-preview/index.html` เพื่อให้เบราว์เซอร์โหลดไฟล์ใหม่
 - **การแก้ `apps-script/Code.gs` ใน GitHub ไม่ได้ Deploy Apps Script Web App ให้อัตโนมัติ** ต้องมีขั้นตอน Deploy และตรวจ version แยกต่างหาก
 - ห้ามใส่ token, รหัสผ่าน, DEVICE_API_KEY หรือ LINE Channel Access Token ใน GitHub Pages หรือ repository
 - เปลี่ยนเฉพาะสิ่งที่จำเป็นและตรวจสอบผลก่อนถือว่าเสร็จจริง
+
+## การจัดระเบียบซอร์ส 26 พฤศจิกายน 2026
+
+- URL เว็บไซต์หลักและ `modern-preview/` คงเดิม; ไฟล์หน้าเว็บที่ใช้จริงอยู่ในโฟลเดอร์เดียวกันแล้ว
+- โฟลเดอร์ทดลองและชุดทดสอบที่เลิกใช้เก็บไว้ในประวัติ Git ของ commit ก่อนปรับโครงสร้าง ไม่อยู่ในชุดไฟล์ปัจจุบัน
+- เอกสาร migration ใน `docs/` เป็นบันทึกประวัติ อาจมีชื่อไฟล์เก่า ไม่ใช่ขั้นตอนสำหรับระบบปัจจุบัน
+- การลบโค้ดเก่าไม่ใช่การยกเลิกบัญชีบริการภายนอกหรือการลบประวัติ Git; ยังต้องตรวจสอบ Apps Script deployment และทดสอบระบบจริงก่อนปิดบริการเดิม
